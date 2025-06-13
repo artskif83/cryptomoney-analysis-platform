@@ -1,54 +1,242 @@
 package artskif.trader.websocket;
 
 
+import artskif.trader.kafka.KafkaProducer;
+import io.quarkus.runtime.Startup;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
-//@ClientEndpoint
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.time.Duration;
+import jakarta.websocket.*;
+import org.jboss.logging.Logger;
+
+import javax.net.ssl.SSLSocketFactory;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+@ClientEndpoint
+@Startup
 @ApplicationScoped
 public class OKXWebSocketClient {
 
-//    private Session session;
+    // === Настройки ===
+    private static final String WS_ENDPOINT = "wss://ws.okx.com:8443/ws/v5/business"; // при необходимости замените на /public
+    private static final String WS_HOST = "ws.okx.com";
+    private static final int WS_PORT = 8443;
 
-    public void connect() {
+    private static final long RECONNECT_DELAY_MS = 5_000L;       // задержка между попытками переподключения
+    private static final long WATCHDOG_PERIOD_MS = 5_000L;       // период проверки соединения
+    private static final long INACTIVITY_RECONNECT_MS = 30_000L; // если нет сообщений дольше этого — переоткрываем
+
+    private static final Logger LOG = Logger.getLogger(OKXWebSocketClient.class);
+
+    @Inject
+    KafkaProducer producer;
+
+    private volatile Session session;
+    private final Map<String, BlockingQueue<String>> queues = new ConcurrentHashMap<>();
+    private ExecutorService kafkaExecutor;
+
+    // один общий планировщик — и для реконнекта, и для watchdog
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicBoolean reconnecting = new AtomicBoolean(false);
+    private volatile long lastActivityNanos = System.nanoTime();
+
+    @PostConstruct
+    void init() {
+        queues.put("okx-candle-1m", new LinkedBlockingQueue<>(10_000));
+        queues.put("okx-candle-1h", new LinkedBlockingQueue<>(10_000));
+        queues.put("okx-candle-4h", new LinkedBlockingQueue<>(10_000));
+        queues.put("okx-candle-1d", new LinkedBlockingQueue<>(10_000));
+
+        kafkaExecutor = Executors.newFixedThreadPool(queues.size());
+        queues.forEach((topic, queue) ->
+                kafkaExecutor.submit(() -> {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        try {
+                            String message = queue.take();
+                            producer.sendMessage(topic, message);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        } catch (Exception ex) {
+                            LOG.error("❌ Ошибка Kafka отправки: " + ex.getMessage(), ex);
+                        }
+                    }
+                })
+        );
+
+        // запускаем watchdog
+        scheduler.scheduleAtFixedRate(this::watchdog, WATCHDOG_PERIOD_MS, WATCHDOG_PERIOD_MS, TimeUnit.MILLISECONDS);
+
+        connect();
+    }
+
+    /** Периодическая проверка «живости» соединения и трафика. */
+    private void watchdog() {
         try {
-//            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-//            container.connectToServer(this, new URI("wss://example.com/ws"));
-            System.out.println("✅ WebSocket соединение установлено");
-        } catch (Exception e) {
-            e.printStackTrace();
+            final Session s = this.session;
+            if (s == null || !s.isOpen()) {
+                triggerReconnect("session is null/closed");
+                return;
+            }
+            long silenceMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastActivityNanos);
+            if (silenceMs >= INACTIVITY_RECONNECT_MS) {
+                LOG.info("⏳ Нет данных " + silenceMs + " ms — переоткрываем соединение");
+                safeCloseAndReconnect();
+            }
+        } catch (Throwable t) {
+            LOG.error("⚠️ Ошибка watchdog: " + t.getMessage(), t);
         }
     }
 
-//    @PreDestroy
-    public void cleanup() {
-//        if (session != null && session.isOpen()) {
-//            try {
-//                session.close();
-//                System.out.println("✅ WebSocket соединение закрыто");
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
+    /** Безопасно закрыть текущую сессию и запланировать переподключение. */
+    private void safeCloseAndReconnect() {
+        closeSessionQuietly();
+        triggerReconnect("forced reopen");
     }
 
-//    @OnOpen
-//    public void onOpen(Session session) {
-////        this.session = session;
-//        System.out.println("🔗 Подключение установлено");
-//    }
+    /** Коалесцированный (без дубликатов) запуск переподключения. */
+    private void triggerReconnect(String reason) {
+        if (reconnecting.compareAndSet(false, true)) {
+            LOG.info("🔁 Переподключение через 5s (" + reason + ")");
+            scheduler.schedule(() -> {
+                try {
+                    connect();
+                } finally {
+                    reconnecting.set(false);
+                }
+            }, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+        }
+    }
 
-//    @OnMessage
+    public synchronized void connect() {
+        closeSessionQuietly();
+
+        // (не блокируем на этом решении) — просто для логов, чтобы понимать, есть ли вообще выход в сеть
+        if (!isEndpointReachable(WS_HOST, WS_PORT, 1500)) {
+            LOG.info("🌐 Хост недоступен (TCP connect не удался) — пробуем подключиться всё равно");
+        }
+
+        try {
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.connectToServer(this, new URI(WS_ENDPOINT));
+            LOG.info("✅ WebSocket соединение установлено: " + WS_ENDPOINT);
+            lastActivityNanos = System.nanoTime();
+        } catch (Exception e) {
+            LOG.error("❌ Не удалось подключиться: " + e.getMessage(), e);
+            triggerReconnect("connect() failed");
+        }
+    }
+
+    @OnOpen
+    public void onOpen(Session session) {
+        this.session = session;
+        lastActivityNanos = System.nanoTime();
+
+        String subscribeMsg = """
+        {
+          "op": "subscribe",
+          "args": [
+            {"channel":"candle1m","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle1H","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle4H","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle1D","instId":"BTC-USDT-SWAP"}
+          ]
+        }""";
+        session.getAsyncRemote().sendText(subscribeMsg);
+        LOG.info("🔗 Подключение установлено и отправлены подписки");
+    }
+
+    @OnMessage
     public void onMessage(String message) {
-        System.out.println("📩 Получено сообщение: " + message);
+        lastActivityNanos = System.nanoTime(); // фиксируем «живой» трафик
+        if (LOG.isDebugEnabled()) {
+            LOG.debugf("📩 Получено сообщение: %s%n", message);
+        }
+
+        String topic = determineTopic(message);
+        if (topic != null) {
+            BlockingQueue<String> q = queues.get(topic);
+            if (q != null && !q.offer(message)) {
+                LOG.warn("⚠️ Очередь заполнена, сообщение отброшено: " + topic);
+            }
+        }
     }
 
-//    @OnClose
-//    public void onClose(Session session, CloseReason reason) {
-//        System.out.println("🔌 Соединение закрыто: " + reason);
-//    }
+    // (опционально) если сервер/прокси присылает PONG — тоже считаем это активностью
+    @OnMessage
+    public void onPong(PongMessage pong) {
+        ByteBuffer data = pong.getApplicationData();
+        lastActivityNanos = System.nanoTime();
+    }
 
-//    @OnError
-//    public void onError(Session session, Throwable t) {
-//        System.err.println("❌ Ошибка WebSocket: " + t.getMessage());
-//    }
+    private String determineTopic(String message) {
+        if (message.contains("\"channel\":\"candle1m\"")) return "okx-candle-1m";
+        if (message.contains("\"channel\":\"candle1H\"")) return "okx-candle-1h";
+        if (message.contains("\"channel\":\"candle4H\"")) return "okx-candle-4h";
+        if (message.contains("\"channel\":\"candle1D\"")) return "okx-candle-1d";
+        return null;
+    }
+
+    @OnClose
+    public void onClose(Session session, CloseReason reason) {
+        LOG.info("🔌 Соединение закрыто: " + reason);
+        LOG.infof("🔌 Код закрытия: %s, причина: %s%n", reason.getCloseCode(), reason.getReasonPhrase());
+        triggerReconnect("onClose");
+    }
+
+    @OnError
+    public void onError(Session session, Throwable t) {
+        LOG.error("❌ Ошибка WebSocket: " + t.getMessage());
+        triggerReconnect("onError");
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        LOG.info("🧹 Завершение работы приложения...");
+        if (kafkaExecutor != null) {
+            kafkaExecutor.shutdown();
+            try {
+                if (!kafkaExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    LOG.info("⚠️ Потоки не завершились вовремя, форсируем остановку...");
+                    kafkaExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                LOG.error("❌ Ожидание завершения потоков прервано");
+                kafkaExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+        closeSessionQuietly();
+        scheduler.shutdownNow();
+    }
+
+    private void closeSessionQuietly() {
+        final Session s = this.session;
+        if (s != null) {
+            try {
+                if (s.isOpen()) s.close();
+            } catch (Exception ignore) {
+            } finally {
+                this.session = null;
+            }
+        }
+    }
+
+    /** Лёгкая проверка доступности TCP-порта (для логов/диагностики). */
+    private boolean isEndpointReachable(String host, int port, int timeoutMs) {
+        try (Socket sock = SSLSocketFactory.getDefault().createSocket()) {
+            sock.connect(new InetSocketAddress(host, port), timeoutMs);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

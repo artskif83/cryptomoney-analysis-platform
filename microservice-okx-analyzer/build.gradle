@@ -1,8 +1,34 @@
+plugins {
+    id 'io.quarkus'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+test {
+    systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+}
+
 dependencies {
-    implementation enforcedPlatform("io.quarkus.platform:quarkus-bom:3.23.3")
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-minikube'
-    implementation 'io.quarkus:quarkus-kafka-client'
     implementation 'io.quarkus:quarkus-kubernetes'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:3.10.0'
     implementation 'io.quarkus:quarkus-arc'
+
+    // Jackson (для парсинга JSON)
+    implementation 'io.quarkus:quarkus-jackson:3.12.2'
+
+    // Lombok (для автогенерации геттеров/сеттеров и т.д.)
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
     testImplementation 'io.quarkus:quarkus-junit5'
 }

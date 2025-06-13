@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,PLAINTEXT_HOST://localhost:19092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+      - "19092:19092"
+    networks:
+      - redpanda-net
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    container_name: redpanda-console
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"
+    networks:
+      - redpanda-net
+    depends_on:
+      - redpanda
+
+  okx-harvester:
+    build:
+      context: ./microservice-okx-harvester
+      dockerfile: Dockerfile
+    container_name: okx-harvester
+    depends_on:
+      - redpanda
+    environment:
+      QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+    networks:
+      - redpanda-net
+
+networks:
+  redpanda-net:
+    driver: bridge

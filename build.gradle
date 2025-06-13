@@ -1,5 +1,5 @@
 plugins {
-    id 'io.quarkus' version '3.23.3' apply false
+    id 'java'
 }
 
 allprojects {
@@ -11,32 +11,8 @@ allprojects {
 }
 
 subprojects {
+    apply plugin: 'java'
+
     group = 'artskif.trader'
     version = '1.0.0'
-
-    apply plugin: 'java'
-    apply plugin: 'io.quarkus'
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    tasks.withType(JavaCompile).configureEach {
-        options.encoding = 'UTF-8'
-        options.compilerArgs << '-parameters'
-    }
-
-    test {
-        systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
-    }
-
-    dependencies {
-        implementation enforcedPlatform("io.quarkus.platform:quarkus-bom:3.23.3")
-        implementation 'io.quarkus:quarkus-minikube'
-        implementation 'io.quarkus:quarkus-kafka-client'
-        implementation 'io.quarkus:quarkus-kubernetes'
-        implementation 'io.quarkus:quarkus-arc'
-        testImplementation 'io.quarkus:quarkus-junit5'
-    }
 }
