@@ -1,0 +1,4 @@
+rootProject.name = 'cryptomoney-analysis-platform'
+
+include 'microservice-okx-analyzer'
+include 'microservice-okx-harvester'
