@@ -1,7 +1,6 @@
 package artskif.trader.candle;
 
 import artskif.trader.common.AbstractTimeSeries;
-import artskif.trader.common.Candle;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.CandleEvent;
@@ -13,14 +12,14 @@ import java.time.Instant;
 
 
 
-public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<CandlestickDto> implements Candle<CandlestickDto>, CandleTicker {
+public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
 
     protected abstract CandleEventBus getEventBus();
     protected abstract CandleType getCandleType();
 
     public synchronized void handleTick(String message) {
         try {
-            System.out.println("📥 [" + getName() + "] Пришло сообщение: " + message);
+            //System.out.println("📥 [" + getName() + "] Пришло сообщение: " + message);
 
             CandlestickPayloadDto candlestickPayloadDto = CandlestickMapper.map(message);
             CandlestickDto candle = candlestickPayloadDto.getCandle();

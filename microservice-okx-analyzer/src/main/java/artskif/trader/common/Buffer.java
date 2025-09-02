@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public abstract class Buffer<C> {
+public class Buffer<C> {
 
     @Getter
     protected final Duration interval;
@@ -24,6 +24,7 @@ public abstract class Buffer<C> {
     }
 
     // ===== ПУБЛИКАЦИЯ СНИМКА =====
+
 
     private void publishSnapshot() {
         // копия до 100 элементов раз в секунду — дёшево
