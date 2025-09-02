@@ -1,30 +1,33 @@
 package artskif.trader.candle;
 
+import artskif.trader.common.Buffer;
+import artskif.trader.common.BufferRepository;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
-import jakarta.annotation.PostConstruct;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 
 @ApplicationScoped
 public class Candle4H extends AbstractTimeSeriesTicker {
 
-    @Inject
-    CandleBufferRepository candleBufferRepository;
-    @Inject
-    CandleEventBus bus;
+    protected final BufferRepository<CandlestickDto> candleBufferRepository;
+    protected final CandleEventBus bus;
+    protected final Buffer<CandlestickDto> buffer = new Buffer<>(Duration.ofHours(4), 300);
+    protected final Path pathForSave = Paths.get("candles4h.json");
 
-    private final CandleBuffer buffer = new CandleBuffer(Duration.ofHours(4), 300);
-    private final Path pathForSave = Paths.get("candles4h.json");
-
-    @PostConstruct
-    void init() {
-        restoreBuffer();
+    @Inject
+    public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
+        this.bus = bus;
+        this.candleBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
+                .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
     }
-
 
     @Override
     protected CandleType getCandleType() {
@@ -32,7 +35,7 @@ public class Candle4H extends AbstractTimeSeriesTicker {
     }
 
     @Override
-    public CandleBuffer getBuffer() {
+    public Buffer<CandlestickDto> getBuffer() {
         return buffer;
     }
 
@@ -47,7 +50,7 @@ public class Candle4H extends AbstractTimeSeriesTicker {
     }
 
     @Override
-    public CandleBufferRepository getBufferRepository() {
+    public BufferRepository<CandlestickDto> getBufferRepository() {
         return candleBufferRepository;
     }
 

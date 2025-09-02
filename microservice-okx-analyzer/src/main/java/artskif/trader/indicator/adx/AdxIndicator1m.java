@@ -4,10 +4,12 @@ package artskif.trader.indicator.adx;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleType;
 import artskif.trader.common.Buffer;
+import artskif.trader.common.BufferRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,13 +28,14 @@ import java.util.Optional;
 @NoArgsConstructor(force = true)
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
-    protected final AdxRepository adxBufferRepository;
+    protected final BufferRepository<AdxPoint> adxBufferRepository;
     protected final Candle1m candle1m;
 
     @Inject
-    public AdxIndicator1m(AdxRepository adxBufferRepository, Candle1m candle1m, CandleEventBus bus) {
+    public AdxIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
-        this.adxBufferRepository = adxBufferRepository;
+        this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
+                .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.candle1m = candle1m;
     }
 
@@ -76,7 +80,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     }
 
     @Override
-    public AdxRepository getBufferRepository() {
+    public BufferRepository<AdxPoint>  getBufferRepository() {
         return adxBufferRepository;
     }
 }

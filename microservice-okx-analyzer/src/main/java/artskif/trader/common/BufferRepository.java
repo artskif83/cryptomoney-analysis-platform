@@ -1,8 +1,8 @@
 package artskif.trader.common;
 
-import artskif.trader.dto.CandlestickDto;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,14 +11,14 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public abstract class BufferRepository<C> {
+@RequiredArgsConstructor
+public class BufferRepository<C> {
 
-    protected abstract ObjectMapper getObjectMapper();
-
-    protected abstract JavaType getMapType();
+    protected final ObjectMapper objectMapper;
+    protected final JavaType mapType;
 
     public void saveCandlesToFile(Map<Instant, C> items, Path path) throws IOException {
-        getObjectMapper()
+        objectMapper
                 .writerWithDefaultPrettyPrinter()
                 .writeValue(path.toFile(), items);
     }
@@ -28,7 +28,7 @@ public abstract class BufferRepository<C> {
             return new LinkedHashMap<>();
         }
 
-        return getObjectMapper().readValue(path.toFile(), getMapType());
+        return objectMapper.readValue(path.toFile(), mapType);
     }
 
 }

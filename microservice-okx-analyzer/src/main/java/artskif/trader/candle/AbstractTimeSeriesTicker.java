@@ -6,6 +6,7 @@ import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.mapper.CandlestickMapper;
+import jakarta.annotation.PostConstruct;
 
 import java.time.Instant;
 
@@ -16,6 +17,11 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
 
     protected abstract CandleEventBus getEventBus();
     protected abstract CandleType getCandleType();
+
+    @PostConstruct
+    void init() {
+        restoreBuffer();
+    }
 
     public synchronized void handleTick(String message) {
         try {
