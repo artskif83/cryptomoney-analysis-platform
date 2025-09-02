@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleType;
 import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
@@ -18,6 +19,8 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @Startup
 @ApplicationScoped
@@ -45,7 +48,18 @@ public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
 
     @Override
     protected void process(CandleEvent ev) {
-        System.out.println("📥 [" + getName() + "] расчет RSI - ");
+        CandlestickDto c = ev.candle();
+        Instant bucket = ev.bucket();
+        Map<Instant, CandlestickDto> history = candle1m.getBuffer().getSnapshot();
+
+        Optional<RsiPoint> point = RsiCalculator.computeLastRsi(history, true);
+        point.ifPresent(p -> buffer.putItem(bucket, p));
+
+        System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + point.orElse(null));
+
+        if (Boolean.TRUE.equals(c.getConfirmed())) {
+            saveBuffer();
+        }
     }
 
     @Override

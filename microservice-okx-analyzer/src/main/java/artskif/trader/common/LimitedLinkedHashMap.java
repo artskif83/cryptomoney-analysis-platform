@@ -7,7 +7,7 @@ public class LimitedLinkedHashMap<K, V> extends LinkedHashMap<K, V> {
     private final int maxSize;
 
     public LimitedLinkedHashMap(int maxSize) {
-        super(128, 0.75f, true); // true = access-order, можно заменить на false
+        super(128, 0.75f, false); // false - потому что важен порядок вставки
         this.maxSize = maxSize;
     }
 

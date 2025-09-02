@@ -55,7 +55,6 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         Optional<AdxPoint> point = AdxCalculator.computeLastAdx(history, true);
         point.ifPresent(p -> buffer.putItem(bucket, p));
 
-        System.out.println("📥 [" + getName() + "] Свеча - " + c);
         System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
 
         // коммитим новое состояние ТОЛЬКО если свеча подтверждена (внутри calc уже учтено)
