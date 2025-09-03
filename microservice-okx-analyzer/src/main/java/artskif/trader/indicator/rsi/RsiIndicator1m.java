@@ -29,12 +29,16 @@ import java.util.LinkedHashMap;
 public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
 
     private static final int DEFAULT_PERIOD = 14;
+
+    private final Buffer<RsiPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
+    private final Path pathForSave = Paths.get("rsiIndicator1m.json");
+    private final Path pathForStateSave = Paths.get("rsiStateIndicator1m.json");
+
     BufferRepository<RsiPoint> rsiBufferRepository;
     StateRepository rsiStateRepository;
     Candle1m candle1m;
     // состояние RSI + его репозиторий/путь
     private RsiState rsiState = RsiState.empty(DEFAULT_PERIOD);
-
 
     @Inject
     public RsiIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
@@ -45,10 +49,6 @@ public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
                 .constructType(RsiState.class));
         this.candle1m = candle1m;
     }
-
-    private final Buffer<RsiPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
-    private final Path pathForSave = Paths.get("rsiIndicator1m.json");
-    private final Path pathForStateSave = Paths.get("rsiStateIndicator1m.json");
 
     @Override
     protected CandleType getCandleType() {
@@ -70,7 +70,7 @@ public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
             RsiCalculator.RsiUpdate upd = RsiCalculator.updateConfirmed(rsiState, bucket, c.getClose());
             this.rsiState = upd.state;
 
-            //System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + new RsiPoint(bucket, rsi));
+            //System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + upd.point);
 
             upd.point.ifPresent(p -> buffer.putItem(bucket, p));
 

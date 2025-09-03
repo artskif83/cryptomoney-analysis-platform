@@ -4,6 +4,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -12,6 +13,7 @@ public class RsiCalculator {
 
     private static final MathContext MC = MathContext.DECIMAL64;
     private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
+    private static final int OUT_SCALE = 2;
 
     public static final class RsiUpdate {
         public final Optional<RsiPoint> point;
@@ -100,7 +102,10 @@ public class RsiCalculator {
 
         BigDecimal rs = avgGain.divide(avgLoss, MC);
         BigDecimal rsi = ONE_HUNDRED.subtract(ONE_HUNDRED.divide(BigDecimal.ONE.add(rs, MC), MC));
-        return Optional.of(rsi);
+        return Optional.of(out(rsi));
     }
+
+    private static BigDecimal out(BigDecimal v) { return v.setScale(OUT_SCALE, RoundingMode.HALF_UP); }
+
 
 }
