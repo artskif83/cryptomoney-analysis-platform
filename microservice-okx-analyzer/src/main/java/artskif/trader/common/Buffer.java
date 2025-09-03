@@ -49,6 +49,7 @@ public class Buffer<C> {
             boolean next = bucket.equals(last.plus(interval));
             if (!same && !next) {
                 // последовательность нарушена — сбрасываем всё
+                System.out.println("📥 [" + interval + "] последовательность свечей нарушена — сбрасываем всё");
                 writeMap.clear();
             }
         }

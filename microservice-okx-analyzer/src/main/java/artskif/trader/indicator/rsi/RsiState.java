@@ -7,12 +7,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @RegisterForReflection
 public class RsiState implements PointState {
+    private Instant timestamp;     // время состояния
+
     private int period;                 // окно RSI (обычно 14)
 
     // для инициализации (seed) — накапливаем суммы приростов/потерь за period дельт
@@ -32,6 +35,7 @@ public class RsiState implements PointState {
 
     public static RsiState empty(int period) {
         return new RsiState(
+                null,
                 period,
                 0,
                 BigDecimal.ZERO, BigDecimal.ZERO,
@@ -47,6 +51,7 @@ public class RsiState implements PointState {
         var restoreState = (RsiState) state;
         this.period = restoreState.getPeriod();
         this.setSeedCount(restoreState.getSeedCount());
+        this.setTimestamp(restoreState.getTimestamp());
         this.setSeedGainSum(restoreState.getSeedGainSum());
         this.setSeedLossSum(restoreState.getSeedLossSum());
         this.setAvgGain(restoreState.getAvgGain());
@@ -55,12 +60,13 @@ public class RsiState implements PointState {
         this.setInitialized(restoreState.isInitialized());
     }
 
-    public RsiState cloneWith(BigDecimal lastClose,
+    public RsiState cloneWith(Instant bucket, BigDecimal lastClose,
                                      int seedCount, BigDecimal seedGainSum, BigDecimal seedLossSum,
                                      BigDecimal avgGain, BigDecimal avgLoss,
                                      boolean initialized) {
         RsiState n = new RsiState();
         n.setPeriod(this.getPeriod());
+        n.setTimestamp(bucket);
         n.setSeedCount(seedCount);
         n.setSeedGainSum(seedGainSum);
         n.setSeedLossSum(seedLossSum);

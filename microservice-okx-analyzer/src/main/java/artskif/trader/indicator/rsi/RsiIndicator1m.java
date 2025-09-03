@@ -26,13 +26,15 @@ import java.util.LinkedHashMap;
 @Startup
 @ApplicationScoped
 @NoArgsConstructor(force = true)
-public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
+public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     private static final int DEFAULT_PERIOD = 14;
 
     private final Buffer<RsiPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
     private final Path pathForSave = Paths.get("rsiIndicator1m.json");
     private final Path pathForStateSave = Paths.get("rsiStateIndicator1m.json");
+    private final Duration interval = Duration.ofMinutes(1);
+    private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
     BufferRepository<RsiPoint> rsiBufferRepository;
     StateRepository rsiStateRepository;
@@ -60,6 +62,12 @@ public class RsiIndicator1m  extends AbstractIndicator<RsiPoint> {
 
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
+        Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
+        if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
+        if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
+            this.rsiState = RsiState.empty(DEFAULT_PERIOD);
+            System.out.println("📥 [" + getName() + "] Сбрасываем состояние RSI из-за потери актуальности - " + rsiState);
+        }
 
         // 1) PREVIEW для текущего тика (если уже инициализированы)
         RsiCalculator.preview(rsiState, c.getClose())

@@ -47,7 +47,7 @@ public class RsiCalculator {
 
         // первый ever close — просто фиксируем lastClose (дельты нет)
         if (s.getLastClose() == null) {
-            RsiState next = s.cloneWith(close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
+            RsiState next = s.cloneWith(bucket, close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
                     s.getAvgGain(), s.getAvgLoss(), s.isInitialized());
             return new RsiUpdate(Optional.empty(), next);
         }
@@ -64,7 +64,7 @@ public class RsiCalculator {
 
             if (newSeedCount < s.getPeriod()) {
                 // продолжаем накапливать, RSI пока не считаем
-                RsiState next = s.cloneWith(close, newSeedCount, gainSum, lossSum,
+                RsiState next = s.cloneWith(bucket, close, newSeedCount, gainSum, lossSum,
                         s.getAvgGain(), s.getAvgLoss(), false);
                 return new RsiUpdate(Optional.empty(), next);
             } else {
@@ -73,7 +73,7 @@ public class RsiCalculator {
                 BigDecimal avgGain = gainSum.divide(periodBD, MC);
                 BigDecimal avgLoss = lossSum.divide(periodBD, MC);
 
-                RsiState next = s.cloneWith(close, newSeedCount, gainSum, lossSum,
+                RsiState next = s.cloneWith(bucket, close, newSeedCount, gainSum, lossSum,
                         avgGain, avgLoss, true);
 
                 Optional<BigDecimal> rsi = computeRsi(avgGain, avgLoss);
@@ -88,7 +88,7 @@ public class RsiCalculator {
         BigDecimal newAvgLoss = s.getAvgLoss().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
                 .add(loss, MC).divide(periodBD, MC);
 
-        RsiState next = s.cloneWith(close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
+        RsiState next = s.cloneWith(bucket, close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
                 newAvgGain, newAvgLoss, true);
 
         Optional<BigDecimal> rsi = computeRsi(newAvgGain, newAvgLoss);
