@@ -33,8 +33,8 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
             Instant bucket = Instant.ofEpochMilli(candle.getTimestamp());
             getBuffer().putItem(bucket, candle);
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
+            getEventBus().publish(new CandleEvent(getCandleType(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
-                getEventBus().publish(new CandleEvent(getCandleType(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
                 saveBuffer();
             }
         } catch (Exception e) {

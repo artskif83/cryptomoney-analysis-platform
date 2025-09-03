@@ -2,6 +2,8 @@ package artskif.trader.indicator;
 
 import artskif.trader.candle.CandleType;
 import artskif.trader.common.AbstractTimeSeries;
+import artskif.trader.common.StateRepository;
+import artskif.trader.common.Stateable;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
@@ -9,11 +11,13 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NoArgsConstructor;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 @NoArgsConstructor(force = true)
-public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable {
+public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable {
 
     protected final CandleEventBus bus;
 
@@ -28,12 +32,15 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
 
     protected abstract CandleType getCandleType();
     protected abstract void process(CandleEvent take);
+    protected abstract StateRepository getStateRepository();
+    protected abstract Path getPathForStateSave();
 
     @PostConstruct
     void initAbstractIndicator() {
         System.out.println("🔌 [" + getName() + "] Запуск процесса подсчета индикатора");
 
         restoreBuffer();
+        if (isStateful()) restoreState();
         // подписка на события и старт фонового потока
         bus.subscribe(this);
         running = true;
@@ -60,7 +67,6 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         }
     }
 
-
     @Override
     public void run() {
         System.out.println("🔗 [" + getName() + "] Запущен поток подсчета индикатора: " + Thread.currentThread().getName());
@@ -72,6 +78,24 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
             } catch (Exception ignored) {
                 System.out.println("❌ [" + getName() + "] Не удалось обработать точку в потоке: " + Thread.currentThread().getName() + " ошибка - " + ignored);
             }
+        }
+    }
+
+    protected void restoreState() {
+        try {
+            System.out.println("📥 [" + getName() + "] Восстанавливаем состояние из хранилища");
+            getState().restoreObject(getStateRepository().loadStateFromFile(getPathForStateSave()));
+        } catch (IOException e) {
+            System.out.println("❌ [" + getName() + "] Не удалось восстановить значение состояния : ");
+        }
+    }
+
+    protected void saveState() {
+        try {
+            System.out.println("📥 [" + getName() + "] Сохраняем состояние в хранилище");
+            getStateRepository().saveStateToFile(getState(), getPathForStateSave());
+        } catch (IOException e) {
+            System.out.println("❌ [" + getName() + "] Не удалось сохранить значение состояния : ");
         }
     }
 }

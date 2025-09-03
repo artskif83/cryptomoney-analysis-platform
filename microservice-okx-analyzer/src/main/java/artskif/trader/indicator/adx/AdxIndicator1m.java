@@ -5,6 +5,8 @@ import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleType;
 import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
+import artskif.trader.common.PointState;
+import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
@@ -55,7 +57,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         Optional<AdxPoint> point = AdxCalculator.computeLastAdx(history, true);
         point.ifPresent(p -> buffer.putItem(bucket, p));
 
-        System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
+        //System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
 
         // коммитим новое состояние ТОЛЬКО если свеча подтверждена (внутри calc уже учтено)
         if (Boolean.TRUE.equals(c.getConfirmed())) {
@@ -82,4 +84,25 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     public BufferRepository<AdxPoint>  getBufferRepository() {
         return adxBufferRepository;
     }
+
+    @Override
+    public boolean isStateful() {
+        return false;
+    }
+
+    @Override
+    public PointState getState() {
+        return null;
+    }
+
+    @Override
+    protected StateRepository getStateRepository() {
+        return null;
+    }
+
+    @Override
+    protected Path getPathForStateSave() {
+        return null;
+    }
+
 }

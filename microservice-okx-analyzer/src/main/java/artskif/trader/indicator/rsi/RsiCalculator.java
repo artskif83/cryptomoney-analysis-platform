@@ -1,70 +1,106 @@
 package artskif.trader.indicator.rsi;
 
-import artskif.trader.dto.CandlestickDto;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+@NoArgsConstructor
 public class RsiCalculator {
 
-    private static final int PERIOD = 14;
     private static final MathContext MC = MathContext.DECIMAL64;
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
-    public static Optional<RsiPoint> computeLastRsi(Map<Instant, CandlestickDto> history, boolean includeUnconfirmed) {
-        if (history == null || history.size() < PERIOD + 1) {
-            return Optional.empty();
+    public static final class RsiUpdate {
+        public final Optional<RsiPoint> point;
+        public final RsiState state;
+        public RsiUpdate(Optional<RsiPoint> point, RsiState state) {
+            this.point = point;
+            this.state = state;
+        }
+    }
+
+    /** Предварительный расчёт RSI по текущему (неподтверждённому) close — без изменения состояния. */
+    public static Optional<BigDecimal> preview(RsiState s, BigDecimal currentClose) {
+        if (s == null || !s.isInitialized() || s.getLastClose() == null) return Optional.empty();
+
+        BigDecimal delta = currentClose.subtract(s.getLastClose(), MC);
+        BigDecimal gain = delta.signum() > 0 ? delta : BigDecimal.ZERO;
+        BigDecimal loss = delta.signum() < 0 ? delta.abs(MC) : BigDecimal.ZERO;
+
+        BigDecimal periodBD = BigDecimal.valueOf(s.getPeriod());
+        BigDecimal tmpAvgGain = s.getAvgGain().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(gain, MC).divide(periodBD, MC);
+        BigDecimal tmpAvgLoss = s.getAvgLoss().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(loss, MC).divide(periodBD, MC);
+
+        return computeRsi(tmpAvgGain, tmpAvgLoss);
+    }
+
+    /** Коммит подтверждённой свечи: обновляем состояние и возвращаем точку. */
+    public static RsiUpdate updateConfirmed(RsiState s, Instant bucket, BigDecimal close) {
+        if (s == null) throw new RuntimeException("Состояние не инициализировано");
+
+        // первый ever close — просто фиксируем lastClose (дельты нет)
+        if (s.getLastClose() == null) {
+            RsiState next = s.cloneWith(close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
+                    s.getAvgGain(), s.getAvgLoss(), s.isInitialized());
+            return new RsiUpdate(Optional.empty(), next);
         }
 
-        // свечи в хронологическом порядке
-        List<Map.Entry<Instant, CandlestickDto>> candles = new ArrayList<>(history.entrySet());
+        BigDecimal delta = close.subtract(s.getLastClose(), MC);
+        BigDecimal gain = delta.signum() > 0 ? delta : BigDecimal.ZERO;
+        BigDecimal loss = delta.signum() < 0 ? delta.abs(MC) : BigDecimal.ZERO;
 
-        BigDecimal avgGain = BigDecimal.ZERO;
-        BigDecimal avgLoss = BigDecimal.ZERO;
+        // Ещё не инициализировались — накапливаем seed
+        if (!s.isInitialized()) {
+            int newSeedCount = s.getSeedCount() + 1;
+            BigDecimal gainSum = s.getSeedGainSum().add(gain, MC);
+            BigDecimal lossSum = s.getSeedLossSum().add(loss, MC);
 
-        // инициализация через первые 14 изменений
-        for (int i = 1; i <= PERIOD; i++) {
-            BigDecimal prevClose = candles.get(i - 1).getValue().getClose();
-            BigDecimal close = candles.get(i).getValue().getClose();
+            if (newSeedCount < s.getPeriod()) {
+                // продолжаем накапливать, RSI пока не считаем
+                RsiState next = s.cloneWith(close, newSeedCount, gainSum, lossSum,
+                        s.getAvgGain(), s.getAvgLoss(), false);
+                return new RsiUpdate(Optional.empty(), next);
+            } else {
+                // newSeedCount == period → первичная инициализация avgGain/avgLoss
+                BigDecimal periodBD = BigDecimal.valueOf(s.getPeriod());
+                BigDecimal avgGain = gainSum.divide(periodBD, MC);
+                BigDecimal avgLoss = lossSum.divide(periodBD, MC);
 
-            BigDecimal change = close.subtract(prevClose, MC);
-            BigDecimal gain = change.compareTo(BigDecimal.ZERO) > 0 ? change : BigDecimal.ZERO;
-            BigDecimal loss = change.compareTo(BigDecimal.ZERO) < 0 ? change.abs(MC) : BigDecimal.ZERO;
+                RsiState next = s.cloneWith(close, newSeedCount, gainSum, lossSum,
+                        avgGain, avgLoss, true);
 
-            avgGain = avgGain.add(gain, MC);
-            avgLoss = avgLoss.add(loss, MC);
+                Optional<BigDecimal> rsi = computeRsi(avgGain, avgLoss);
+                return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v)), next);
+            }
         }
 
-        avgGain = avgGain.divide(BigDecimal.valueOf(PERIOD), MC);
-        avgLoss = avgLoss.divide(BigDecimal.valueOf(PERIOD), MC);
+        // обычный сглаженный апдейт
+        BigDecimal periodBD = BigDecimal.valueOf(s.getPeriod());
+        BigDecimal newAvgGain = s.getAvgGain().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(gain, MC).divide(periodBD, MC);
+        BigDecimal newAvgLoss = s.getAvgLoss().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(loss, MC).divide(periodBD, MC);
 
-        // скользящее сглаживание по Уайлдеру
-        for (int i = PERIOD + 1; i < candles.size(); i++) {
-            BigDecimal prevClose = candles.get(i - 1).getValue().getClose();
-            BigDecimal close = candles.get(i).getValue().getClose();
+        RsiState next = s.cloneWith(close, s.getSeedCount(), s.getSeedGainSum(), s.getSeedLossSum(),
+                newAvgGain, newAvgLoss, true);
 
-            BigDecimal change = close.subtract(prevClose, MC);
-            BigDecimal gain = change.compareTo(BigDecimal.ZERO) > 0 ? change : BigDecimal.ZERO;
-            BigDecimal loss = change.compareTo(BigDecimal.ZERO) < 0 ? change.abs(MC) : BigDecimal.ZERO;
+        Optional<BigDecimal> rsi = computeRsi(newAvgGain, newAvgLoss);
+        return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v)), next);
+    }
 
-            avgGain = (avgGain.multiply(BigDecimal.valueOf(PERIOD - 1), MC).add(gain)).divide(BigDecimal.valueOf(PERIOD), MC);
-            avgLoss = (avgLoss.multiply(BigDecimal.valueOf(PERIOD - 1), MC).add(loss)).divide(BigDecimal.valueOf(PERIOD), MC);
-        }
-
-        // если нет убытков → RSI = 100
-        if (avgLoss.compareTo(BigDecimal.ZERO) == 0) {
-            return Optional.of(new RsiPoint(candles.get(candles.size() - 1).getKey(), BigDecimal.valueOf(100)));
-        }
+    private static Optional<BigDecimal> computeRsi(BigDecimal avgGain, BigDecimal avgLoss) {
+        if (avgGain == null || avgLoss == null) return Optional.empty();
+        if (avgLoss.compareTo(BigDecimal.ZERO) == 0) return Optional.of(ONE_HUNDRED);
+        if (avgGain.compareTo(BigDecimal.ZERO) == 0) return Optional.of(BigDecimal.ZERO);
 
         BigDecimal rs = avgGain.divide(avgLoss, MC);
-        BigDecimal rsi = BigDecimal.valueOf(100).subtract(
-                BigDecimal.valueOf(100).divide(BigDecimal.ONE.add(rs, MC), MC));
-
-        Instant ts = candles.get(candles.size() - 1).getKey();
-        return Optional.of(new RsiPoint(ts, rsi));
+        BigDecimal rsi = ONE_HUNDRED.subtract(ONE_HUNDRED.divide(BigDecimal.ONE.add(rs, MC), MC));
+        return Optional.of(rsi);
     }
+
 }
