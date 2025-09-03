@@ -42,9 +42,26 @@ public class Buffer<C> {
 
     /** Запись новой свечи. Возвращает предыдущее значение (если было). */
     public C putItem(Instant bucket, C item) {
+        Instant last = lastBucket();
+
+        if (last != null) {
+            boolean same = bucket.equals(last);
+            boolean next = bucket.equals(last.plus(interval));
+            if (!same && !next) {
+                // последовательность нарушена — сбрасываем всё
+                writeMap.clear();
+            }
+        }
+
+        // если last == null (пусто) — просто начинаем новую последовательность
         C prev = writeMap.put(bucket, item);
         publishSnapshot(); // один раз в секунду — самое то
         return prev;
+    }
+
+    /** Возвращает последний bucket в порядке вставки (или null, если пусто). */
+    private Instant lastBucket() {
+        return writeMap.lastEntry() != null ? writeMap.lastEntry().getKey() : null;
     }
 
     @Override
