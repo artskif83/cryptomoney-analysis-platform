@@ -1,11 +1,14 @@
 package artskif.trader.indicator.rsi;
 
+import artskif.trader.dto.CandlestickDto;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @NoArgsConstructor
@@ -23,6 +26,25 @@ public class RsiCalculator {
             this.state = state;
         }
     }
+
+    /**
+     * Быстрый «подъём» состояния из истории.
+     * Проходит по подтверждённым свечам снапшота в порядке времени
+     * и последовательно вызывает updateConfirmed(...).
+     * Если истории мало — просто накапливает seedCount.
+     */
+    public static RsiState tryInitFromHistory(RsiState s, List<Map.Entry<Instant, CandlestickDto>> lastConfirmedAsc) {
+        if (s == null) throw new RuntimeException("Состояние не инициализировано");
+        if (s.isInitialized()) return s;                 // уже готово — ничего не делаем
+        if (lastConfirmedAsc == null || lastConfirmedAsc.isEmpty()) return s;
+
+        for (Map.Entry<Instant, CandlestickDto> e : lastConfirmedAsc) {
+            RsiUpdate upd = updateConfirmed(s, e.getKey(), e.getValue().getClose());
+            s = upd.state;                                // используем существующую логику инициализации/накопления
+        }
+        return s;
+    }
+
 
     /** Предварительный расчёт RSI по текущему (неподтверждённому) close — без изменения состояния. */
     public static Optional<BigDecimal> preview(RsiState s, BigDecimal currentClose) {

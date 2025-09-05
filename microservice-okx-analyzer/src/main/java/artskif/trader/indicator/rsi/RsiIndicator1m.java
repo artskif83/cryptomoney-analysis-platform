@@ -19,6 +19,9 @@ import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
@@ -61,6 +64,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
+
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
         if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
@@ -68,7 +72,31 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             System.out.println("📥 [" + getName() + "] Сбрасываем состояние RSI из-за потери актуальности - " + rsiState);
         }
 
-        // 1) PREVIEW для текущего тика (если уже инициализированы)
+        // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
+        if (rsiState != null && rsiState.getTimestamp() == null && !rsiState.isInitialized()) {
+            Map<Instant, CandlestickDto> snap = candle1m.getBuffer().getSnapshot();
+
+            if (snap != null && !snap.isEmpty()) {
+                // подтверждённые ↑
+                List<Map.Entry<Instant, CandlestickDto>> confirmedAsc = snap.entrySet().stream()
+                        .filter(e -> Boolean.TRUE.equals(e.getValue().getConfirmed()))
+                        .collect(Collectors.toList());
+
+                if (!confirmedAsc.isEmpty()) {
+                    // берём только хвост длиной <= period
+                    int size = confirmedAsc.size();
+                    int from = Math.max(0, size - period - 1);
+                    List<Map.Entry<Instant, CandlestickDto>> tailAsc = confirmedAsc.subList(from, size);
+
+                    rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
+                    if (rsiState != null)
+                        System.out.println("📥 [" + getName() + "] Значение состояния восстановлено из истории - " + rsiState);
+
+                }
+            }
+        }
+
+        // 2) PREVIEW для текущего тика (если уже инициализированы)
         RsiCalculator.preview(rsiState, c.getClose())
                 .ifPresent(rsi -> {
                             value = rsi;
@@ -76,7 +104,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
                         }
                 );
 
-        // 2) Если свеча подтвердилась — коммитим состояние и кладём финальную точку
+        // 3) Если свеча подтвердилась — коммитим состояние и кладём финальную точку
         if (Boolean.TRUE.equals(c.getConfirmed())) {
             RsiCalculator.RsiUpdate upd = RsiCalculator.updateConfirmed(rsiState, bucket, c.getClose());
             this.rsiState = upd.state;
@@ -113,7 +141,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     @Override
     public String getName() {
-        return "1m-RSI";
+        return "RSI-1m-" + period + "p";
     }
 
     @Override
