@@ -12,11 +12,8 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.runtime.Startup;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -25,24 +22,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Startup
-@ApplicationScoped
-@NoArgsConstructor(force = true)
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     protected final BufferRepository<AdxPoint> adxBufferRepository;
     protected final Candle1m candle1m;
+    private final Buffer<AdxPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
+    private final Path pathForSave = Paths.get("adxIndicator1m.json");
 
-    @Inject
     public AdxIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.candle1m = candle1m;
     }
-
-    private final Buffer<AdxPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
-    private final Path pathForSave = Paths.get("adxIndicator1m.json");
 
     @Override
     protected CandleType getCandleType() {
@@ -105,4 +97,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         return null;
     }
 
+    @Override
+    public BigDecimal getValue() {
+        return null;
+    }
 }

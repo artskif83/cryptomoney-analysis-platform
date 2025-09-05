@@ -11,45 +11,44 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.runtime.Startup;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 
 
-@Startup
-@ApplicationScoped
-@NoArgsConstructor(force = true)
 public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
-    private static final int DEFAULT_PERIOD = 14;
-
     private final Buffer<RsiPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
-    private final Path pathForSave = Paths.get("rsiIndicator1m.json");
-    private final Path pathForStateSave = Paths.get("rsiStateIndicator1m.json");
     private final Duration interval = Duration.ofMinutes(1);
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
     BufferRepository<RsiPoint> rsiBufferRepository;
     StateRepository rsiStateRepository;
     Candle1m candle1m;
+    Integer period; // Период индикатора
     // состояние RSI + его репозиторий/путь
-    private RsiState rsiState = RsiState.empty(DEFAULT_PERIOD);
+    RsiState rsiState;
+    BigDecimal value;
+    Path pathForSave;
+    Path pathForStateSave;
 
-    @Inject
-    public RsiIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
+
+    public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.rsiBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, RsiPoint.class));
         this.rsiStateRepository = new StateRepository(objectMapper, objectMapper.getTypeFactory()
                 .constructType(RsiState.class));
         this.candle1m = candle1m;
+        this.period = period;
+        this.rsiState = RsiState.empty(period);
+        this.pathForSave = Paths.get(MessageFormat.format("rsiIndicator1m{0}p.json", period));
+        this.pathForStateSave = Paths.get(MessageFormat.format("rsiStateIndicator1m{0}p.json", period));
     }
 
     @Override
@@ -65,22 +64,30 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
         if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
-            this.rsiState = RsiState.empty(DEFAULT_PERIOD);
+            this.rsiState = RsiState.empty(period);
             System.out.println("📥 [" + getName() + "] Сбрасываем состояние RSI из-за потери актуальности - " + rsiState);
         }
 
         // 1) PREVIEW для текущего тика (если уже инициализированы)
         RsiCalculator.preview(rsiState, c.getClose())
-                .ifPresent(rsi -> buffer.putItem(bucket, new RsiPoint(bucket, rsi)));
+                .ifPresent(rsi -> {
+                            value = rsi;
+                            buffer.putItem(bucket, new RsiPoint(bucket, rsi));
+                        }
+                );
 
         // 2) Если свеча подтвердилась — коммитим состояние и кладём финальную точку
         if (Boolean.TRUE.equals(c.getConfirmed())) {
             RsiCalculator.RsiUpdate upd = RsiCalculator.updateConfirmed(rsiState, bucket, c.getClose());
             this.rsiState = upd.state;
 
-            //System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + upd.point);
+            System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + upd.point);
+            System.out.println("📥 [" + getName() + "] Получено новое значение  State - " + upd.state);
 
-            upd.point.ifPresent(p -> buffer.putItem(bucket, p));
+            upd.point.ifPresent(p -> {
+                value = p.getRsi();
+                buffer.putItem(bucket, p);
+            });
 
             // сохраняем индикаторный ряд
             saveBuffer();
@@ -127,5 +134,10 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     @Override
     public PointState getState() {
         return rsiState;
+    }
+
+    @Override
+    public BigDecimal getValue() {
+        return value;
     }
 }

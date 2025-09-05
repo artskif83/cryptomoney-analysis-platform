@@ -7,17 +7,13 @@ import artskif.trader.common.Stateable;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.NoArgsConstructor;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-@NoArgsConstructor(force = true)
-public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable {
+public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable, IndicatorPoint {
 
     protected final CandleEventBus bus;
 
@@ -35,8 +31,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     protected abstract StateRepository getStateRepository();
     protected abstract Path getPathForStateSave();
 
-    @PostConstruct
-    void initAbstractIndicator() {
+    public void init() {
         System.out.println("🔌 [" + getName() + "] Запуск процесса подсчета индикатора");
 
         restoreBuffer();
@@ -48,8 +43,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         worker.start();
     }
 
-    @PreDestroy
-    void shutdown() {
+    public void shutdown() {
         bus.unsubscribe(this);
         running = false;
         if (worker != null) worker.interrupt();
