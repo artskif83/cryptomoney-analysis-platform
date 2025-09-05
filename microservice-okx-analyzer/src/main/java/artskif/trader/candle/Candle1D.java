@@ -17,14 +17,17 @@ import java.util.LinkedHashMap;
 @ApplicationScoped
 public class Candle1D extends AbstractTimeSeriesTicker {
 
+    private final static String NAME = "1D-candle";
+
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
-    protected final Buffer<CandlestickDto> buffer = new Buffer<>(Duration.ofDays(1), 300);
+    protected final Buffer<CandlestickDto> buffer;
     protected final Path pathForSave = Paths.get("candles1d.json");
 
     @Inject
     public Candle1D(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
+        this.buffer = new Buffer<>(NAME, Duration.ofDays(1), 300);
         this.candleBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
     }
@@ -41,7 +44,7 @@ public class Candle1D extends AbstractTimeSeriesTicker {
 
     @Override
     public String getName() {
-        return "1D-candle";
+        return NAME;
     }
 
     @Override

@@ -26,7 +26,9 @@ import java.util.stream.Collectors;
 
 public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
-    private final Buffer<RsiPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
+    private final static String NAME = "RSI-1m";
+
+    private final Buffer<RsiPoint> buffer;
     private final Duration interval = Duration.ofMinutes(1);
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
@@ -34,8 +36,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     StateRepository rsiStateRepository;
     Candle1m candle1m;
     Integer period; // Период индикатора
-    // состояние RSI + его репозиторий/путь
-    RsiState rsiState;
+    RsiState rsiState; // состояние RSI + его репозиторий/путь
     BigDecimal value;
     Path pathForSave;
     Path pathForStateSave;
@@ -52,6 +53,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         this.rsiState = RsiState.empty(period);
         this.pathForSave = Paths.get(MessageFormat.format("rsiIndicator1m{0}p.json", period));
         this.pathForStateSave = Paths.get(MessageFormat.format("rsiStateIndicator1m{0}p.json", period));
+        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
     }
 
     @Override
@@ -141,7 +143,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     @Override
     public String getName() {
-        return "RSI-1m-" + period + "p";
+        return String.format("%s-%dp", NAME, period);
     }
 
     @Override

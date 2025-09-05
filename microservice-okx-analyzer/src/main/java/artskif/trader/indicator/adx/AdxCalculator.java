@@ -16,10 +16,9 @@ public class AdxCalculator {
     private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
     private static final int SCALE = 10;
     private static final int OUT_SCALE = 2;
-    private static final int DEFAULT_PERIOD = 14;
 
-    public static Optional<AdxPoint> computeLastAdx(Map<Instant, CandlestickDto> history, boolean onlyConfirmed) {
-        int n = DEFAULT_PERIOD;
+    public static Optional<AdxPoint> computeLastAdx(int period, Map<Instant, CandlestickDto> history, boolean onlyConfirmed) {
+        int n = period;
         if (history == null || history.isEmpty()) return Optional.empty();
 
         // 1) Создаем список

@@ -13,12 +13,14 @@ public class Buffer<C> {
     @Getter
     protected final Duration interval;
     protected final LimitedLinkedHashMap<Instant, C> writeMap; // только писатель
+    private final String name;
     // lock-free, упорядочено, неизменяемо
     @Getter
     protected volatile Map<Instant, C> snapshot;               // только читатели
 
-    public Buffer(Duration interval, int maxSize) {
+    public Buffer(String name, Duration interval, int maxSize) {
         this.interval = interval;
+        this.name = name;
         this.writeMap = new LimitedLinkedHashMap<>(maxSize); // порядок уже правильный
         this.snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(writeMap));
     }
@@ -49,7 +51,7 @@ public class Buffer<C> {
             boolean next = bucket.equals(last.plus(interval));
             if (!same && !next) {
                 // последовательность нарушена — сбрасываем всё
-                System.out.println("📥 [" + interval + "] последовательность свечей нарушена — сбрасываем всё");
+                System.out.println("📥 [" + name + "] последовательность свечей нарушена — сбрасываем всё");
                 writeMap.clear();
             }
         }

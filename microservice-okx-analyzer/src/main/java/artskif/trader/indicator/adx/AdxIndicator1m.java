@@ -24,13 +24,17 @@ import java.util.Optional;
 
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
+    private final static String NAME = "ADX-1m";
+    private static final int DEFAULT_PERIOD = 14;
+
     protected final BufferRepository<AdxPoint> adxBufferRepository;
     protected final Candle1m candle1m;
-    private final Buffer<AdxPoint> buffer = new Buffer<>(Duration.ofMinutes(1), 100);
+    private final Buffer<AdxPoint> buffer;
     private final Path pathForSave = Paths.get("adxIndicator1m.json");
 
     public AdxIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
+        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, DEFAULT_PERIOD), Duration.ofMinutes(1), 100);
         this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.candle1m = candle1m;
@@ -46,7 +50,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
         Map<Instant, CandlestickDto> history = candle1m.getBuffer().getSnapshot();
-        Optional<AdxPoint> point = AdxCalculator.computeLastAdx(history, true);
+        Optional<AdxPoint> point = AdxCalculator.computeLastAdx(DEFAULT_PERIOD, history, true);
         point.ifPresent(p -> buffer.putItem(bucket, p));
 
         //System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
