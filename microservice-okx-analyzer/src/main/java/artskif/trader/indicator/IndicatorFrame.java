@@ -1,12 +1,13 @@
 package artskif.trader.indicator;
 
-import artskif.trader.candle.CandlePeriod;
+import artskif.trader.candle.CandleTimeframe;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 
-public record IndicatorFrame(Instant bucket,
-                             CandlePeriod candleType,
-                             Map<String, BigDecimal> values) {
-}
+/** Фрейм со сводкой по всем индикаторам на один bucket */
+public record IndicatorFrame(
+        Instant bucket,
+        CandleTimeframe candleType,
+        List<IndicatorSnapshot> indicators
+) {}

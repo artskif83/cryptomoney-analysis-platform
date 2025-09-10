@@ -1,6 +1,6 @@
 package artskif.trader.candle;
 
-public enum CandlePeriod {
+public enum CandleTimeframe {
     CANDLE_1M,
     CANDLE_1H,
     CANDLE_4H,

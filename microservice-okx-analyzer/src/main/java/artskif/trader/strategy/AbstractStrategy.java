@@ -1,21 +1,21 @@
 package artskif.trader.strategy;
 
-import artskif.trader.candle.CandlePeriod;
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
+import artskif.trader.indicator.IndicatorSnapshot;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 
@@ -32,7 +32,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         this.indicators = indicators;
     }
 
-    protected abstract CandlePeriod getCandleType();
+    protected abstract CandleTimeframe getCandleType();
 
     @PostConstruct
     void start() {
@@ -63,22 +63,30 @@ public abstract class AbstractStrategy implements CandleEventListener {
         return lastFrame.get();
     }
 
-    private IndicatorFrame assembleFrame(Instant bucket, CandlePeriod period) {
-        Map<String, BigDecimal> values = new LinkedHashMap<>();
+    /** Собираем полный срез по всем индикаторам */
+    private IndicatorFrame assembleFrame(Instant bucket, CandleTimeframe period) {
+        List<IndicatorSnapshot> snapshots = new ArrayList<>(indicators.size());
 
         for (IndicatorPoint ip : indicators) {
-            BigDecimal v = ip.getValue();
-            if (v == null) continue; // индикатор ещё не дал значение
+            BigDecimal value = ip.getValue();
+            if (value == null) continue; // индикатор ещё не дал значение
 
-            String name;
-            if (ip instanceof AbstractIndicator<?> ai) {
-                name = ai.getName(); // красиво читаемое имя индикатора
-            } else {
-                name = ip.getClass().getSimpleName(); // fallback
-            }
-            values.put(name, v);
+            // Красивое имя, если индикатор наследуется от AbstractIndicator
+            String name = (ip instanceof AbstractIndicator<?> ai)
+                    ? ai.getName()
+                    : (ip.getName() != null ? ip.getName() : ip.getClass().getSimpleName());
+
+            IndicatorSnapshot snap = new IndicatorSnapshot(
+                    name,
+                    ip.getType(),
+                    ip.getPeriod(),
+                    ip.getCandleTimeframe(),
+                    ip.getBucket(), // у конкретного индикатора bucket может отличаться, сохраняем его
+                    value
+            );
+            snapshots.add(snap);
         }
 
-        return new IndicatorFrame(bucket, period, values);
+        return new IndicatorFrame(bucket, period, snapshots);
     }
 }

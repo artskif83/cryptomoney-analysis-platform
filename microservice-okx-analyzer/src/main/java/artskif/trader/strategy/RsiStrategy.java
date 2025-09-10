@@ -1,6 +1,6 @@
 package artskif.trader.strategy;
 
-import artskif.trader.candle.CandlePeriod;
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorPoint;
 import io.quarkus.runtime.Startup;
@@ -21,7 +21,7 @@ public class RsiStrategy extends AbstractStrategy{
     }
 
     @Override
-    protected CandlePeriod getCandleType() {
-        return CandlePeriod.CANDLE_1M;
+    protected CandleTimeframe getCandleType() {
+        return CandleTimeframe.CANDLE_1M;
     }
 }

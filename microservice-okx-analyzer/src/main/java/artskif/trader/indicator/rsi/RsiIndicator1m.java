@@ -1,7 +1,7 @@
 package artskif.trader.indicator.rsi;
 
 import artskif.trader.candle.Candle1m;
-import artskif.trader.candle.CandlePeriod;
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
 import artskif.trader.common.PointState;
@@ -41,7 +41,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     BigDecimal value;
     Path pathForSave;
     Path pathForStateSave;
-
+    Instant bucket;
 
     public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
@@ -51,6 +51,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
                 .constructType(RsiState.class));
         this.candle1m = candle1m;
         this.period = period;
+        this.bucket = null;
         this.rsiState = RsiState.empty(period);
         this.pathForSave = Paths.get(MessageFormat.format("rsiIndicator1m{0}p.json", period));
         this.pathForStateSave = Paths.get(MessageFormat.format("rsiStateIndicator1m{0}p.json", period));
@@ -58,15 +59,11 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     }
 
     @Override
-    protected CandlePeriod getCandlePeriod() {
-        return CandlePeriod.CANDLE_1M;
-    }
-
-    @Override
     protected void process(CandleEvent ev) {
 
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
+        this.bucket = bucket;
 
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
@@ -125,6 +122,21 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             // сохраняем состояние RSI
             saveState();
         }
+    }
+
+    @Override
+    public CandleTimeframe getCandleTimeframe() {
+        return CandleTimeframe.CANDLE_1M;
+    }
+
+    @Override
+    public Integer getPeriod() {
+        return period;
+    }
+
+    @Override
+    public Instant getBucket() {
+        return bucket;
     }
 
     @Override

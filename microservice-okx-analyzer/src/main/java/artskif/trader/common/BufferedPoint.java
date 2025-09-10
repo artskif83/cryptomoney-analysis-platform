@@ -1,7 +1,6 @@
 package artskif.trader.common;
 
-public interface Point<C> {
-    String getName();
-
+public interface BufferedPoint<C> {
     Buffer<C> getBuffer();
+    String getName();
 }

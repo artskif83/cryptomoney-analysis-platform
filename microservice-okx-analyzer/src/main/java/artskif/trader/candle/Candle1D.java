@@ -33,8 +33,8 @@ public class Candle1D extends AbstractTimeSeriesTicker {
     }
 
     @Override
-    protected CandlePeriod getCandlePeriod() {
-        return CandlePeriod.CANDLE_1D;
+    protected CandleTimeframe getCandleTimeframe() {
+        return CandleTimeframe.CANDLE_1D;
     }
 
     @Override

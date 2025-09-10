@@ -2,7 +2,7 @@ package artskif.trader.indicator.adx;
 
 
 import artskif.trader.candle.Candle1m;
-import artskif.trader.candle.CandlePeriod;
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
 import artskif.trader.common.PointState;
@@ -26,12 +26,14 @@ import java.util.Optional;
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     private final static String NAME = "ADX-1m";
-    private static final int DEFAULT_PERIOD = 14;
+    private final static int DEFAULT_PERIOD = 14;
 
-    protected final BufferRepository<AdxPoint> adxBufferRepository;
-    protected final Candle1m candle1m;
+    private final BufferRepository<AdxPoint> adxBufferRepository;
+    private final Candle1m candle1m;
     private final Buffer<AdxPoint> buffer;
     private final Path pathForSave = Paths.get("adxIndicator1m.json");
+
+    Instant bucket;
 
     public AdxIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
@@ -39,17 +41,15 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.candle1m = candle1m;
-    }
-
-    @Override
-    protected CandlePeriod getCandlePeriod() {
-        return CandlePeriod.CANDLE_1M;
+        this.bucket = null;
     }
 
     @Override
     protected void process(CandleEvent ev) {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
+        this.bucket = bucket;
+
         Map<Instant, CandlestickDto> history = candle1m.getBuffer().getSnapshot();
         Optional<AdxPoint> point = AdxCalculator.computeLastAdx(DEFAULT_PERIOD, history, true);
         point.ifPresent(p -> buffer.putItem(bucket, p));
@@ -60,6 +60,21 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         if (Boolean.TRUE.equals(c.getConfirmed())) {
             saveBuffer();
         }
+    }
+
+    @Override
+    public CandleTimeframe getCandleTimeframe() {
+        return CandleTimeframe.CANDLE_1M;
+    }
+
+    @Override
+    public Integer getPeriod() {
+        return DEFAULT_PERIOD;
+    }
+
+    @Override
+    public Instant getBucket() {
+        return bucket;
     }
 
     @Override

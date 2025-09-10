@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 
-public abstract class AbstractTimeSeries<C> implements Point<C> {
+public abstract class AbstractTimeSeries<C> implements BufferedPoint<C> {
 
     protected Instant lastBucket = null;
 
