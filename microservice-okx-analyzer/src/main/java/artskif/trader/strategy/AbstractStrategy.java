@@ -8,6 +8,7 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
 import artskif.trader.indicator.IndicatorSnapshot;
+import artskif.trader.signal.StrategyKind;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NoArgsConstructor;
@@ -33,6 +34,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     protected abstract CandleTimeframe getCandleType();
+    protected abstract StrategyKind getStrategyKind();
 
     @PostConstruct
     void start() {
@@ -53,7 +55,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // обновляют своё value (в своих потоках). Нам остаётся просто прочитать value.
         IndicatorFrame frame = assembleFrame(event.bucket(), event.period());
         lastFrame.set(frame);
-        System.out.println("🔌 Текущий фрейм - " + frame);
+        //System.out.println("🔌 Текущий фрейм - " + frame);
 
         // здесь можно: логировать, отправлять дальше, класть в буфер/репозиторий и т.п.
         // System.out.println("🧩 FRAME: " + frame);
