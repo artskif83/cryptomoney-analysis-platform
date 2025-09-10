@@ -2,7 +2,7 @@ package artskif.trader.indicator.adx;
 
 
 import artskif.trader.candle.Candle1m;
-import artskif.trader.candle.CandleType;
+import artskif.trader.candle.CandlePeriod;
 import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
 import artskif.trader.common.PointState;
@@ -11,6 +11,7 @@ import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
+import artskif.trader.indicator.IndicatorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -41,8 +42,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     }
 
     @Override
-    protected CandleType getCandleType() {
-        return CandleType.CANDLE_1M;
+    protected CandlePeriod getCandlePeriod() {
+        return CandlePeriod.CANDLE_1M;
     }
 
     @Override
@@ -104,5 +105,10 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     @Override
     public BigDecimal getValue() {
         return null;
+    }
+
+    @Override
+    public IndicatorType getType() {
+        return IndicatorType.ADX;
     }
 }

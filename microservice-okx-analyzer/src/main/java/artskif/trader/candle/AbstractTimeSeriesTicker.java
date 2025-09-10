@@ -16,7 +16,7 @@ import java.time.Instant;
 public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
 
     protected abstract CandleEventBus getEventBus();
-    protected abstract CandleType getCandleType();
+    protected abstract CandlePeriod getCandlePeriod();
 
     @PostConstruct
     void init() {
@@ -33,7 +33,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
             Instant bucket = Instant.ofEpochMilli(candle.getTimestamp());
             getBuffer().putItem(bucket, candle);
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
-            getEventBus().publish(new CandleEvent(getCandleType(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
+            getEventBus().publish(new CandleEvent(getCandlePeriod(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
                 saveBuffer();
             }

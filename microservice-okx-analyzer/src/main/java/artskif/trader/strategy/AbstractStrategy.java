@@ -1,14 +1,15 @@
-package artskif.trader.indicator;
+package artskif.trader.strategy;
 
-import artskif.trader.candle.CandleType;
+import artskif.trader.candle.CandlePeriod;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
-import io.quarkus.runtime.Startup;
+import artskif.trader.indicator.AbstractIndicator;
+import artskif.trader.indicator.IndicatorFrame;
+import artskif.trader.indicator.IndicatorPoint;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,17 +18,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Startup
-@ApplicationScoped
-public class IndicatorFrameService  implements CandleEventListener {
 
-    private final AtomicReference<IndicatorFrame> lastFrame = new AtomicReference<>();
+@NoArgsConstructor(force = true)
+public abstract class AbstractStrategy implements CandleEventListener {
 
-    @Inject
-    CandleEventBus bus;
+    protected final AtomicReference<IndicatorFrame> lastFrame = new AtomicReference<>();
 
-    @Inject
-    List<IndicatorPoint> indicators; // см. AllIndicatorsProducer
+    protected final CandleEventBus bus;
+    protected final List<IndicatorPoint> indicators; // см. AllIndicatorsProducer
+
+    protected AbstractStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
+        this.bus = bus;
+        this.indicators = indicators;
+    }
+
+    protected abstract CandlePeriod getCandleType();
 
     @PostConstruct
     void start() {
@@ -40,11 +45,13 @@ public class IndicatorFrameService  implements CandleEventListener {
     }
 
     @Override
-    public void onCandle(CandleEvent ev) {
+    public void onCandle(CandleEvent event) {
+        if (event.period() != getCandleType()) return;
+
         // На каждый тик собираем значения у всех индикаторов.
         // Индикаторы сами внутри AbstractIndicator отфильтровывают типы свечей и
         // обновляют своё value (в своих потоках). Нам остаётся просто прочитать value.
-        IndicatorFrame frame = assembleFrame(ev.bucket(), ev.type());
+        IndicatorFrame frame = assembleFrame(event.bucket(), event.period());
         lastFrame.set(frame);
         System.out.println("🔌 Текущий фрейм - " + frame);
 
@@ -56,7 +63,7 @@ public class IndicatorFrameService  implements CandleEventListener {
         return lastFrame.get();
     }
 
-    private IndicatorFrame assembleFrame(Instant bucket, CandleType type) {
+    private IndicatorFrame assembleFrame(Instant bucket, CandlePeriod period) {
         Map<String, BigDecimal> values = new LinkedHashMap<>();
 
         for (IndicatorPoint ip : indicators) {
@@ -72,6 +79,6 @@ public class IndicatorFrameService  implements CandleEventListener {
             values.put(name, v);
         }
 
-        return new IndicatorFrame(bucket, type, values);
+        return new IndicatorFrame(bucket, period, values);
     }
 }

@@ -33,8 +33,8 @@ public class Candle4H extends AbstractTimeSeriesTicker {
     }
 
     @Override
-    protected CandleType getCandleType() {
-        return CandleType.CANDLE_4H;
+    protected CandlePeriod getCandlePeriod() {
+        return CandlePeriod.CANDLE_4H;
     }
 
     @Override

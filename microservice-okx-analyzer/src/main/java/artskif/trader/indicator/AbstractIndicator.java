@@ -1,6 +1,6 @@
 package artskif.trader.indicator;
 
-import artskif.trader.candle.CandleType;
+import artskif.trader.candle.CandlePeriod;
 import artskif.trader.common.AbstractTimeSeries;
 import artskif.trader.common.StateRepository;
 import artskif.trader.common.Stateable;
@@ -26,7 +26,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     private Thread worker;
     private volatile boolean running = false;
 
-    protected abstract CandleType getCandleType();
+    protected abstract CandlePeriod getCandlePeriod();
     protected abstract void process(CandleEvent take);
     protected abstract StateRepository getStateRepository();
     protected abstract Path getPathForStateSave();
@@ -51,7 +51,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
 
     @Override
     public void onCandle(CandleEvent event) {
-        if (event.type() != getCandleType()) return;
+        if (event.period() != getCandlePeriod()) return;
 
         // Не блокируем продьюсера: если переполнено — логируем дроп
         // При желании можно заменить на offer(ev, timeout, unit) или политику "drop oldest".
