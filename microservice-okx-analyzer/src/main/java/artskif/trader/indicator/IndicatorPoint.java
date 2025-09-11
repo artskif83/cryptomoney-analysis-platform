@@ -7,9 +7,11 @@ import java.time.Instant;
 
 public interface IndicatorPoint {
     BigDecimal getValue();
+    BigDecimal getLastValue();
     IndicatorType getType();
     String getName();
     CandleTimeframe getCandleTimeframe();
     Integer getPeriod();
     Instant getBucket();
+    Instant getTs();
 }

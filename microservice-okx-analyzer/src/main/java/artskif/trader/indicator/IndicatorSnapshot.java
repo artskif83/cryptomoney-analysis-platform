@@ -12,5 +12,7 @@ public record IndicatorSnapshot(
         Integer period,
         CandleTimeframe candleTimeframe,
         Instant bucket,
+        Instant ts,
+        BigDecimal lastValue,
         BigDecimal value
 ) {}

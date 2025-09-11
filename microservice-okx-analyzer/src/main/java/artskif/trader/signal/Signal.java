@@ -8,6 +8,8 @@ import java.time.Instant;
 public record Signal(
         Instant time,                 // время сигнала
         OperationType operation,      // BUY / SELL
-        SignalType type,              // например: (RSI, 14)
+        StrategyKind strategy,        // например: ADX_RSI
+        Integer level,                // например: 15, 20, 30 и т.д.
+        TrendDirection direction,     // например: UP или DOWN
         CandleTimeframe timeframe     // на каком таймфрейме он зафиксирован
 ) {}

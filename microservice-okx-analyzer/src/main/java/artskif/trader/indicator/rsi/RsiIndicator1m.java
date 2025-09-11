@@ -39,9 +39,11 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     Integer period; // Период индикатора
     RsiState rsiState; // состояние RSI + его репозиторий/путь
     BigDecimal value;
+    BigDecimal lastValue;
     Path pathForSave;
     Path pathForStateSave;
     Instant bucket;
+    Instant ts;
 
     public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
@@ -64,6 +66,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
         this.bucket = bucket;
+        this.ts = Instant.now();
 
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
@@ -114,6 +117,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
             upd.point.ifPresent(p -> {
                 value = p.getRsi();
+                lastValue = p.getRsi();
                 buffer.putItem(bucket, p);
             });
 
@@ -137,6 +141,11 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     @Override
     public Instant getBucket() {
         return bucket;
+    }
+
+    @Override
+    public Instant getTs() {
+        return ts;
     }
 
     @Override
@@ -182,6 +191,11 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     @Override
     public BigDecimal getValue() {
         return value;
+    }
+
+    @Override
+    public BigDecimal getLastValue() {
+        return lastValue;
     }
 
     @Override

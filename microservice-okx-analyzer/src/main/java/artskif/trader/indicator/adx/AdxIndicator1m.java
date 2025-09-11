@@ -26,7 +26,6 @@ import java.util.Optional;
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     private final static String NAME = "ADX-1m";
-    private final static int DEFAULT_PERIOD = 14;
 
     private final BufferRepository<AdxPoint> adxBufferRepository;
     private final Candle1m candle1m;
@@ -34,14 +33,20 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private final Path pathForSave = Paths.get("adxIndicator1m.json");
 
     Instant bucket;
+    Instant ts;
+    BigDecimal value;
+    BigDecimal lastValue;
+    Integer period; // Период индикатора
 
-    public AdxIndicator1m(ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
+
+    public AdxIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
-        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, DEFAULT_PERIOD), Duration.ofMinutes(1), 100);
+        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
         this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.candle1m = candle1m;
         this.bucket = null;
+        this.period = period;
     }
 
     @Override
@@ -49,15 +54,20 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
         this.bucket = bucket;
+        this.ts = Instant.now();
 
         Map<Instant, CandlestickDto> history = candle1m.getBuffer().getSnapshot();
-        Optional<AdxPoint> point = AdxCalculator.computeLastAdx(DEFAULT_PERIOD, history, true);
-        point.ifPresent(p -> buffer.putItem(bucket, p));
+        Optional<AdxPoint> point = AdxCalculator.computeLastAdx(period, history, true);
+        point.ifPresent(p -> {
+            value = p.getAdx();
+            buffer.putItem(bucket, p);
+        });
 
-        //System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
 
         // коммитим новое состояние ТОЛЬКО если свеча подтверждена (внутри calc уже учтено)
         if (Boolean.TRUE.equals(c.getConfirmed())) {
+            System.out.println("📥 [" + getName() + "] Получено новое значение  ADX - " + point.orElse(null));
+            point.ifPresent(p -> lastValue = p.getAdx());
             saveBuffer();
         }
     }
@@ -69,12 +79,17 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     @Override
     public Integer getPeriod() {
-        return DEFAULT_PERIOD;
+        return period;
     }
 
     @Override
     public Instant getBucket() {
         return bucket;
+    }
+
+    @Override
+    public Instant getTs() {
+        return ts;
     }
 
     @Override
@@ -84,7 +99,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     @Override
     public String getName() {
-        return "1m-ADX";
+        return String.format("%s-%dp", NAME, period);
     }
 
     @Override
@@ -119,7 +134,12 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     @Override
     public BigDecimal getValue() {
-        return null;
+        return value;
+    }
+
+    @Override
+    public BigDecimal getLastValue() {
+        return lastValue;
     }
 
     @Override

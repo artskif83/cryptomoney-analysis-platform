@@ -6,7 +6,7 @@ import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorPoint;
 import artskif.trader.signal.Signal;
 import artskif.trader.signal.StrategyKind;
-import artskif.trader.signal.rsi.RsiSignalGenerator;
+import artskif.trader.signal.rsi.AdxRsiSignalGenerator;
 import artskif.trader.strategy.AbstractStrategy;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,12 +18,12 @@ import java.util.List;
 @Startup
 @ApplicationScoped
 @NoArgsConstructor(force = true)
-public class RsiStrategy extends AbstractStrategy {
+public class AdxRsiStrategy extends AbstractStrategy {
 
-    private final RsiSignalGenerator generator = new RsiSignalGenerator();
+    private final AdxRsiSignalGenerator generator = new AdxRsiSignalGenerator();
 
     @Inject
-    public RsiStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
+    public AdxRsiStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
         super(bus, indicators);
     }
 
@@ -44,6 +44,6 @@ public class RsiStrategy extends AbstractStrategy {
     }
 
     public StrategyKind getStrategyKind() {
-        return StrategyKind.TRIPLE_RSI;
+        return StrategyKind.ADX_RSI;
     }
 }

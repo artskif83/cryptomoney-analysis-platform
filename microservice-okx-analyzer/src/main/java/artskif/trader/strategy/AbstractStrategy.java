@@ -84,6 +84,8 @@ public abstract class AbstractStrategy implements CandleEventListener {
                     ip.getPeriod(),
                     ip.getCandleTimeframe(),
                     ip.getBucket(), // у конкретного индикатора bucket может отличаться, сохраняем его
+                    ip.getTs(), // у конкретного индикатора bucket может отличаться, сохраняем его
+                    ip.getLastValue(),
                     value
             );
             snapshots.add(snap);
