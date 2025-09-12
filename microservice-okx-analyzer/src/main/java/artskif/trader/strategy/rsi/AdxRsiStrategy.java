@@ -38,9 +38,9 @@ public class AdxRsiStrategy extends AbstractStrategy {
         var frame = getLastFrame();
         if (frame == null) return;
 
-        List<Signal> signals = generator.generate(frame, getStrategyKind());
+        Signal signal = generator.generate(frame, getStrategyKind());
         // TODO: здесь можно отправить сигналы в очередь/шину/репозиторий
-        signals.forEach(s -> System.out.println("📣 SIGNAL: " + s));
+        if (signal != null) System.out.println("📣 SIGNAL: " + signal);
     }
 
     public StrategyKind getStrategyKind() {

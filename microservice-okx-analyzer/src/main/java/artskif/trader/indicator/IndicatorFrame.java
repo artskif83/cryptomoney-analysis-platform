@@ -10,4 +10,12 @@ public record IndicatorFrame(
         Instant bucket,
         CandleTimeframe candleType,
         List<IndicatorSnapshot> indicators
-) {}
+) {
+    public IndicatorSnapshot getIndicator(IndicatorType type) {
+        if (indicators == null) return null;
+        return indicators.stream()
+                .filter(snap -> snap.type() == type)
+                .findFirst()
+                .orElse(null);
+    }
+}
