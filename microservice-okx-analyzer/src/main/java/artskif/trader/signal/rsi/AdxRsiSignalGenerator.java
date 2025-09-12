@@ -9,6 +9,7 @@ import artskif.trader.signal.StrategyKind;
 import artskif.trader.signal.TrendDirection;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 public class AdxRsiSignalGenerator {
@@ -21,9 +22,18 @@ public class AdxRsiSignalGenerator {
     private static final List<BigDecimal> LEVELS = List.of(L25, L20, L15);
 
     private static final int HI_START = 30;   // старт для «высоких» уровней
-    private static final int HI_STEP  = 10;   // шаг 10
+    private static final int HI_STEP = 10;   // шаг 10
+
+    // ---- антидубль на уровне бара ----
+    private Instant lastSignalBucket = null;  // ★
 
     public Signal generate(IndicatorFrame frame, StrategyKind strategyKind) {
+        // если уже подавали сигнал на этом баре — ничего не делаем
+        final Instant bar = frame.bucket();                   // ★
+        if (bar != null && bar.equals(lastSignalBucket)) {    // ★
+            return null;
+        }
+
         Signal out = null;
 
         IndicatorSnapshot adx = frame.getIndicator(IndicatorType.ADX);
@@ -42,11 +52,11 @@ public class AdxRsiSignalGenerator {
             BigDecimal hi = prev.max(curr);
 
             int first = Math.max(ceilTo10(lo), HI_START);
-            int last  = floorTo10(hi);
+            int last = floorTo10(hi);
 
             for (int level = first; level <= last; level += HI_STEP) {
                 BigDecimal lv = BigDecimal.valueOf(level);
-                boolean crossedUp   = prev.compareTo(lv) < 0 && curr.compareTo(lv) >= 0;
+                boolean crossedUp = prev.compareTo(lv) < 0 && curr.compareTo(lv) >= 0;
                 if (crossedUp) {
                     // возвращаем старший пересечённый уровень (идём по возрастанию, перезаписываем out)
                     out = makeSignal(frame, adx, level,
@@ -54,20 +64,21 @@ public class AdxRsiSignalGenerator {
                             up ? TrendDirection.UP : TrendDirection.DOWN);
                 }
             }
+        }
+        // ---------- Старая логика: 25/20/15, только DOWN, диапазоны как раньше ----------
+        for (int i = 0; i < LEVELS.size(); i++) {
+            BigDecimal level = LEVELS.get(i);
+            BigDecimal lower = (i + 1 < LEVELS.size()) ? LEVELS.get(i + 1) : null;
 
-            // ---------- Старая логика: 25/20/15, только DOWN, диапазоны как раньше ----------
-            for (int i = 0; i < LEVELS.size(); i++) {
-                BigDecimal level = LEVELS.get(i);
-                BigDecimal lower = (i + 1 < LEVELS.size()) ? LEVELS.get(i + 1) : null;
-
-                if (crossedDown(prev, curr, level) && (lower == null || curr.compareTo(lower) > 0)) {
-                    out = makeSignal(frame, adx, level.intValue(), OperationType.BUY, TrendDirection.DOWN);
-                    break; // старший подходящий уровень
-                }
+            if (crossedDown(prev, curr, level) && (lower == null || curr.compareTo(lower) > 0)) {
+                out = makeSignal(frame, adx, level.intValue(), OperationType.BUY, TrendDirection.DOWN);
+                break; // старший подходящий уровень
             }
-            if (out != null) return out; // если нашли сигнал по «высоким» уровням — отдаём его
         }
 
+        if (out != null) {
+            lastSignalBucket = bar;   // ★ фиксируем, что на этот бар сигнал уже подан
+        }
         return out;
     }
 
@@ -86,13 +97,17 @@ public class AdxRsiSignalGenerator {
         );
     }
 
-    /** Округление вверх до ближайших 10 (29.1 -> 30, 30 -> 30) */
+    /**
+     * Округление вверх до ближайших 10 (29.1 -> 30, 30 -> 30)
+     */
     private static int ceilTo10(BigDecimal x) {
         int v = x.intValue();
         return (v % 10 == 0) ? v : ((v / 10) + 1) * 10;
     }
 
-    /** Округление вниз до ближайших 10 (30.9 -> 30, 30 -> 30) */
+    /**
+     * Округление вниз до ближайших 10 (30.9 -> 30, 30 -> 30)
+     */
     private static int floorTo10(BigDecimal x) {
         int v = x.intValue();
         return (v / 10) * 10;
