@@ -6,156 +6,263 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 public class AdxCalculator {
 
-    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
-    private static final int SCALE = 10;
+    private static final MathContext MC = MathContext.DECIMAL64;
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
     private static final int OUT_SCALE = 2;
 
-    public static Optional<AdxPoint> computeLastAdx(int period, Map<Instant, CandlestickDto> history, boolean onlyConfirmed) {
-        int n = period;
-        if (history == null || history.isEmpty()) return Optional.empty();
+    public static final class AdxUpdate {
+        public final Optional<AdxPoint> point;
+        public final AdxState state;
+        public AdxUpdate(Optional<AdxPoint> point, AdxState state) {
+            this.point = point;
+            this.state = state;
+        }
+    }
 
-        // 1) Создаем список
-        List<Map.Entry<Instant, CandlestickDto>> rows = new ArrayList<>(history.entrySet());
+    /**
+     * Подъём состояния из подтверждённой истории (миксуется в том же стиле, что RSI.tryInitFromHistory).
+     * Идём по подтверждённым свечам в возрастающем порядке и вызываем updateConfirmed(...).
+     * Если истории недостаточно — накапливаем seed.
+     */
+    public static AdxState tryInitFromHistory(AdxState s, List<Map.Entry<Instant, CandlestickDto>> lastConfirmedAsc) {
+        if (s == null) throw new RuntimeException("Состояние не инициализировано");
+        if (s.isInitialized()) return s;
+        if (lastConfirmedAsc == null || lastConfirmedAsc.isEmpty()) return s;
 
-        // 2) Готовим TR и сырые +DM/-DM
-        List<BigDecimal> trList = new ArrayList<>();
-        List<BigDecimal> plusDmRawList = new ArrayList<>();
-        List<BigDecimal> minusDmRawList = new ArrayList<>();
-        List<Instant> tsList = new ArrayList<>();
+        for (Map.Entry<Instant, CandlestickDto> e : lastConfirmedAsc) {
+            AdxUpdate upd = updateConfirmed(s, e.getKey(), e.getValue());
+            s = upd.state;
+        }
+        return s;
+    }
 
-        BigDecimal prevClose = null, prevHigh = null, prevLow = null;
+    /**
+     * Предпросчёт ADX для текущего (неподтверждённого) тика — без изменения состояния.
+     * Делает смысл только когда ADX уже инициализирован (иначе у нас ещё нет lastAdx и смутно трактуемый DX seed).
+     */
+    public static Optional<BigDecimal> preview(AdxState s, CandlestickDto current) {
+        if (s == null || !s.isInitialized() || s.getLastClose() == null) return Optional.empty();
 
-        for (Map.Entry<Instant, CandlestickDto> e : rows) {
-            CandlestickDto c = e.getValue();
-            if (onlyConfirmed && (c.getConfirmed() == null || !c.getConfirmed())) continue;
+        // считаем временные TR/DM и временное «следующее» сглаживание (как будто свеча подтвердилась),
+        // но ничего не записываем в состояние
+        Tmp tmp = stepCore(s, current.getHigh(), current.getLow(), current.getClose());
+        if (tmp == null) return Optional.empty();
 
-            BigDecimal h = nz(c.getHigh());
-            BigDecimal l = nz(c.getLow());
-            BigDecimal cl = nz(c.getClose());
+        // DX для «предположительно следующей» свечи
+        Optional<BigDecimal> dxOpt = computeDx(tmp.diPlus, tmp.diMinus);
+        if (dxOpt.isEmpty()) return Optional.empty();
 
-            if (prevClose == null) {
-                trList.add(BigDecimal.ZERO);
-                plusDmRawList.add(BigDecimal.ZERO);
-                minusDmRawList.add(BigDecimal.ZERO);
+        BigDecimal nextAdx = smooth(s.getLastAdx(), dxOpt.get(), s.getPeriod());
+        return Optional.of(out(nextAdx));
+    }
+
+    /**
+     * Коммит подтверждённой свечи: обновляем состояние и (если уже можем) возвращаем точку ADX.
+     */
+    public static AdxUpdate updateConfirmed(AdxState s, Instant bucket, CandlestickDto c) {
+        if (s == null) throw new RuntimeException("Состояние не инициализировано");
+        BigDecimal high = c.getHigh(), low = c.getLow(), close = c.getClose();
+
+        // Первая когда-либо свеча: только фиксируем last* и timestamp
+        if (s.getLastClose() == null) {
+            AdxState next = s.cloneWith(
+                    bucket, high, low, close,
+                    s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                    s.getAtr(), s.getPlusDmSmoothed(), s.getMinusDmSmoothed(),
+                    s.getDxSeedCount(), s.getDxSeedSum(),
+                    s.getLastAdx(), s.isInitialized()
+            );
+            return new AdxUpdate(Optional.empty(), next);
+        }
+
+        // Основной шаг (TR/DM и их сглаживание)
+        Tmp tmp = stepCore(s, high, low, close);
+        if (tmp == null) {
+            // защитно, не должно сюда падать
+            AdxState next = s.cloneWith(bucket, high, low, close,
+                    s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                    s.getAtr(), s.getPlusDmSmoothed(), s.getMinusDmSmoothed(),
+                    s.getDxSeedCount(), s.getDxSeedSum(),
+                    s.getLastAdx(), s.isInitialized());
+            return new AdxUpdate(Optional.empty(), next);
+        }
+
+        // 1) Пока не добрали seedCount < period → накапливаем суммы
+        if (s.getSeedCount() < s.getPeriod()) {
+            int newSeed = s.getSeedCount() + 1;
+            BigDecimal trSum = s.getSeedTrSum().add(tmp.tr, MC);
+            BigDecimal plusSum = s.getSeedPlusDmSum().add(tmp.plusDmRaw, MC);
+            BigDecimal minusSum = s.getSeedMinusDmSum().add(tmp.minusDmRaw, MC);
+
+            if (newSeed < s.getPeriod()) {
+                AdxState next = s.cloneWith(bucket, high, low, close,
+                        newSeed, trSum, plusSum, minusSum,
+                        s.getAtr(), s.getPlusDmSmoothed(), s.getMinusDmSmoothed(),
+                        s.getDxSeedCount(), s.getDxSeedSum(),
+                        s.getLastAdx(), false);
+                return new AdxUpdate(Optional.empty(), next);
             } else {
-                BigDecimal tr = max3(
-                        h.subtract(l, MC).abs(MC),
-                        h.subtract(prevClose, MC).abs(MC),
-                        l.subtract(prevClose, MC).abs(MC)
-                );
+                // newSeed == period → первичная инициализация ATR/+DM/-DM
+                BigDecimal periodBD = BigDecimal.valueOf(s.getPeriod());
+                BigDecimal atr0 = trSum.divide(periodBD, MC);
+                BigDecimal plus0 = plusSum.divide(periodBD, MC);
+                BigDecimal minus0 = minusSum.divide(periodBD, MC);
 
-                BigDecimal upMove = h.subtract(prevHigh, MC);
-                BigDecimal downMove = prevLow.subtract(l, MC);
+                // уже можно посчитать DI и первый DX (для последующего усреднения ADX)
+                Optional<BigDecimal> diPlus = computeDi(plus0, atr0);
+                Optional<BigDecimal> diMinus = computeDi(minus0, atr0);
+                Optional<BigDecimal> dx = computeDx(diPlus.orElse(BigDecimal.ZERO), diMinus.orElse(BigDecimal.ZERO));
 
-                BigDecimal plusDmRaw  = (gt(upMove, downMove) && gt(upMove,  BigDecimal.ZERO)) ? upMove  : BigDecimal.ZERO;
-                BigDecimal minusDmRaw = (gt(downMove, upMove) && gt(downMove, BigDecimal.ZERO)) ? downMove : BigDecimal.ZERO;
+                int dxSeedCount = dx.isPresent() ? 1 : 0;
+                BigDecimal dxSeedSum = dx.orElse(BigDecimal.ZERO);
 
-                trList.add(scale(tr));
-                plusDmRawList.add(scale(plusDmRaw));
-                minusDmRawList.add(scale(minusDmRaw));
-            }
-            tsList.add(e.getKey());
-            prevClose = cl; prevHigh = h; prevLow = l;
-        }
+                AdxState next = s.cloneWith(bucket, high, low, close,
+                        newSeed, trSum, plusSum, minusSum,
+                        atr0, plus0, minus0,
+                        dxSeedCount, dxSeedSum,
+                        null, /* lastAdx ещё нет */ false);
 
-        int m = tsList.size();
-        // Для ADX нужен минимум 2*n баров (n на первичную RMA + n DX для старта ADX)
-        if (m < 2 * n) return Optional.empty();
-
-        BigDecimal nBD = new BigDecimal(n, MC);
-
-        // 3) Инициализация RMA за первые n баров (используем i=1..n)
-        BigDecimal trR = BigDecimal.ZERO, pR = BigDecimal.ZERO, mR = BigDecimal.ZERO;
-        for (int i = 1; i <= n; i++) {
-            trR = trR.add(trList.get(i), MC);
-            pR  = pR.add(plusDmRawList.get(i), MC);
-            mR  = mR.add(minusDmRawList.get(i), MC);
-        }
-
-        // 4) Идём от i=n до конца, на КАЖДОМ шаге обновляем RMA и считаем DX
-        List<BigDecimal> dxList = new ArrayList<>(m - n);
-        BigDecimal lastPlusDI = BigDecimal.ZERO;
-        BigDecimal lastMinusDI = BigDecimal.ZERO;
-        BigDecimal lastDX = BigDecimal.ZERO;
-
-        for (int i = n; i < m; i++) {
-            if (i > n) {
-                trR = trR.subtract(trR.divide(nBD, MC), MC).add(trList.get(i), MC);
-                pR  = pR.subtract(pR.divide(nBD, MC), MC).add(plusDmRawList.get(i), MC);
-                mR  = mR.subtract(mR.divide(nBD, MC), MC).add(minusDmRawList.get(i), MC);
-            }
-            // +DI/-DI для текущего бара i
-            BigDecimal pdi = isZero(trR) ? BigDecimal.ZERO : pR.divide(trR, MC).multiply(hundred(), MC);
-            BigDecimal mdi = isZero(trR) ? BigDecimal.ZERO : mR.divide(trR, MC).multiply(hundred(), MC);
-
-            BigDecimal denom = pdi.add(mdi, MC);
-            BigDecimal dxi = isZero(denom)
-                    ? BigDecimal.ZERO
-                    : pdi.subtract(mdi, MC).abs(MC).divide(denom, MC).multiply(hundred(), MC);
-
-            dxList.add(dxi);
-
-            if (i == m - 1) {
-                lastPlusDI = pdi;
-                lastMinusDI = mdi;
-                lastDX = dxi;
+                // На самой инициализации ADX ещё не готов (нужно накопить средний DX за period),
+                // поэтому точки пока не отдаём.
+                return new AdxUpdate(Optional.empty(), next);
             }
         }
 
-        // 5) ADX = RMA(DX, n): сначала среднее первых n DX, затем рекурсия
-        if (dxList.size() < n) return Optional.empty();
-        BigDecimal sum = BigDecimal.ZERO;
-        for (int i = 0; i < n; i++) sum = sum.add(dxList.get(i), MC);
-        BigDecimal adx = sum.divide(nBD, MC); // стартовое значение ADX на баре i = n+(n-1)
+        // 2) Сглаживание после инициализации ATR/+DM/-DM
+        BigDecimal periodBD = BigDecimal.valueOf(s.getPeriod());
+        BigDecimal atr = s.getAtr().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(tmp.tr, MC).divide(periodBD, MC);
+        BigDecimal plusDm = s.getPlusDmSmoothed().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(tmp.plusDmRaw, MC).divide(periodBD, MC);
+        BigDecimal minusDm = s.getMinusDmSmoothed().multiply(periodBD.subtract(BigDecimal.ONE, MC), MC)
+                .add(tmp.minusDmRaw, MC).divide(periodBD, MC);
 
-        for (int i = n; i < dxList.size(); i++) {
-            adx = adx.add( dxList.get(i).subtract(adx, MC).divide(nBD, MC), MC );
+        Optional<BigDecimal> diPlus = computeDi(plusDm, atr);
+        Optional<BigDecimal> diMinus = computeDi(minusDm, atr);
+        Optional<BigDecimal> dxOpt = computeDx(diPlus.orElse(BigDecimal.ZERO), diMinus.orElse(BigDecimal.ZERO));
+
+        // 2a) Если ADX ещё не инициализирован — усредняем DX ещё period раз
+        if (!s.isInitialized()) {
+            int dxCount = s.getDxSeedCount() + (dxOpt.isPresent() ? 1 : 0);
+            BigDecimal dxSum = s.getDxSeedSum().add(dxOpt.orElse(BigDecimal.ZERO), MC);
+
+            if (dxCount < s.getPeriod()) {
+                AdxState next = s.cloneWith(bucket, high, low, close,
+                        s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                        atr, plusDm, minusDm,
+                        dxCount, dxSum,
+                        null, false);
+                return new AdxUpdate(Optional.empty(), next);
+            } else {
+                // dxCount == period → первичный ADX = средний DX
+                BigDecimal adx0 = dxSum.divide(periodBD, MC);
+                BigDecimal outAdx = out(adx0);
+                AdxState next = s.cloneWith(bucket, high, low, close,
+                        s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                        atr, plusDm, minusDm,
+                        dxCount, dxSum,
+                        adx0, true);
+
+                return new AdxUpdate(Optional.of(new AdxPoint(bucket, outAdx)), next);
+            }
         }
 
-        // 6) Возвращаем последнюю точку
-        Instant ts = tsList.get(m - 1);
-        return Optional.of(new AdxPoint(
-                ts,
-                out2(lastPlusDI),
-                out2(lastMinusDI),
-                out2(lastDX),
-                out2(adx)
-        ));
+        // 2b) Обычный рабочий шаг: ADX_t = (ADX_{t-1}*(n-1) + DX_t)/n
+        if (dxOpt.isEmpty()) {
+            // редкая защита от деления на 0 → точки нет, состояние обновили
+            AdxState next = s.cloneWith(bucket, high, low, close,
+                    s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                    atr, plusDm, minusDm,
+                    s.getDxSeedCount(), s.getDxSeedSum(),
+                    s.getLastAdx(), s.isInitialized());
+            return new AdxUpdate(Optional.empty(), next);
+        }
+
+        BigDecimal nextAdx = smooth(s.getLastAdx(), dxOpt.get(), s.getPeriod());
+        BigDecimal outAdx = out(nextAdx);
+
+        AdxState next = s.cloneWith(bucket, high, low, close,
+                s.getSeedCount(), s.getSeedTrSum(), s.getSeedPlusDmSum(), s.getSeedMinusDmSum(),
+                atr, plusDm, minusDm,
+                s.getDxSeedCount(), s.getDxSeedSum(),
+                nextAdx, true);
+
+        return new AdxUpdate(Optional.of(new AdxPoint(bucket, outAdx)), next);
     }
 
-    // helpers
-    private static BigDecimal nz(BigDecimal v) {
-        return v == null ? BigDecimal.ZERO : v;
+    // ====== математика шага ======
+
+    private static final class Tmp {
+        final BigDecimal tr, plusDmRaw, minusDmRaw, diPlus, diMinus;
+        Tmp(BigDecimal tr, BigDecimal plusDmRaw, BigDecimal minusDmRaw, BigDecimal diPlus, BigDecimal diMinus) {
+            this.tr = tr; this.plusDmRaw = plusDmRaw; this.minusDmRaw = minusDmRaw;
+            this.diPlus = diPlus; this.diMinus = diMinus;
+        }
     }
 
-    private static BigDecimal hundred() {
-        return new BigDecimal("100");
+    /** Вычисляет TR/+DM/-DM и (если возможно) DI+/DI- для текущего бара, исходя из состояния s. */
+    private static Tmp stepCore(AdxState s, BigDecimal high, BigDecimal low, BigDecimal close) {
+        if (s.getLastHigh() == null || s.getLastLow() == null || s.getLastClose() == null) return null;
+
+        BigDecimal tr = max3(
+                high.subtract(low, MC).abs(MC),
+                high.subtract(s.getLastClose(), MC).abs(MC),
+                low.subtract(s.getLastClose(), MC).abs(MC)
+        );
+
+        BigDecimal upMove = high.subtract(s.getLastHigh(), MC);
+        BigDecimal downMove = s.getLastLow().subtract(low, MC);
+
+        BigDecimal plusDmRaw = (upMove.signum() > 0 && upMove.compareTo(downMove) > 0) ? upMove : BigDecimal.ZERO;
+        BigDecimal minusDmRaw = (downMove.signum() > 0 && downMove.compareTo(upMove) > 0) ? downMove : BigDecimal.ZERO;
+
+        // Если s уже имеет сглаженные значения — можем сразу прикинуть DI для превью;
+        // при первичном seed возвращаем DI=0 (их всё равно пересчитаем при commit)
+        BigDecimal diPlus = BigDecimal.ZERO;
+        BigDecimal diMinus = BigDecimal.ZERO;
+        if (s.getAtr() != null && s.getPlusDmSmoothed() != null && s.getMinusDmSmoothed() != null) {
+            // «временные» следующие сглаженные значения, как будто мы их уже обновили
+            BigDecimal n = BigDecimal.valueOf(s.getPeriod());
+            BigDecimal atrTmp = s.getAtr().multiply(n.subtract(BigDecimal.ONE, MC), MC).add(tr, MC).divide(n, MC);
+            BigDecimal plusDmTmp = s.getPlusDmSmoothed().multiply(n.subtract(BigDecimal.ONE, MC), MC).add(plusDmRaw, MC).divide(n, MC);
+            BigDecimal minusDmTmp = s.getMinusDmSmoothed().multiply(n.subtract(BigDecimal.ONE, MC), MC).add(minusDmRaw, MC).divide(n, MC);
+
+            diPlus = computeDi(plusDmTmp, atrTmp).orElse(BigDecimal.ZERO);
+            diMinus = computeDi(minusDmTmp, atrTmp).orElse(BigDecimal.ZERO);
+        }
+
+        return new Tmp(tr, plusDmRaw, minusDmRaw, diPlus, diMinus);
     }
 
-    private static BigDecimal scale(BigDecimal v) {
-        return v.setScale(SCALE, RoundingMode.HALF_UP);
+    private static Optional<BigDecimal> computeDi(BigDecimal dmSmoothed, BigDecimal atr) {
+        if (dmSmoothed == null || atr == null) return Optional.empty();
+        if (atr.compareTo(BigDecimal.ZERO) == 0) return Optional.of(BigDecimal.ZERO);
+        return Optional.of(ONE_HUNDRED.multiply(dmSmoothed.divide(atr, MC), MC));
     }
 
-    private static boolean isZero(BigDecimal v) {
-        return v == null || v.compareTo(BigDecimal.ZERO) == 0;
+    private static Optional<BigDecimal> computeDx(BigDecimal diPlus, BigDecimal diMinus) {
+        BigDecimal sum = diPlus.add(diMinus, MC);
+        if (sum.compareTo(BigDecimal.ZERO) == 0) return Optional.of(BigDecimal.ZERO);
+        BigDecimal diff = diPlus.subtract(diMinus, MC).abs(MC);
+        return Optional.of(ONE_HUNDRED.multiply(diff.divide(sum, MC), MC));
     }
 
-    private static boolean gt(BigDecimal a, BigDecimal b) {
-        return a.compareTo(b) > 0;
+    private static BigDecimal smooth(BigDecimal prev, BigDecimal cur, int period) {
+        BigDecimal n = BigDecimal.valueOf(period);
+        return (prev == null)
+                ? cur
+                : prev.multiply(n.subtract(BigDecimal.ONE, MC), MC).add(cur, MC).divide(n, MC);
     }
 
     private static BigDecimal max3(BigDecimal a, BigDecimal b, BigDecimal c) {
-        return a.max(b).max(c);
+        BigDecimal m = a.max(b);
+        return m.max(c);
     }
 
-    private static BigDecimal out2(BigDecimal v) { return v.setScale(OUT_SCALE, RoundingMode.HALF_UP); }
-
-
+    private static BigDecimal out(BigDecimal v) { return v.setScale(OUT_SCALE, RoundingMode.HALF_UP); }
 }

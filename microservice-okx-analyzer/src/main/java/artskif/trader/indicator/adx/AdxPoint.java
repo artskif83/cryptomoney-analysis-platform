@@ -10,25 +10,18 @@ import java.time.Instant;
 @RegisterForReflection
 public class AdxPoint {
     private Instant timestamp;     // bucket (ms epoch)
-    private BigDecimal plusDI;  // +DI
-    private BigDecimal minusDI; // -DI
     private BigDecimal adx;
-    private BigDecimal dx;
+
 
     // конструктор по умолчанию (с пустыми значениями)
     public AdxPoint() {
         this.timestamp = null;
-        this.plusDI = null;
-        this.minusDI = null;
         this.adx = null;
     }
 
-    public AdxPoint(Instant ts, BigDecimal plusDI, BigDecimal minusDI, BigDecimal dx, BigDecimal adx) {
+    public AdxPoint(Instant ts, BigDecimal adx) {
         this.timestamp = ts;
-        this.plusDI = plusDI;
-        this.minusDI = minusDI;
         this.adx = adx;
-        this.dx = dx;
     }
 
     // фабричный метод "пустой точки"
