@@ -1,18 +1,18 @@
-plugins {
-    id 'java'
-}
-
 allprojects {
     repositories {
         mavenCentral()
         gradlePluginPortal()
         mavenLocal()
     }
-}
-
-subprojects {
-    apply plugin: 'java'
 
     group = 'artskif.trader'
     version = '1.0.0'
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+    }
 }

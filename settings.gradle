@@ -1,15 +1,7 @@
-pluginManagement {
-    plugins {
-        id("${quarkusPluginId}") version "${quarkusPluginVersion}"
-    }
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
+rootProject.name = "cryptomoney-analysis-platform"
 
-rootProject.name = 'cryptomoney-analysis-platform'
-
-include 'microservice-okx-analyzer'
-include 'microservice-okx-harvester'
-include 'microservice-okx-telegram-bot'
+include(
+        ":microservice-okx-analyzer",
+        ":microservice-okx-harvester",
+        ":microservice-okx-telegram-bot"
+)
