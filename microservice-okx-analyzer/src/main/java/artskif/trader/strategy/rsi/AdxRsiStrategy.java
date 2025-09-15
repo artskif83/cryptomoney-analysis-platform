@@ -4,14 +4,14 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorPoint;
-import artskif.trader.signal.Signal;
-import artskif.trader.signal.StrategyKind;
 import artskif.trader.signal.rsi.AdxRsiSignalGenerator;
 import artskif.trader.strategy.AbstractStrategy;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.NoArgsConstructor;
+import my.signals.v1.Signal;
+import my.signals.v1.StrategyKind;
 
 import java.util.List;
 

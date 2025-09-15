@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package my.signals.v1;
+option java_package = "my.signals.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+enum OperationType { OPERATION_TYPE_UNSPECIFIED = 0; BUY = 1; SELL = 2; }
+enum TrendDirection { TREND_DIRECTION_UNSPECIFIED = 0; UP = 1; DOWN = 2; }
+enum StrategyKind { STRATEGY_KIND_UNSPECIFIED = 0; ADX_RSI = 1; }
+
+message Signal {
+  google.protobuf.Timestamp time = 1;
+  OperationType operation = 2;
+  StrategyKind strategy = 3;
+  int32 level = 4;
+  TrendDirection direction = 5;
+  string timeframe = 6; // можно заменить на enum при желании
+}

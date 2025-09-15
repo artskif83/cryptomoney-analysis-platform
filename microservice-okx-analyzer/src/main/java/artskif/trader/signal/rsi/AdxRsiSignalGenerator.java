@@ -3,10 +3,11 @@ package artskif.trader.signal.rsi;
 import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.indicator.IndicatorType;
-import artskif.trader.signal.OperationType;
-import artskif.trader.signal.Signal;
-import artskif.trader.signal.StrategyKind;
-import artskif.trader.signal.TrendDirection;
+import com.google.protobuf.Timestamp;
+import my.signals.v1.OperationType;
+import my.signals.v1.Signal;
+import my.signals.v1.StrategyKind;
+import my.signals.v1.TrendDirection;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -87,14 +88,21 @@ public class AdxRsiSignalGenerator {
     }
 
     private static Signal makeSignal(IndicatorFrame frame, IndicatorSnapshot snap, int level, OperationType operationType, TrendDirection trendDirection) {
-        return new Signal(
-                snap.bucket(),
-                operationType,
-                StrategyKind.ADX_RSI,
-                level,
-                trendDirection,
-                frame.candleType()
-        );
+        return  Signal.newBuilder()
+                .setTime(toProtoTs(snap.bucket()))
+                .setOperation(operationType)
+                .setStrategy(StrategyKind.ADX_RSI)
+                .setLevel(level)
+                .setDirection(trendDirection)
+                .setTimeframe(frame.candleType().toString())
+                .build();
+    }
+
+    private static Timestamp toProtoTs(java.time.Instant instant) {
+        return Timestamp.newBuilder()
+                .setSeconds(instant.getEpochSecond())
+                .setNanos(instant.getNano())
+                .build();
     }
 
     /**

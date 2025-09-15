@@ -1,0 +1,24 @@
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'artskif.trader'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "com.google.protobuf:protobuf-java:${protobufJavaVersion}"
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${protobufJavaVersion}" }
+    generateProtoTasks {
+        all().each { t ->
+            t.builtins { java {} }  // генерим обычные Java-классы
+        }
+    }
+}

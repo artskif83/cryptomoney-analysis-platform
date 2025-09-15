@@ -3,5 +3,7 @@ rootProject.name = "cryptomoney-analysis-platform"
 include(
         ":microservice-okx-analyzer",
         ":microservice-okx-harvester",
-        ":microservice-okx-telegram-bot"
+        ":microservice-okx-telegram-bot",
+        ":common-proto"
 )
+

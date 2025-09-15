@@ -18,6 +18,8 @@ test {
 
 dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation project(':common-proto')
+//    implementation "io.confluent:kafka-protobuf-serializer:${confluentVersion}"
     implementation 'io.quarkus:quarkus-minikube'
     implementation 'io.quarkus:quarkus-kubernetes'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:3.10.0'

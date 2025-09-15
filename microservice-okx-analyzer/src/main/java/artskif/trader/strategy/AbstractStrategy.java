@@ -8,10 +8,10 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
 import artskif.trader.indicator.IndicatorSnapshot;
-import artskif.trader.signal.StrategyKind;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NoArgsConstructor;
+import my.signals.v1.StrategyKind;
 
 import java.math.BigDecimal;
 import java.time.Instant;
