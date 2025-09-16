@@ -3,16 +3,9 @@ allprojects {
         mavenCentral()
         gradlePluginPortal()
         mavenLocal()
+        maven { url "https://packages.confluent.io/maven/" }
     }
 
     group = 'artskif.trader'
     version = '1.0.0'
-}
-
-subprojects {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        mavenLocal()
-    }
 }

@@ -10,7 +10,7 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class KafkaProducer {
 
-    private static final Logger LOG = Logger.getLogger(OKXWebSocketClient.class);
+    private static final Logger LOG = Logger.getLogger(KafkaProducer.class);
 
     @Inject
     @Channel("producer-1m")
