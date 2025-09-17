@@ -24,7 +24,11 @@ test {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.kafka:spring-kafka'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
     implementation "io.confluent:kafka-protobuf-serializer:7.6.0"
     implementation "com.google.protobuf:protobuf-java:3.25.3"
