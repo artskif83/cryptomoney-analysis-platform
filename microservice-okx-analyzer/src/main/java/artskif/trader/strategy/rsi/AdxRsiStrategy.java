@@ -4,6 +4,7 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorPoint;
+import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.signal.rsi.AdxRsiSignalGenerator;
 import artskif.trader.strategy.AbstractStrategy;
 import io.quarkus.runtime.Startup;
@@ -23,6 +24,9 @@ public class AdxRsiStrategy extends AbstractStrategy {
     private final AdxRsiSignalGenerator generator = new AdxRsiSignalGenerator();
 
     @Inject
+    KafkaProducer producer;
+
+    @Inject
     public AdxRsiStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
         super(bus, indicators);
     }
@@ -39,8 +43,10 @@ public class AdxRsiStrategy extends AbstractStrategy {
         if (frame == null) return;
 
         Signal signal = generator.generate(frame, getStrategyKind());
-        // TODO: здесь можно отправить сигналы в очередь/шину/репозиторий
-        if (signal != null) System.out.println("📣 SIGNAL: " + signal);
+        if (signal != null) {
+            producer.sendSignal(signal);
+            System.out.println("📣 SIGNAL: " + signal);
+        }
     }
 
     public StrategyKind getStrategyKind() {

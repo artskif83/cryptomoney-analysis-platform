@@ -26,6 +26,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.kafka:spring-kafka'
 
+    implementation "io.confluent:kafka-protobuf-serializer:7.6.0"
+    implementation "com.google.protobuf:protobuf-java:3.25.3"
+
+    implementation project(':common-proto') // общий модуль с .proto (если монорепо)
+
     // Telegram Bots Starter (9.0.0)
     implementation 'org.telegram:telegrambots-springboot-longpolling-starter:9.0.0'
     implementation 'org.telegram:telegrambots-client:9.0.0'
