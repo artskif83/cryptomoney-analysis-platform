@@ -103,7 +103,7 @@ public class OkxOrderService {
                                 "args", new Object[]{ Map.of(
                                         "instId", instId,
                                         "tdMode", "cash",
-                                        "tgtCcy",  "quote_ccy",
+                                        "tgtCcy",  "base_ccy",
                                         "side", side,         // buy | sell
                                         "ordType","market",
                                         "sz", sz
@@ -135,7 +135,8 @@ public class OkxOrderService {
                         }
                     }
 
-                } catch (Exception ignore) { /* другие сообщения: пинги/канальные */ }
+                } catch (Exception ignore
+                ) { /* другие сообщения: пинги/канальные */ }
             }
 
             @Override public void onMessage(WebSocket webSocket, ByteString bytes) { /* ignore */ }

@@ -26,6 +26,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.kafka:spring-kafka'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // (опционально, иногда нужно для IDE/Gradle)
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'

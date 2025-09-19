@@ -18,7 +18,7 @@ public class OkxController {
         try {
             String instId = "BTC-USDT";
             String side = "buy";
-            String sz = "10";
+            String sz = "0.0001";
             Optional<String> ordId = svc.placeSpotMarketOrderAsync(instId, side, sz).join();
             return "OK, ordId=" + ordId.orElse("<unknown>");
         } catch (CompletionException e) {
