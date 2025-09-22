@@ -14,10 +14,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.NoArgsConstructor;
-import my.signals.v1.OperationType;
-import my.signals.v1.Signal;
-import my.signals.v1.SignalLevel;
-import my.signals.v1.StrategyKind;
+import my.signals.v1.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -159,16 +156,14 @@ public class DualRsiStrategy extends AbstractStrategy {
         Signal.Builder b = Signal.newBuilder()
                 .setOperation(op)
                 .setStrategy(kind)
-                .setLevel(lvl);
+                .setLevel(lvl)
+                .setSymbol(Symbol.newBuilder().setBase("BTC").setQuote("USDT").build());
 
         if (bucket != null) {
             b.setTime(toProtoTs(bucket));
         }
         if (price != null) {
-            // Если в .proto price=double:
             b.setPrice(price.doubleValue());
-            // Если price=string — замени на:
-            // b.setPrice(price.toPlainString());
         }
         return b.build();
     }
