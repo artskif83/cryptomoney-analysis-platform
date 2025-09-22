@@ -3,10 +3,10 @@ package artskif.trader.microserviceokxexecutor.orders.strategy.list;
 import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
 import artskif.trader.microserviceokxexecutor.orders.positions.OrderInstruction;
 import artskif.trader.microserviceokxexecutor.orders.positions.UnitPositionStore;
-import artskif.trader.microserviceokxexecutor.orders.signal.Level;
-import artskif.trader.microserviceokxexecutor.orders.signal.Side;
-import artskif.trader.microserviceokxexecutor.orders.signal.Signal2;
 import artskif.trader.microserviceokxexecutor.orders.strategy.Strategy;
+import my.signals.v1.OperationType;
+import my.signals.v1.Signal;
+import my.signals.v1.SignalLevel;
 import my.signals.v1.StrategyKind;
 
 import java.math.BigDecimal;
@@ -34,7 +34,7 @@ public final class RsiStrategy implements Strategy {
     private final BigDecimal unitValueQuote;      // стоимость 1 "юнита" в котируемой валюте (например, 300 USDT)
     private final BigDecimal profitThreshold;     // 0.01 = +1%
 
-    private final Map<Level, Integer> buyUnits = new EnumMap<>(Level.class);
+    private final Map<SignalLevel, Integer> buyUnits = new EnumMap<>(SignalLevel.class);
 
     // Планы незавершённых покупок: instructionId -> N (сколько юнитов нужно разложить после fill)
     private final Map<String, Integer> pendingBuyUnits = new ConcurrentHashMap<>();
@@ -46,27 +46,27 @@ public final class RsiStrategy implements Strategy {
         this.unitValueQuote = unitValueQuote;
         this.profitThreshold = profitThreshold;
 
-        buyUnits.put(Level.STRONG, 4);
-        buyUnits.put(Level.MIDDLE, 3);
-        buyUnits.put(Level.SMALL,  2);
+        buyUnits.put(SignalLevel.STRONG, 4);
+        buyUnits.put(SignalLevel.MIDDLE, 3);
+        buyUnits.put(SignalLevel.SMALL,  2);
     }
 
     @Override
     public boolean supports(StrategyKind kind) {
-        return kind == StrategyKind.ADX_RSI;
+        return kind == StrategyKind.RSI_DUAL_TF;
     }
 
     @Override
-    public List<OrderInstruction> decide(Signal2 signal) {
-        if (signal.side() == Side.BUY) {
-            int units = buyUnits.getOrDefault(signal.level(), 1);
+    public List<OrderInstruction> decide(Signal signal) {
+        if (signal.getOperation() == OperationType.BUY) {
+            int units = buyUnits.getOrDefault(signal.getLevel(), 1);
             // размер одного юнита в базовой монете (например BTC), 8 знаков после запятой
-            BigDecimal perUnitBase = unitValueQuote.divide(signal.price(), 8, RoundingMode.DOWN);
+            BigDecimal perUnitBase = unitValueQuote.divide(BigDecimal.valueOf(signal.getPrice()), 8, RoundingMode.DOWN);
             // агрегированный объём на покупку одним ордером
             BigDecimal totalBase = perUnitBase.multiply(BigDecimal.valueOf(units))
                     .setScale(8, RoundingMode.DOWN);
 
-            OrderInstruction instr = OrderInstruction.buy(signal.symbol(), totalBase);
+            OrderInstruction instr = OrderInstruction.buy(Symbol.fromProto(signal.getSymbol()), totalBase);
             pendingBuyUnits.put(instr.instructionId(), units);
             return List.of(instr);
         } else { // SELL
@@ -75,9 +75,9 @@ public final class RsiStrategy implements Strategy {
 
             var cheapest = cheapestOpt.get();
             BigDecimal thresholdPrice = cheapest.purchasePrice.multiply(BigDecimal.ONE.add(profitThreshold));
-            if (signal.price().compareTo(thresholdPrice) >= 0) {
+            if (BigDecimal.valueOf(signal.getPrice()).compareTo(thresholdPrice) >= 0) {
                 // продаём ровно объём этого юнита
-                return List.of(OrderInstruction.sell(signal.symbol(), cheapest.baseQty, cheapest.id));
+                return List.of(OrderInstruction.sell(Symbol.fromProto(signal.getSymbol()), cheapest.baseQty, cheapest.id));
             }
             return List.of();
         }
@@ -85,7 +85,7 @@ public final class RsiStrategy implements Strategy {
 
     @Override
     public void onExecuted(OrderInstruction instruction, OrderExecutionResult fill) {
-        if (instruction.side() == Side.BUY) {
+        if (instruction.operationType() == OperationType.BUY) {
             // Разложить фактически исполненный объём по N юнитам
             int units = pendingBuyUnits.getOrDefault(instruction.instructionId(), 1);
             pendingBuyUnits.remove(instruction.instructionId());

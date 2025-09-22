@@ -1,6 +1,6 @@
 package artskif.trader.microserviceokxexecutor.orders.positions;
 
-import artskif.trader.microserviceokxexecutor.orders.signal.Symbol;
+import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
 
 import java.math.BigDecimal;
 import java.time.Instant;

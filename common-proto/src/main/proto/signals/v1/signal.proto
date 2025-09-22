@@ -7,14 +7,20 @@ option java_multiple_files = true;
 import "google/protobuf/timestamp.proto";
 
 enum OperationType { OPERATION_TYPE_UNSPECIFIED = 0; BUY = 1; SELL = 2; }
-enum TrendDirection { TREND_DIRECTION_UNSPECIFIED = 0; UP = 1; DOWN = 2; }
-enum StrategyKind { STRATEGY_KIND_UNSPECIFIED = 0; ADX_RSI = 1; }
+enum StrategyKind { STRATEGY_KIND_UNSPECIFIED = 0; RSI_DUAL_TF = 1; }
+enum SignalLevel { LEVEL_UNSPECIFIED = 0; STRONG = 1; MIDDLE = 2; SMALL = 3; }
+
+// Новый message для символа
+message Symbol {
+  string base  = 1;
+  string quote = 2;
+}
 
 message Signal {
   google.protobuf.Timestamp time = 1;
   OperationType operation = 2;
   StrategyKind strategy = 3;
-  int32 level = 4;
-  TrendDirection direction = 5;
-  string timeframe = 6; // можно заменить на enum при желании
+  SignalLevel level = 4;
+  double price = 5;
+  Symbol symbol = 6;
 }

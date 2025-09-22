@@ -104,7 +104,7 @@ public class OkxOrderService {
                                         "instId", instId,
                                         "tdMode", "cash",
                                         "tgtCcy",  "base_ccy",
-                                        "side", side,         // buy | sell
+                                        "operationType", side,         // buy | sell
                                         "ordType","market",
                                         "sz", sz
                                 )}
