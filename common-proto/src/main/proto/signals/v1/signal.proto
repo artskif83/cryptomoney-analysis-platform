@@ -23,4 +23,5 @@ message Signal {
   SignalLevel level = 4;
   double price = 5;
   Symbol symbol = 6;
+  string id = 7;
 }
