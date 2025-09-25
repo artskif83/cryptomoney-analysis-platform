@@ -2,6 +2,7 @@ package strategy;
 
 import artskif.trader.microserviceokxexecutor.orders.OrderManagerService;
 import artskif.trader.microserviceokxexecutor.orders.positions.ExchangeClient;
+import artskif.trader.microserviceokxexecutor.orders.positions.InMemoryUnitPositionStore;
 import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
 import artskif.trader.microserviceokxexecutor.orders.positions.UnitPositionStore;
 import artskif.trader.microserviceokxexecutor.orders.strategy.StrategyRegistry;
@@ -27,13 +28,13 @@ class OrderManagerServiceProtoTest {
 
     private OrderManagerService svc;
     private RsiStrategy rsi;
-    private FakeStore store;
+    private InMemoryUnitPositionStore store;
     private FakeExchange exchange;
 
     @BeforeEach
     void setUp() {
-        store = new FakeStore();
-        rsi = new RsiStrategy(store, new BigDecimal("300"), new BigDecimal("0.01"));
+        store = new InMemoryUnitPositionStore();
+        rsi = new RsiStrategy(store); // unitValueQuote=5; SELL: SMALL=0, MIDDLE=1, STRONG=2
         StrategyRegistry registry = new StrategyRegistry(List.of(rsi));
         exchange = new FakeExchange();
         svc = new OrderManagerService(registry, exchange);
@@ -41,7 +42,7 @@ class OrderManagerServiceProtoTest {
 
     @Test
     void onSignal_BUY_STRONG_placesSingleAggregatedOrder_andStrategySplitsInto4Units() {
-        // STRONG => aggregated baseQty = 0.06000000
+        // price=20000, unitValueQuote=5 => perUnitBase=0.00025000; STRONG=4 => aggregated=0.00100000
         Signal buy = Signal.newBuilder()
                 .setId("buy-strong")
                 .setSymbol(BTCUSDT_PROTO)
@@ -53,43 +54,49 @@ class OrderManagerServiceProtoTest {
 
         svc.onSignal(buy);
 
-        // Биржа: ровно 1 BUY на 0.06000000
+        // Биржа: ровно 1 BUY на 0.00100000
         assertEquals(1, exchange.buyCount);
-        bdAssertEq(new BigDecimal("0.06000000"), exchange.lastBuyQty);
+        bdAssertEq(new BigDecimal("0.0600000"), exchange.lastBuyQty);
 
-        // Стратегия разложила в 4 юнита по 0.01500000
+        // Стратегия разложила в 4 юнита по 0.00025000
         assertEquals(4, store.usedUnits());
-        store.snapshot().forEach(u -> bdAssertEq(new BigDecimal("0.01500000"), u.baseQty));
+        store.snapshot().forEach(u -> bdAssertEq(new BigDecimal("0.015000"), u.baseQty));
     }
 
     @Test
     void onSignal_SELL_sellsOnlyWhenAboveThreshold_andRemovesCheapestUnit() {
         // Предзаполняем: cheap @19000 и exp @20000
-        var cheap = new UnitPositionStore.UnitPosition(Symbol.fromProto(BTCUSDT_PROTO), new BigDecimal("19000"), new BigDecimal("0.01111111"), Instant.now());
-        var exp   = new UnitPositionStore.UnitPosition(Symbol.fromProto(BTCUSDT_PROTO), new BigDecimal("20000"), new BigDecimal("0.01000000"), Instant.now());
+        var cheap = new UnitPositionStore.UnitPosition(
+                UUID.randomUUID(), Symbol.fromProto(BTCUSDT_PROTO),
+                new BigDecimal("19000"), new BigDecimal("0.01111111"), Instant.now()
+        );
+        var exp = new UnitPositionStore.UnitPosition(
+                UUID.randomUUID(), Symbol.fromProto(BTCUSDT_PROTO),
+                new BigDecimal("20000"), new BigDecimal("0.01000000"), Instant.now()
+        );
         store.add(exp);
         store.add(cheap);
         assertEquals(2, store.usedUnits());
 
-        // Ниже порога — не продаём
+        // Ниже порога (19100 < 19000*1.01=19190) — не продаём
         Signal below = Signal.newBuilder()
                 .setId("sell-below")
                 .setSymbol(BTCUSDT_PROTO)
                 .setStrategy(StrategyKind.RSI_DUAL_TF)
-                .setLevel(SignalLevel.MIDDLE)
+                .setLevel(SignalLevel.MIDDLE) // SMALL больше не продаёт (0)
                 .setOperation(OperationType.SELL)
-                .setPrice(19100.0) // threshold 19000*1.01 = 19190
+                .setPrice(19100.0)
                 .build();
         svc.onSignal(below);
         assertEquals(0, exchange.sellCount);
         assertEquals(2, store.usedUnits());
 
-        // Выше порога — продаём cheap
+        // Выше порога — продаём самый дешёвый (cheap)
         Signal above = Signal.newBuilder()
                 .setId("sell-above")
                 .setSymbol(BTCUSDT_PROTO)
                 .setStrategy(StrategyKind.RSI_DUAL_TF)
-                .setLevel(SignalLevel.SMALL)
+                .setLevel(SignalLevel.MIDDLE) // MIDDLE=1 юнит
                 .setOperation(OperationType.SELL)
                 .setPrice(19200.0)
                 .build();
@@ -101,29 +108,7 @@ class OrderManagerServiceProtoTest {
         bdAssertEq(new BigDecimal("20000"), store.snapshot().get(0).purchasePrice);
     }
 
-    // ---- Fakes ----
-    static class FakeStore implements UnitPositionStore {
-        private final PriorityQueue<UnitPosition> pq = new PriorityQueue<>(
-                Comparator.comparing((UnitPosition u) -> u.purchasePrice).thenComparing(u -> u.purchasedAt)
-        );
-        @Override public synchronized void add(UnitPosition unit) { pq.add(unit); }
-        @Override public synchronized Optional<UnitPosition> peekLowest() { return Optional.ofNullable(pq.peek()); }
-        @Override public synchronized Optional<UnitPosition> pollLowest() { return Optional.ofNullable(pq.poll()); }
-        @Override public synchronized Optional<UnitPosition> findById(UUID id) {
-            for (var u : pq) if (u.id.equals(id)) return Optional.of(u);
-            return Optional.empty();
-        }
-        @Override public synchronized boolean removeById(UUID id) {
-            var it = pq.iterator();
-            while (it.hasNext()) {
-                if (it.next().id.equals(id)) { it.remove(); return true; }
-            }
-            return false;
-        }
-        @Override public synchronized int usedUnits() { return pq.size(); }
-        @Override public synchronized List<UnitPosition> snapshot() { return new ArrayList<>(pq); }
-        @Override public synchronized void clear() { pq.clear(); }
-    }
+    // ---- fakes & helpers ----
 
     static class FakeExchange implements ExchangeClient {
         int buyCount = 0, sellCount = 0;
@@ -142,7 +127,6 @@ class OrderManagerServiceProtoTest {
         }
     }
 
-    // ---- helpers ----
     private static void bdAssertEq(BigDecimal exp, BigDecimal act) {
         assertEquals(0, exp.compareTo(act),
                 "Expected " + exp.toPlainString() + " but was " + act.toPlainString());

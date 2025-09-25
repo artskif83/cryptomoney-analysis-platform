@@ -1,9 +1,11 @@
 package artskif.trader.microserviceokxexecutor.orders.strategy;
 
 import my.signals.v1.StrategyKind;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public final class StrategyRegistry {
     private final List<Strategy> strategies;
 

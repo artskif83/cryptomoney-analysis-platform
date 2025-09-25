@@ -1,8 +1,10 @@
 package artskif.trader.microserviceokxexecutor.orders.positions;
 
+import org.springframework.stereotype.Component;
+
 import java.util.*;
 
-
+@Component
 public final class InMemoryUnitPositionStore implements UnitPositionStore {
 
     // Мин-куча по цене покупки; при равенстве — по времени
@@ -20,6 +22,24 @@ public final class InMemoryUnitPositionStore implements UnitPositionStore {
     @Override
     public synchronized Optional<UnitPosition> peekLowest() {
         return Optional.ofNullable(queue.peek());
+    }
+
+    @Override
+    public synchronized List<UnitPosition> peekLowestN(int n) {
+        if (n <= 0 || queue.isEmpty()) {
+            return List.of();
+        }
+        // Делаем копию min-heap, чтобы не трогать основную очередь
+        PriorityQueue<UnitPosition> copy = new PriorityQueue<>(queue);
+        int limit = Math.min(n, copy.size());
+
+        List<UnitPosition> result = new ArrayList<>(limit);
+        for (int i = 0; i < limit; i++) {
+            UnitPosition u = copy.poll(); // самый дешёвый с учётом tie-breaker по времени
+            if (u == null) break;
+            result.add(u);
+        }
+        return Collections.unmodifiableList(result);
     }
 
     @Override

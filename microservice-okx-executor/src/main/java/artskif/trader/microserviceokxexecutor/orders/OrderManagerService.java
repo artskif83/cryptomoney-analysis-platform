@@ -9,11 +9,13 @@ import artskif.trader.microserviceokxexecutor.orders.strategy.StrategyRegistry;
 import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
 import my.signals.v1.OperationType;
 import my.signals.v1.Signal;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Service
 public final class OrderManagerService {
 
     private final StrategyRegistry registry;
