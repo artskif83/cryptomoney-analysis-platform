@@ -40,13 +40,17 @@ services:
 
   okx-harvester:
     build:
-      context: ./microservice-okx-harvester
-      dockerfile: Dockerfile
+      context: .                       # КОРЕНЬ репозитория!
+      dockerfile: microservice-okx-harvester/Dockerfile
+      args:
+        MODULE: microservice-okx-harvester
     container_name: okx-harvester
     depends_on:
       - redpanda
     environment:
+      QUARKUS_PROFILE: prod
       QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
     networks:
       - redpanda-net
 
