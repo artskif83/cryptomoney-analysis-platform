@@ -38,7 +38,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
                 saveBuffer();
             }
         } catch (Exception e) {
-            System.out.println("❌ [" + getName() + "] Не удалось разобрать сообщение: " + message);
+            System.out.println("❌ [" + getName() + "] Не удалось разобрать сообщение - %s. Ошибка - %s".formatted(message, e.getMessage()));
         }
     }
 

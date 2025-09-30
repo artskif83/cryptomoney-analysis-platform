@@ -53,6 +53,21 @@ services:
       QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
     networks:
       - redpanda-net
+  okx-analyzer:
+    build:
+      context: .                       # КОРЕНЬ репозитория!
+      dockerfile: microservice-okx-analyzer/Dockerfile
+      args:
+        MODULE: microservice-okx-analyzer
+    container_name: okx-analyzer
+    depends_on:
+      - redpanda
+    environment:
+      QUARKUS_PROFILE: prod
+      QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
+    networks:
+      - redpanda-net
 
 networks:
   redpanda-net:
