@@ -14,7 +14,10 @@ public class MessagesKafkaConsumer {
         this.telegramBot = telegramBot;
     }
 
-    @KafkaListener(topics = "signals.v1", groupId = "executor-bot")
+    @KafkaListener(
+            topics = "${app.signals-topic}",
+            groupId = "${app.consumer-group:executor-bot}"
+    )
     public void listen(Signal message) {
         System.out.println("Получено сообщение: " + message);
 //        if (telegramBot.getLastChatId() != null) {

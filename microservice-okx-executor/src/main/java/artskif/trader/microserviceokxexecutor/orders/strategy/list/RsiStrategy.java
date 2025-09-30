@@ -46,7 +46,7 @@ public final class RsiStrategy implements Strategy {
 
     public RsiStrategy(UnitPositionStore store) {
         this.store = store;
-        this.unitValueQuote = BigDecimal.valueOf(300);
+        this.unitValueQuote = BigDecimal.valueOf(10);
         this.profitThreshold = BigDecimal.valueOf(0.01);
 
         // BUY

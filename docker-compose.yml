@@ -68,6 +68,22 @@ services:
       QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
     networks:
       - redpanda-net
+  okx-executor:
+    build:
+      context: .                       # КОРЕНЬ репозитория!
+      dockerfile: microservice-okx-executor/Dockerfile
+      args:
+        MODULE: microservice-okx-executor
+    container_name: okx-executor
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SCHEMA_REGISTRY_URL: http://redpanda:8081
+      KAFKA_CONSUMER_GROUP: executor-bot
+    depends_on:
+      - redpanda
+    networks:
+      - redpanda-net
 
 networks:
   redpanda-net:

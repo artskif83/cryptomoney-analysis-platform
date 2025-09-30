@@ -1,0 +1,10 @@
+.git
+.gitignore
+.idea
+*.iml
+.gradle/
+**/.gradle/
+build/
+**/build/
+**/target/
+**/.DS_Store
