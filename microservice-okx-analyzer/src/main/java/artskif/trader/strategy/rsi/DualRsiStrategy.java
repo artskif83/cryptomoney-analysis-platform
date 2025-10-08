@@ -9,7 +9,6 @@ import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.strategy.AbstractStrategy;
-import com.google.protobuf.Timestamp;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -19,6 +18,7 @@ import my.signals.v1.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Startup
 @ApplicationScoped
@@ -48,7 +48,7 @@ public class DualRsiStrategy extends AbstractStrategy {
 
     @Override
     protected CandleTimeframe getCandleType() {
-        return CandleTimeframe.CANDLE_1M; // как и было в исходной стратегии
+        return CandleTimeframe.CANDLE_1H; // как и было в исходной стратегии
     }
 
     @Override
@@ -68,10 +68,13 @@ public class DualRsiStrategy extends AbstractStrategy {
         BigDecimal price = getPriceFrom(event, frame);
 
         Signal signal = generate(rsiH1, rsiD1, price, getStrategyKind());
-        if (signal != null) {
-            producer.sendSignal(signal);
-            System.out.println("📣 SIGNAL: " + signal);
-        }
+
+        Signal s = buildSignal(event.bucket(), BigDecimal.valueOf(10L), StrategyKind.RSI_DUAL_TF, OperationType.BUY, SignalLevel.MIDDLE);
+
+        //if (signal != null) {
+            producer.sendSignal(s);
+            System.out.println("📣 SIGNAL: " + s);
+        //}
     }
 
     public StrategyKind getStrategyKind() {
@@ -157,22 +160,16 @@ public class DualRsiStrategy extends AbstractStrategy {
                 .setOperation(op)
                 .setStrategy(kind)
                 .setLevel(lvl)
+                .setId(UUID.randomUUID().toString())
                 .setSymbol(Symbol.newBuilder().setBase("BTC").setQuote("USDT").build());
 
         if (bucket != null) {
-            b.setTime(toProtoTs(bucket));
+            b.setTime(bucket);
         }
         if (price != null) {
             b.setPrice(price.doubleValue());
         }
         return b.build();
-    }
-
-    private static Timestamp toProtoTs(Instant instant) {
-        return Timestamp.newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
     }
 
     // reset-состояние на пересечении 50

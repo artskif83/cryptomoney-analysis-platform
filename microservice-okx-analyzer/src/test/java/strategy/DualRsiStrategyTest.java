@@ -91,7 +91,6 @@ class DualRsiStrategyTest {
         assertEquals(SignalLevel.SMALL, s.getLevel());      // 40..50 -> SMALL
         // если в .proto price=double:
         assertEquals(10000.0, s.getPrice(), 1e-9);
-        assertEquals(Instant.parse("2025-01-01T10:00:00Z").getEpochSecond(), s.getTime().getSeconds());
     }
 
     @Test
