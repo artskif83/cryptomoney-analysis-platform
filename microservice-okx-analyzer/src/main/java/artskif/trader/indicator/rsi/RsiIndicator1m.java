@@ -113,7 +113,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             this.rsiState = upd.state;
 
             System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + upd.point);
-            System.out.println("📥 [" + getName() + "] Получено новое значение  State - " + upd.state);
+            //System.out.println("📥 [" + getName() + "] Получено новое значение  State - " + upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getRsi();

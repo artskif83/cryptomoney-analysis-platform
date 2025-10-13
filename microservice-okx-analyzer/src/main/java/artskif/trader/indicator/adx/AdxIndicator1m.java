@@ -112,7 +112,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
             this.adxState = upd.state;
 
             System.out.println("📥 [" + getName() + "] Получено новое значение ADX - " + upd.point);
-            System.out.println("📥 [" + getName() + "] Новое состояние ADX - " + upd.state);
+            //System.out.println("📥 [" + getName() + "] Новое состояние ADX - " + upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getAdx();

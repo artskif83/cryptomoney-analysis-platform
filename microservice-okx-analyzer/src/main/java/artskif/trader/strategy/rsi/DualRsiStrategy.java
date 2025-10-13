@@ -69,12 +69,12 @@ public class DualRsiStrategy extends AbstractStrategy {
 
         Signal signal = generate(rsiH1, rsiD1, price, getStrategyKind());
 
-        Signal s = buildSignal(event.bucket(), BigDecimal.valueOf(10L), StrategyKind.RSI_DUAL_TF, OperationType.BUY, SignalLevel.MIDDLE);
+//        Signal s = buildSignal(event.bucket(), BigDecimal.valueOf(10L), StrategyKind.RSI_DUAL_TF, OperationType.BUY, SignalLevel.MIDDLE);
 
-        //if (signal != null) {
-            producer.sendSignal(s);
-            System.out.println("📣 SIGNAL: " + s);
-        //}
+        if (signal != null) {
+            producer.sendSignal(signal);
+            System.out.println("📣 SIGNAL: " + signal);
+        }
     }
 
     public StrategyKind getStrategyKind() {

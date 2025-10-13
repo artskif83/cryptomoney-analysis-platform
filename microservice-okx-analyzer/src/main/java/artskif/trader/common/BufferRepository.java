@@ -1,6 +1,7 @@
 package artskif.trader.common;
 
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +18,10 @@ public class BufferRepository<C> {
     protected final ObjectMapper objectMapper;
     protected final JavaType mapType;
 
+    public JsonNode readNode(String message) throws IOException {
+        return objectMapper.readTree(message);
+
+    }
     public void saveCandlesToFile(Map<Instant, C> items, Path path) throws IOException {
         objectMapper
                 .writerWithDefaultPrettyPrinter()

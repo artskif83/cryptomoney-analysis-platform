@@ -1,8 +1,15 @@
 package artskif.trader.common;
 
+import artskif.trader.dto.CandlestickDto;
+import artskif.trader.mapper.CandlestickMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.StreamSupport;
 
 public abstract class AbstractTimeSeries<C> implements BufferedPoint<C> {
 
@@ -11,6 +18,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C> {
     protected abstract Path getPathForSave();
 
     protected abstract BufferRepository<C> getBufferRepository();
+
 
     protected void restoreBuffer() {
         try {

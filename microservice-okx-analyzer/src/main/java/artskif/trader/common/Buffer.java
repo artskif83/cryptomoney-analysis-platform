@@ -51,8 +51,8 @@ public class Buffer<C> {
             boolean next = bucket.equals(last.plus(interval));
             if (!same && !next) {
                 // последовательность нарушена — сбрасываем всё
-                System.out.println("❌ [" + name + "] последовательность буфера нарушена — сбрасываем всё");
-                writeMap.clear();
+                System.out.println("❌ [" + name + "] последовательность буфера нарушена");
+//                writeMap.clear();
             }
         }
 
