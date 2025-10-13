@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Duration;
 import jakarta.websocket.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -37,6 +38,9 @@ public class OKXWebSocketClient {
 
     private static final Logger LOG = Logger.getLogger(OKXWebSocketClient.class);
 
+    @ConfigProperty(name = "okx.websocket.enabled", defaultValue = "true")
+    boolean websocketEnabled;
+
     @Inject
     KafkaProducer producer;
 
@@ -51,6 +55,11 @@ public class OKXWebSocketClient {
 
     @PostConstruct
     void init() {
+        if (!websocketEnabled) {
+            LOG.warn("⚙️ OKX WebSocket клиент отключен (okx.websocket.enabled=false)");
+            return;
+        }
+
         queues.put("okx-candle-1m", new LinkedBlockingQueue<>(10_000));
         queues.put("okx-candle-1h", new LinkedBlockingQueue<>(10_000));
         queues.put("okx-candle-4h", new LinkedBlockingQueue<>(10_000));
@@ -200,6 +209,8 @@ public class OKXWebSocketClient {
 
     @PreDestroy
     public void cleanup() {
+        if (!websocketEnabled) return;
+
         LOG.info("🧹 Завершение работы приложения...");
         if (kafkaExecutor != null) {
             kafkaExecutor.shutdown();
