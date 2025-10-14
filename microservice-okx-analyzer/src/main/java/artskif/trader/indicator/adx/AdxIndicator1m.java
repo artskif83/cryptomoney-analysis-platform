@@ -13,6 +13,7 @@ import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -45,7 +46,6 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private BigDecimal lastValue;
     private Instant bucket;
     private Instant ts;
-
 
     public AdxIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);

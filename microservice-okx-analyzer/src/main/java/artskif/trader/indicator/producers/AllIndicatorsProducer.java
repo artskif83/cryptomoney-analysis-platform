@@ -10,6 +10,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,11 @@ import java.util.List;
 @Startup
 @ApplicationScoped
 public class AllIndicatorsProducer {
+
+    @ConfigProperty(name = "okx.adx.enabled", defaultValue = "true")
+    boolean adxEnabled;
+    @ConfigProperty(name = "okx.rsi.enabled", defaultValue = "true")
+    boolean rsiEnabled;
 
     @Inject
     ObjectMapper objectMapper;
@@ -33,27 +39,36 @@ public class AllIndicatorsProducer {
     public List<IndicatorPoint> allIndicators() {
         System.out.println("🔌 Создаем все возможные индикаторы");
 
-        List<IndicatorPoint> list = new ArrayList<>(2);
+        List<IndicatorPoint> list = new ArrayList<>();
 
-        RsiIndicator1m ind = new RsiIndicator1m(
-                14,
-                objectMapper,
-                candle1m,
-                bus
-        );
-        ind.init();
 
-        AdxIndicator1m indAdx = new AdxIndicator1m(
-                14,
-                objectMapper,
-                candle1m,
-                bus
-        );
-        indAdx.init();
+        if (rsiEnabled) {
+            RsiIndicator1m ind = new RsiIndicator1m(
+                    14,
+                    objectMapper,
+                    candle1m,
+                    bus
+            );
+            ind.init();
+            // подпишется на bus/прочитает состояние/подогреет буфер
+            list.add(ind);
+        } else {
+            System.out.println("⚙️ OKX RSI индикатор отключен (okx.rsi.enabled=false)");
+        }
 
-        // подпишется на bus/прочитает состояние/подогреет буфер
-        list.add(ind);
-        list.add(indAdx);
+        if (adxEnabled) {
+            AdxIndicator1m indAdx = new AdxIndicator1m(
+                    14,
+                    objectMapper,
+                    candle1m,
+                    bus
+            );
+            indAdx.init();
+            list.add(indAdx);
+        } else {
+            System.out.println("⚙️ OKX ADX индикатор отключен (okx.adx.enabled=false)");
+
+        }
 
         return list;
     }
