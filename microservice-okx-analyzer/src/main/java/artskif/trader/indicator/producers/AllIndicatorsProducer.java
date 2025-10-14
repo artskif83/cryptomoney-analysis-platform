@@ -11,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.List;
 @Startup
 @ApplicationScoped
 public class AllIndicatorsProducer {
+
+    private final static Logger LOG = Logger.getLogger(AllIndicatorsProducer.class);
 
     @ConfigProperty(name = "okx.adx.enabled", defaultValue = "true")
     boolean adxEnabled;
@@ -37,7 +40,7 @@ public class AllIndicatorsProducer {
     @Produces
     @ApplicationScoped
     public List<IndicatorPoint> allIndicators() {
-        System.out.println("🔌 Создаем все возможные индикаторы");
+        LOG.info("🔌 Создаем все возможные индикаторы");
 
         List<IndicatorPoint> list = new ArrayList<>();
 
@@ -53,7 +56,7 @@ public class AllIndicatorsProducer {
             // подпишется на bus/прочитает состояние/подогреет буфер
             list.add(ind);
         } else {
-            System.out.println("⚙️ OKX RSI индикатор отключен (okx.rsi.enabled=false)");
+            LOG.info("⚙️ OKX RSI индикатор отключен (okx.rsi.enabled=false)");
         }
 
         if (adxEnabled) {
@@ -66,8 +69,7 @@ public class AllIndicatorsProducer {
             indAdx.init();
             list.add(indAdx);
         } else {
-            System.out.println("⚙️ OKX ADX индикатор отключен (okx.adx.enabled=false)");
-
+            LOG.info("⚙️ OKX ADX индикатор отключен (okx.adx.enabled=false)");
         }
 
         return list;

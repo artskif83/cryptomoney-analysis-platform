@@ -4,15 +4,19 @@ import artskif.trader.candle.Candle1D;
 import artskif.trader.candle.Candle1H;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.Candle4H;
+import artskif.trader.indicator.rsi.RsiIndicator1m;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.jboss.logging.Logger;
 
 @Startup
 @ApplicationScoped
 public class CandleConsumer {
+
+    private final static Logger LOG = Logger.getLogger(CandleConsumer.class);
 
     @Inject
     Candle1m candle1m;
@@ -25,7 +29,7 @@ public class CandleConsumer {
 
     @PostConstruct
     void init() {
-        System.out.println("🔌 Старт консюмера для обработки свечей");
+        LOG.info("🔌 Старт консюмера для обработки свечей");
     }
 
     @Incoming("candle-1m")

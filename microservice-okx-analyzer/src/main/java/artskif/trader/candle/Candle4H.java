@@ -7,6 +7,7 @@ import artskif.trader.events.CandleEventBus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +19,7 @@ import java.util.LinkedHashMap;
 public class Candle4H extends AbstractTimeSeriesTicker {
 
     private final static String NAME = "4H-candle";
+    private static final Logger LOG = Logger.getLogger(Candle4H.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
@@ -60,5 +62,10 @@ public class Candle4H extends AbstractTimeSeriesTicker {
     @Override
     protected CandleEventBus getEventBus() {
         return bus;
+    }
+
+    @Override
+    public Logger log() {
+        return LOG;
     }
 }

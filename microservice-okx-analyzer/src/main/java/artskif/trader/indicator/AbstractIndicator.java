@@ -30,7 +30,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     protected abstract Path getPathForStateSave();
 
     public void init() {
-        System.out.println("🔌 [" + getName() + "] Запуск процесса подсчета индикатора");
+        log().infof("🔌 [%s] Запуск процесса подсчета индикатора", getName());
 
         restoreBuffer();
         if (isStateful()) restoreState();
@@ -61,33 +61,33 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
 
     @Override
     public void run() {
-        System.out.println("🔗 [" + getName() + "] Запущен поток подсчета индикатора: " + Thread.currentThread().getName());
+        log().infof("🔗 [%s] Запущен поток подсчета индикатора", getName());
         while (running) {
             try {
                 process(queue.take());
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {
-                System.out.println("❌ [" + getName() + "] Не удалось обработать точку в потоке: " + Thread.currentThread().getName() + " ошибка - " + ignored);
+                log().errorf(ignored, "❌ [%s] Не удалось обработать точку в потоке", getName());
             }
         }
     }
 
     protected void restoreState() {
         try {
-            System.out.println("📥 [" + getName() + "] Восстанавливаем состояние из хранилища");
+            log().infof("📥 [%s] Восстанавливаем состояние из хранилища", getName());
             getState().restoreObject(getStateRepository().loadStateFromFile(getPathForStateSave()));
         } catch (IOException e) {
-            System.out.println("❌ [" + getName() + "] Не удалось восстановить значение состояния : ");
+            log().errorf(e,"❌ [%s] Не удалось восстановить значение состояния", getName());
         }
     }
 
     protected void saveState() {
         try {
-            System.out.println("📥 [" + getName() + "] Сохраняем состояние в хранилище");
+            log().infof("📥 [%s] Сохраняем состояние в хранилище", getName());
             getStateRepository().saveStateToFile(getState(), getPathForStateSave());
         } catch (IOException e) {
-            System.out.println("❌ [" + getName() + "] Не удалось сохранить значение состояния : ");
+            log().errorf(e,"❌ [%s] Не удалось сохранить значение состояния", getName());
         }
     }
 }

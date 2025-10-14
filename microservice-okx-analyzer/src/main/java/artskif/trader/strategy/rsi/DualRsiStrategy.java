@@ -7,6 +7,7 @@ import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
 import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.indicator.IndicatorType;
+import artskif.trader.kafka.HistoryConsumer;
 import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.strategy.AbstractStrategy;
 import io.quarkus.runtime.Startup;
@@ -14,6 +15,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.NoArgsConstructor;
 import my.signals.v1.*;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +27,14 @@ import java.util.UUID;
 @NoArgsConstructor(force = true)
 public class DualRsiStrategy extends AbstractStrategy {
 
+    private final static Logger LOG = Logger.getLogger(HistoryConsumer.class);
+    // ====== КОНСТАНТЫ RSI ======
+    private static final BigDecimal RSI_30 = BigDecimal.valueOf(30);
+    private static final BigDecimal RSI_40 = BigDecimal.valueOf(40);
+    private static final BigDecimal RSI_50 = BigDecimal.valueOf(50);
+    private static final BigDecimal RSI_60 = BigDecimal.valueOf(60);
+    private static final BigDecimal RSI_70 = BigDecimal.valueOf(70);
+
     @Inject
     KafkaProducer producer;
 
@@ -32,15 +42,6 @@ public class DualRsiStrategy extends AbstractStrategy {
     public DualRsiStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
         super(bus, indicators);
     }
-
-    // Если нужный ТФ кодируется не типом, а самим фреймом — достань нужные снапшоты из разных фреймов.
-
-    // ====== КОНСТАНТЫ RSI ======
-    private static final BigDecimal RSI_30 = BigDecimal.valueOf(30);
-    private static final BigDecimal RSI_40 = BigDecimal.valueOf(40);
-    private static final BigDecimal RSI_50 = BigDecimal.valueOf(50);
-    private static final BigDecimal RSI_60 = BigDecimal.valueOf(60);
-    private static final BigDecimal RSI_70 = BigDecimal.valueOf(70);
 
     // ====== СОСТОЯНИЕ В ОПЕРАТИВНОЙ ПАМЯТИ ======
     private boolean canEmit = true;          // новый сигнал разрешается только после пересечения 50 на H1

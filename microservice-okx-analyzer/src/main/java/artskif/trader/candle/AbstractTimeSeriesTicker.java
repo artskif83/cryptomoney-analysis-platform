@@ -35,7 +35,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
         try {
             JsonNode arr = getBufferRepository().readNode(message);
             if (!arr.isArray() || arr.isEmpty()) {
-                System.out.println("⚠️ [" + getName() + "] Историческая пачка пуста/не массив");
+                log().warnf("⚠️ [%s] Историческая пачка пуста/не массив", getName());
                 return;
             }
 
@@ -52,16 +52,16 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
                     });
 
             if (ordered.isEmpty()) {
-                System.out.println("⚠️ [" + getName() + "] После парсинга история пуста");
+                log().warnf("⚠️ [%s] После парсинга история пуста", getName());
                 return;
             }
 
             // Единым снимком, без нарушения последовательности:
             getBuffer().restoreItems(ordered); // Buffer.restoreItems(...) уже сделает publishSnapshot()
             saveBuffer(); // при желании можно вынести под флаг
-            System.out.println("✅ [" + getName() + "] Восстановили " + ordered.size() + " элементов из истории");
+            log().infof("✅ [%s] Восстановили %d элементов из истории", getName(), ordered.size());
         } catch (Exception e) {
-            System.out.println("❌ [" + getName() + "] Не удалось восстановить историю: " + e.getMessage());
+            log().errorf(e, "❌ [%s] Не удалось восстановить историю: %s", getName(), e.getMessage());
         }
     }
 
@@ -80,7 +80,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
                 saveBuffer();
             }
         } catch (Exception e) {
-            System.out.println("❌ [" + getName() + "] Не удалось разобрать сообщение - %s. Ошибка - %s".formatted(message, e.getMessage()));
+            log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());
         }
     }
 

@@ -4,9 +4,11 @@ import artskif.trader.common.Buffer;
 import artskif.trader.common.BufferRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
+import artskif.trader.kafka.KafkaProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +20,7 @@ import java.util.LinkedHashMap;
 public class Candle1D extends AbstractTimeSeriesTicker {
 
     private final static String NAME = "1D-candle";
+    private static final Logger LOG = Logger.getLogger(Candle1D.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
@@ -62,4 +65,8 @@ public class Candle1D extends AbstractTimeSeriesTicker {
         return bus;
     }
 
+    @Override
+    public Logger log() {
+        return LOG;
+    }
 }

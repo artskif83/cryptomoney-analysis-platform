@@ -9,6 +9,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.jboss.logging.Logger;
 
 /**
  * Читает HISTORY-топики и передаёт пачки в тикеры через restoreFromHistory(...).
@@ -18,6 +19,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class HistoryConsumer {
 
+    private final static Logger LOG = Logger.getLogger(HistoryConsumer.class);
+
     @Inject Candle1m candle1m;
     @Inject Candle1H candle1H;
     @Inject Candle4H candle4H;
@@ -25,7 +28,7 @@ public class HistoryConsumer {
 
     @PostConstruct
     void init() {
-        System.out.println("🔌 Старт HistoryConsumer для восстановления буферов из истории");
+        LOG.info("🔌 Старт HistoryConsumer для восстановления буферов из истории");
     }
 
     @Incoming("candle-1m-history")

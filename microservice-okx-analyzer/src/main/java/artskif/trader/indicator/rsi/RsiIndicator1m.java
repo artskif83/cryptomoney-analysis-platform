@@ -1,5 +1,6 @@
 package artskif.trader.indicator.rsi;
 
+import artskif.trader.candle.Candle1D;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.Buffer;
@@ -13,6 +14,7 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     private final static String NAME = "RSI-1m";
+    private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
 
     private final Buffer<RsiPoint> buffer;
     private final Duration interval = Duration.ofMinutes(1);
@@ -72,7 +75,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
         if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
             this.rsiState = RsiState.empty(period);
-            System.out.println("📥 [" + getName() + "] Сбрасываем состояние RSI из-за потери актуальности - " + rsiState);
+            log().infof("📥 [%s] Сбрасываем состояние RSI из-за потери актуальности - %s", getName(), rsiState);
         }
 
         // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
@@ -93,7 +96,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
                     rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
                     if (rsiState != null)
-                        System.out.println("📥 [" + getName() + "] Значение состояния восстановлено из истории - " + rsiState);
+                        log().infof("📥 [%s] Значение состояния восстановлено из истории - %s", getName(), rsiState);
 
                 }
             }
@@ -112,8 +115,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             RsiCalculator.RsiUpdate upd = RsiCalculator.updateConfirmed(rsiState, bucket, c.getClose());
             this.rsiState = upd.state;
 
-            System.out.println("📥 [" + getName() + "] Получено новое значение  RSI - " + upd.point);
-            //System.out.println("📥 [" + getName() + "] Получено новое значение  State - " + upd.state);
+            log().infof("📥 [%s] Получено новое значение  RSI - %s", getName(), upd.point);
+            log().infof("📥 [%s] Получено новое значение  State RSI - %s", getName(), upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getRsi();
@@ -201,5 +204,10 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     @Override
     public IndicatorType getType() {
         return IndicatorType.RSI;
+    }
+
+    @Override
+    public Logger log() {
+        return LOG;
     }
 }

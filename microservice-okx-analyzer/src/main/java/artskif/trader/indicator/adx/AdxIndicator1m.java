@@ -1,6 +1,7 @@
 package artskif.trader.indicator.adx;
 
 
+import artskif.trader.candle.Candle1D;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.Buffer;
@@ -14,6 +15,7 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     private final static String NAME = "ADX-1m";
+    private final static Logger LOG = Logger.getLogger(AdxIndicator1m.class);
 
     private final Duration interval = Duration.ofMinutes(1);
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5);
@@ -77,7 +80,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         if (bucket.isBefore(currentBucket)) return; // берём только свежие
         if (this.adxState != null && adxState.getTimestamp() != null && !bucket.minus(interval).equals(adxState.getTimestamp())) {
             this.adxState = AdxState.empty(period);
-            System.out.println("📥 [" + getName() + "] Сбрасываем состояние ADX из-за потери актуальности - " + adxState);
+            log().infof("📥 [%s] Сбрасываем состояние ADX из-за потери актуальности - %s", getName(), adxState);
         }
 
         // 1) init из подтверждённой истории (как в RSI-версии)
@@ -95,7 +98,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
                     adxState = AdxCalculator.tryInitFromHistory(adxState, tailAsc);
                     if (adxState != null)
-                        System.out.println("📥 [" + getName() + "] Состояние ADX восстановлено из истории - " + adxState);
+                        log().infof("📥 [%s] Состояние ADX восстановлено из буфера - %s", getName(), adxState);
                 }
             }
         }
@@ -111,8 +114,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
             AdxCalculator.AdxUpdate upd = AdxCalculator.updateConfirmed(adxState, bucket, c);
             this.adxState = upd.state;
 
-            System.out.println("📥 [" + getName() + "] Получено новое значение ADX - " + upd.point);
-            //System.out.println("📥 [" + getName() + "] Новое состояние ADX - " + upd.state);
+            log().infof("📥 [%s] Получено новое значение ADX - %s", getName(), upd.point);
+            log().infof("📥 [%s] Новое состояние ADX - %s", getName(), upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getAdx();
@@ -143,4 +146,9 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     @Override public BigDecimal getValue() { return value; }
     @Override public BigDecimal getLastValue() { return lastValue; }
     @Override public IndicatorType getType() { return IndicatorType.ADX; }
+
+    @Override
+    public Logger log() {
+        return LOG;
+    }
 }

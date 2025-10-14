@@ -1,6 +1,8 @@
 package artskif.trader.common;
 
+import artskif.trader.candle.Candle1m;
 import lombok.Getter;
+import org.jboss.logging.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -9,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Buffer<C> {
+
+    private static final Logger LOG = Logger.getLogger(Buffer.class);
 
     @Getter
     protected final Duration interval;
@@ -51,8 +55,9 @@ public class Buffer<C> {
             boolean next = bucket.equals(last.plus(interval));
             if (!same && !next) {
                 // последовательность нарушена — сбрасываем всё
-                System.out.println("❌ [" + name + "] последовательность буфера нарушена");
-//                writeMap.clear();
+
+                LOG.warnf("❌ [%s] последовательность буфера нарушена", name);
+                writeMap.clear();
             }
         }
 

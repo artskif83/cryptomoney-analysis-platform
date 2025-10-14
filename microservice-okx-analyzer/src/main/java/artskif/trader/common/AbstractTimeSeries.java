@@ -1,8 +1,10 @@
 package artskif.trader.common;
 
 import artskif.trader.dto.CandlestickDto;
+import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.mapper.CandlestickMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -11,7 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
-public abstract class AbstractTimeSeries<C> implements BufferedPoint<C> {
+public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged {
+
 
     protected Instant lastBucket = null;
 
@@ -22,19 +25,19 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C> {
 
     protected void restoreBuffer() {
         try {
-            System.out.println("📥 [" + getName() + "] Восстанавливаем информационные свечи из хранилища");
+            log().infof("📥 [%s] Восстанавливаем информационные свечи из хранилища", getName());
             getBuffer().restoreItems(getBufferRepository().loadCandlesFromFile(getPathForSave()));
         } catch (IOException e) {
-            System.out.println("❌ [" + getName() + "] Не удалось восстановить значение буфера : ");
+            log().errorf("❌ [%s] Не удалось восстановить значение буфера : ", getName());
         }
     }
 
     protected void saveBuffer() {
         try {
-            System.out.println("📥 [" + getName() + "] Сохраняем информационные свечи в хранилище");
+            log().infof("📥 [%s] Сохраняем информационные свечи в хранилище", getName());
             getBufferRepository().saveCandlesToFile(getBuffer().getSnapshot(), getPathForSave());
         } catch (IOException e) {
-            System.out.println("❌ [" + getName() + "] Не удалось сохранить значение буфера : ");
+            log().errorf(e, "❌ [%s] Не удалось сохранить значение буфера : %s", getName(), e.getMessage());
         }
     }
 }
