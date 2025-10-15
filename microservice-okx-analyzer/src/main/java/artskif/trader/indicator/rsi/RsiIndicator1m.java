@@ -74,8 +74,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
         if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
+            log().infof("📥 [%s] Сбрасываем состояние RSI из-за разницы во времени. Время текущего тика - %s. Время состояния - %s", bucket, rsiState.getTimestamp());
             this.rsiState = RsiState.empty(period);
-            log().infof("📥 [%s] Сбрасываем состояние RSI из-за потери актуальности - %s", getName(), rsiState);
         }
 
         // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
@@ -96,8 +96,9 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
                     rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
                     if (rsiState != null)
-                        log().infof("📥 [%s] Значение состояния восстановлено из истории - %s", getName(), rsiState);
-
+                        log().infof("📥 [%s] Значение RSI восстановлено из истории свечей - %s", getName(), rsiState);
+                } else {
+                    log().warnf("📥 [%s] Буфер свечей пуст", getName());
                 }
             }
         }
