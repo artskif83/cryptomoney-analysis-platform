@@ -38,6 +38,44 @@ services:
     depends_on:
       - redpanda
 
+  timescaledb:
+    image: timescale/timescaledb-ha:pg17
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: market
+    ports:
+      - "54321:5432"
+    volumes:
+      - tsdb:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d market"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - redpanda-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # (опционально) автоустановка плагинов, если хотим Plotly:
+      # GF_INSTALL_PLUGINS: grafana-polystat-panel,marcusolsson-plotly-panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+    networks:
+      - redpanda-net
+
   okx-harvester:
     build:
       context: .                       # КОРЕНЬ репозитория!
@@ -84,6 +122,9 @@ services:
       - redpanda
     networks:
       - redpanda-net
+volumes:
+  tsdb:
+  grafana:
 
 networks:
   redpanda-net:
