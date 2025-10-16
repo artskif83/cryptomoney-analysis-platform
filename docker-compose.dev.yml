@@ -24,7 +24,7 @@ services:
     networks:
       - net-dev
 
-  redpanda-console:
+  redpanda-console-dev:
     image: docker.redpanda.com/redpandadata/console:latest
     container_name: redpanda-console-dev
     environment:
@@ -32,7 +32,7 @@ services:
       SCHEMAREGISTRY_ENABLED: "true"
       SCHEMAREGISTRY_URLS: "http://redpanda-dev:8084"
     ports:
-      - "8080:8080"
+      - "8085:8080"
     networks:
       - net-dev
     depends_on:
