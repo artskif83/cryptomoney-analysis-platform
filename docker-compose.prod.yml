@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  redpanda:
+  redpanda-prod:
     image: redpandadata/redpanda:latest
-    container_name: redpanda
+    container_name: redpanda-prod
     command:
       - redpanda
       - start
@@ -14,7 +14,7 @@ services:
       - --node-id=0
       - --check=false
       - --kafka-addr=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:19092
-      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,PLAINTEXT_HOST://localhost:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda-prod:9092,PLAINTEXT_HOST://localhost:19092
       - --schema-registry-addr=0.0.0.0:8081
     ports:
       - "9092:9092"
@@ -22,7 +22,7 @@ services:
       - "19092:19092"
       - "8081:8081"
     networks:
-      - redpanda-net
+      - net-prod
 
   redpanda-console:
     image: docker.redpanda.com/redpandadata/console:latest
@@ -30,17 +30,17 @@ services:
     environment:
       KAFKA_BROKERS: redpanda:9092
       SCHEMAREGISTRY_ENABLED: "true"
-      SCHEMAREGISTRY_URLS: "http://redpanda:8081"
+      SCHEMAREGISTRY_URLS: "http://redpanda-prod:8081"
     ports:
       - "8080:8080"
     networks:
-      - redpanda-net
+      - net-prod
     depends_on:
-      - redpanda
+      - redpanda-prod
 
-  timescaledb:
+  timescaledb-prod:
     image: timescale/timescaledb-ha:pg17
-    container_name: timescaledb
+    container_name: timescaledb-prod
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -48,7 +48,7 @@ services:
     ports:
       - "54321:5432"
     volumes:
-      - tsdb:/var/lib/postgresql/data
+      - tsdb_prod:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d market"]
@@ -56,13 +56,13 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - redpanda-net
+      - net-prod
 
-  grafana:
+  grafana-prod:
     image: grafana/grafana:latest
-    container_name: grafana
+    container_name: grafana-prod
     depends_on:
-      timescaledb:
+      timescaledb-prod:
         condition: service_healthy
     environment:
       GF_SECURITY_ADMIN_USER: admin
@@ -72,60 +72,60 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana:/var/lib/grafana
+      - grafana_prod:/var/lib/grafana
     networks:
-      - redpanda-net
+      - net-prod
 
-  okx-harvester:
+  okx-harvester-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
       dockerfile: microservice-okx-harvester/Dockerfile
       args:
         MODULE: microservice-okx-harvester
-    container_name: okx-harvester
+    container_name: okx-harvester-prod
     depends_on:
-      - redpanda
+      - redpanda-prod
     environment:
       QUARKUS_PROFILE: prod
       QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
     networks:
-      - redpanda-net
-  okx-analyzer:
+      - net-prod
+  okx-analyzer-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
       dockerfile: microservice-okx-analyzer/Dockerfile
       args:
         MODULE: microservice-okx-analyzer
-    container_name: okx-analyzer
+    container_name: okx-analyzer-prod
     depends_on:
-      - redpanda
+      - redpanda-prod
     environment:
       QUARKUS_PROFILE: prod
-      QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
-      QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda:8081
+      QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda-prod:9092
+      QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda-prod:8081
     networks:
-      - redpanda-net
-  okx-executor:
+      - net-prod
+  okx-executor-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
       dockerfile: microservice-okx-executor/Dockerfile
       args:
         MODULE: microservice-okx-executor
-    container_name: okx-executor
+    container_name: okx-executor-prod
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
-      SCHEMA_REGISTRY_URL: http://redpanda:8081
+      KAFKA_BOOTSTRAP_SERVERS: redpanda-prod:9092
+      SCHEMA_REGISTRY_URL: http://redpanda-prod:8081
       KAFKA_CONSUMER_GROUP: executor-bot
     depends_on:
-      - redpanda
+      - redpanda-prod
     networks:
-      - redpanda-net
+      - net-prod
 volumes:
-  tsdb:
-  grafana:
+  tsdb_prod:
+  grafana_prod:
 
 networks:
-  redpanda-net:
+  net-prod:
     driver: bridge

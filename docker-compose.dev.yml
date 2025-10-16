@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  redpanda-dev:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda-dev
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:19093
+      - --advertise-kafka-addr=PLAINTEXT://redpanda-dev:9093,PLAINTEXT_HOST://localhost:19093
+      - --schema-registry-addr=0.0.0.0:8084
+    ports:
+      - "9093:9093"     # внутрь контейнеров dev: redpanda-dev:9093; с хоста: localhost:9093
+      - "19093:19093"   # удобный HOST-порт для IDE (совпадает с advertise HOST)
+      - "9645:9644"
+      - "8084:8084"
+    networks:
+      - net-dev
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    container_name: redpanda-console-dev
+    environment:
+      KAFKA_BROKERS: redpanda-dev:9093
+      SCHEMAREGISTRY_ENABLED: "true"
+      SCHEMAREGISTRY_URLS: "http://redpanda-dev:8084"
+    ports:
+      - "8080:8080"
+    networks:
+      - net-dev
+    depends_on:
+      - redpanda-dev
+
+  timescaledb-dev:
+    image: timescale/timescaledb-ha:pg17
+    container_name: timescaledb-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: market_dev
+    ports:
+      - "54322:5432"
+    volumes:
+      - tsdb_dev:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d market"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - net-dev
+
+  grafana-dev:
+    image: grafana/grafana:latest
+    container_name: grafana-dev
+    depends_on:
+      timescaledb-dev:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # (опционально) автоустановка плагинов, если хотим Plotly:
+      # GF_INSTALL_PLUGINS: grafana-polystat-panel,marcusolsson-plotly-panel
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_dev:/var/lib/grafana
+    networks:
+      - net-dev
+
+volumes:
+  tsdb_dev:
+  grafana_dev:
+
+networks:
+  net-dev:
+    driver: bridge

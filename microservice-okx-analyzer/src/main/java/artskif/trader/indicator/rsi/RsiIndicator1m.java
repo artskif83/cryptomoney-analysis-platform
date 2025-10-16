@@ -74,7 +74,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
         if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
-            log().infof("📥 [%s] Сбрасываем состояние RSI из-за разницы во времени. Время текущего тика - %s. Время состояния - %s", bucket, rsiState.getTimestamp());
+            log().infof("📥 [%s] Сбрасываем состояние RSI из-за разницы во времени. Время текущего тика - %s. Время состояния - %s", bucket.toString(), rsiState.getTimestamp().toString());
             this.rsiState = RsiState.empty(period);
         }
 
