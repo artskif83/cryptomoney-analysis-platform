@@ -34,23 +34,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
      */
     public synchronized void restoreFromHistory(String message) {
         try {
-            JsonNode arr = getBufferRepository().readNode(message);
-            if (!arr.isArray() || arr.isEmpty()) {
-                log().warnf("⚠️ [%s] Историческая пачка пуста/не массив", getName());
-                return;
-            }
-
-            // Отсортируем по ts по возрастанию и соберём в LinkedHashMap для сохранения порядка.
-            Map<Instant, CandlestickDto> ordered = new LinkedHashMap<>();
-
-            StreamSupport.stream(arr.spliterator(), false)
-                    .filter(JsonNode::isArray)
-                    .map(CandlestickMapper::mapCandlestickHistoryNodeToDto)
-                    .sorted(Comparator.comparingLong(CandlestickDto::getTimestamp))
-                    .forEach(r -> {
-                        Instant bucket = Instant.ofEpochMilli(r.getTimestamp());
-                        ordered.put(bucket, r);
-                    });
+            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message);
 
             if (ordered.isEmpty()) {
                 log().warnf("⚠️ [%s] После парсинга история пуста", getName());

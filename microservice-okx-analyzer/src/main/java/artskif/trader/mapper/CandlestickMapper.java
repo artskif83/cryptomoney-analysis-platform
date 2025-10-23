@@ -2,19 +2,43 @@ package artskif.trader.mapper;
 
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.dto.CandlestickPayloadDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.StreamSupport;
 
 public class CandlestickMapper {
 
     private static final Logger LOG = Logger.getLogger(CandlestickMapper.class);
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    public static Map<Instant, CandlestickDto> mapJsonMessageToCandlestickMap(String message) throws JsonProcessingException {
+        JsonNode arr = mapper.readTree(message);
+        if (!arr.isArray() || arr.isEmpty()) {
+            LOG.warnf("⚠️ Историческая пачка пуста/не массив: %s", message);
+            return new LinkedHashMap<>();
+        }
+
+        // Отсортируем по ts по возрастанию и соберём в LinkedHashMap для сохранения порядка.
+        Map<Instant, CandlestickDto> ordered = new LinkedHashMap<>();
+
+        StreamSupport.stream(arr.spliterator(), false)
+                .filter(JsonNode::isArray)
+                .map(CandlestickMapper::mapCandlestickHistoryNodeToDto)
+                .sorted(Comparator.comparingLong(CandlestickDto::getTimestamp))
+                .forEach(r -> {
+                    Instant bucket = Instant.ofEpochMilli(r.getTimestamp());
+                    ordered.put(bucket, r);
+                });
+
+        return ordered;
+    }
 
     /** Преобразование одной строки OKX в доменную свечу. */
     public static CandlestickDto mapCandlestickHistoryNodeToDto(JsonNode node) {

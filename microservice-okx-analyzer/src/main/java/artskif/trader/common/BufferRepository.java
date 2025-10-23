@@ -18,10 +18,6 @@ public class BufferRepository<C> {
     protected final ObjectMapper objectMapper;
     protected final JavaType mapType;
 
-    public JsonNode readNode(String message) throws IOException {
-        return objectMapper.readTree(message);
-
-    }
     public void saveCandlesToFile(Map<Instant, C> items, Path path) throws IOException {
         objectMapper
                 .writerWithDefaultPrettyPrinter()

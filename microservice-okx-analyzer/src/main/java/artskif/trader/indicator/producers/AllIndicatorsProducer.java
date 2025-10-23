@@ -22,9 +22,9 @@ public class AllIndicatorsProducer {
 
     private final static Logger LOG = Logger.getLogger(AllIndicatorsProducer.class);
 
-    @ConfigProperty(name = "okx.adx.enabled", defaultValue = "true")
+    @ConfigProperty(name = "analysis.adx.enabled", defaultValue = "true")
     boolean adxEnabled;
-    @ConfigProperty(name = "okx.rsi.enabled", defaultValue = "true")
+    @ConfigProperty(name = "analysis.rsi.enabled", defaultValue = "true")
     boolean rsiEnabled;
 
     @Inject

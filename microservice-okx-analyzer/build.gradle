@@ -26,6 +26,11 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:3.10.0'
     implementation 'io.quarkus:quarkus-arc'
 
+    // Database
+    implementation "io.quarkus:quarkus-hibernate-orm"
+    implementation "io.quarkus:quarkus-hibernate-orm-panache"
+    implementation "io.quarkus:quarkus-jdbc-postgresql"
+
     // Confluent serde (версию подбери совместимую с native)
     implementation("io.confluent:kafka-avro-serializer:7.2.0") {
         exclude group: "jakarta.ws.rs", module: "jakarta.ws.rs-api"

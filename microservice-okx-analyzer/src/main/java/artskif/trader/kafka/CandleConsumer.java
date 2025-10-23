@@ -9,6 +9,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
@@ -17,6 +18,16 @@ import org.jboss.logging.Logger;
 public class CandleConsumer {
 
     private final static Logger LOG = Logger.getLogger(CandleConsumer.class);
+
+    @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
+    boolean candle1mEnabled;
+    @ConfigProperty(name = "analysis.candle1h.enabled", defaultValue = "true")
+    boolean candle1hEnabled;
+    @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
+    boolean candle4hEnabled;
+    @ConfigProperty(name = "analysis.candle1d.enabled", defaultValue = "true")
+    boolean candle1dEnabled;
+
 
     @Inject
     Candle1m candle1m;
@@ -34,21 +45,29 @@ public class CandleConsumer {
 
     @Incoming("candle-1m")
     public void consume1m(String message) {
-        candle1m.handleTick(message);
+        if (candle1mEnabled) {
+            candle1m.handleTick(message);
+        }
     }
 
     @Incoming("candle-1h")
     public void consume1H(String message) {
-        candle1H.handleTick(message);
+        if (candle1hEnabled) {
+            candle1H.handleTick(message);
+        }
     }
 
     @Incoming("candle-4h")
     public void consume4H(String message) {
-        candle4H.handleTick(message);
+        if (candle4hEnabled) {
+            candle4H.handleTick(message);
+        }
     }
 
     @Incoming("candle-1d")
     public void consume1D(String message) {
-        candle1D.handleTick(message);
+        if (candle1dEnabled) {
+            candle1D.handleTick(message);
+        }
     }
 }
