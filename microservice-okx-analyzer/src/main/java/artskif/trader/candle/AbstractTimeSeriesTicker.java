@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 
@@ -68,8 +69,12 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
     public synchronized void handleTick(String message) {
         try {
             //System.out.println("📥 [" + getName() + "] Пришло сообщение: " + message);
+            CandlestickPayloadDto candlestickPayloadDto;
+            Optional<CandlestickPayloadDto> opt = CandlestickMapper.map(message);
+            if (opt.isPresent()) {
+                candlestickPayloadDto = opt.get();
+            } else { return; }
 
-            CandlestickPayloadDto candlestickPayloadDto = CandlestickMapper.map(message);
             CandlestickDto candle = candlestickPayloadDto.getCandle();
 
             Instant bucket = Instant.ofEpochMilli(candle.getTimestamp());

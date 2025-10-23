@@ -3,20 +3,73 @@
   "name": "Signal",
   "namespace": "my.signals.v1",
   "fields": [
-    { "name": "time", "type": { "type": "long", "logicalType": "timestamp-millis" } },
-    { "name": "operation", "type": { "type": "enum", "name": "OperationType",
-      "symbols": ["OPERATION_TYPE_UNSPECIFIED", "BUY", "SELL"] } },
-    { "name": "strategy", "type": { "type": "enum", "name": "StrategyKind",
-      "symbols": ["STRATEGY_KIND_UNSPECIFIED", "RSI_DUAL_TF"] } },
-    { "name": "level", "type": { "type": "enum", "name": "SignalLevel",
-      "symbols": ["LEVEL_UNSPECIFIED", "STRONG", "MIDDLE", "SMALL"] } },
-    { "name": "price", "type": "double" },
-    { "name": "symbol", "type":
-    { "type": "record", "name": "Symbol", "fields": [
-      { "name": "base",  "type": "string" },
-      { "name": "quote", "type": "string" }
-    ]}
+    {
+      "name": "time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
     },
-    { "name": "id", "type": "string" }
+    {
+      "name": "operation",
+      "type": {
+        "type": "enum",
+        "name": "OperationType",
+        "symbols": [
+          "OPERATION_TYPE_UNSPECIFIED",
+          "BUY",
+          "SELL"
+        ]
+      }
+    },
+    {
+      "name": "strategy",
+      "type": {
+        "type": "enum",
+        "name": "StrategyKind",
+        "symbols": [
+          "STRATEGY_KIND_UNSPECIFIED",
+          "RSI_DUAL_TF"
+        ]
+      }
+    },
+    {
+      "name": "level",
+      "type": {
+        "type": "enum",
+        "name": "SignalLevel",
+        "symbols": [
+          "LEVEL_UNSPECIFIED",
+          "STRONG",
+          "MIDDLE",
+          "SMALL"
+        ]
+      }
+    },
+    {
+      "name": "price",
+      "type": "double"
+    },
+    {
+      "name": "symbol",
+      "type": {
+        "type": "record",
+        "name": "Symbol",
+        "fields": [
+          {
+            "name": "base",
+            "type": "string"
+          },
+          {
+            "name": "quote",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "id",
+      "type": "string"
+    }
   ]
 }

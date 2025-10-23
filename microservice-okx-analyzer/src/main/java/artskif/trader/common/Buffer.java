@@ -30,15 +30,12 @@ public class Buffer<C> {
     }
 
     // ===== ПУБЛИКАЦИЯ СНИМКА =====
-
-
     private void publishSnapshot() {
         // копия до 100 элементов раз в секунду — дёшево
         this.snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(writeMap));
     }
 
     // ===== API ПИСАТЕЛЯ (один поток) =====
-
     /** Полная загрузка: данные уже в нужном порядке — просто кладём и публикуем. */
     public void restoreItems(Map<Instant, C> data) {
         writeMap.clear();
@@ -56,8 +53,8 @@ public class Buffer<C> {
             if (!same && !next) {
                 // последовательность нарушена — сбрасываем всё
 
-                LOG.warnf("❌ [%s] последовательность буфера нарушена", name);
-                writeMap.clear();
+                LOG.warnf("❌ [%s] последовательность буфера нарушена. " +
+                        "Последнее значение в буфере: %s. Записываемое значение в буфере: %s", name, last, bucket);
             }
         }
 
