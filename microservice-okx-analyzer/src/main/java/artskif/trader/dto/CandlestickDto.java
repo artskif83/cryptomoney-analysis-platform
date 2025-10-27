@@ -4,12 +4,15 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+
+import artskif.trader.candle.CandleTimeframe;
 
 @Data
 @RegisterForReflection
 public class CandlestickDto {
 
-    private Long timestamp;
+    private Instant timestamp;
     private BigDecimal open;
     private BigDecimal high;
     private BigDecimal low;
@@ -18,4 +21,8 @@ public class CandlestickDto {
     private BigDecimal volumeCcy;
     private BigDecimal volumeCcyQuote;
     private Boolean confirmed;
+
+    // Новые поля
+    private CandleTimeframe period;
+    private String instrument;
 }

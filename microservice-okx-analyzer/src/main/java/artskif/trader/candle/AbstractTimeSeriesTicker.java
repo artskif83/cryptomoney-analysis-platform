@@ -6,15 +6,11 @@ import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.mapper.CandlestickMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.PostConstruct;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 
 
 public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
@@ -34,7 +30,7 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
      */
     public synchronized void restoreFromHistory(String message) {
         try {
-            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message);
+            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message, getCandleTimeframe(), null);
 
             if (ordered.isEmpty()) {
                 log().warnf("⚠️ [%s] После парсинга история пуста", getName());
@@ -54,14 +50,14 @@ public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<Candle
         try {
             //System.out.println("📥 [" + getName() + "] Пришло сообщение: " + message);
             CandlestickPayloadDto candlestickPayloadDto;
-            Optional<CandlestickPayloadDto> opt = CandlestickMapper.map(message);
+            Optional<CandlestickPayloadDto> opt = CandlestickMapper.map(message, getCandleTimeframe());
             if (opt.isPresent()) {
                 candlestickPayloadDto = opt.get();
             } else { return; }
 
             CandlestickDto candle = candlestickPayloadDto.getCandle();
 
-            Instant bucket = Instant.ofEpochMilli(candle.getTimestamp());
+            Instant bucket = candle.getTimestamp();
             getBuffer().putItem(bucket, candle);
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
             getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
