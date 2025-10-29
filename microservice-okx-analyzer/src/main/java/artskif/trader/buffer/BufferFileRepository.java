@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RequiredArgsConstructor
-public class BufferRepository<C> {
+public class BufferFileRepository<C> {
 
     protected final ObjectMapper objectMapper;
     protected final JavaType mapType;

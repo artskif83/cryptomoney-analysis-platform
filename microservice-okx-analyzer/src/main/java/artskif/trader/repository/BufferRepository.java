@@ -1,18 +1,15 @@
 package artskif.trader.repository;
 
-import artskif.trader.dto.CandlestickDto;
-import artskif.trader.entity.Candle;
+import java.time.Instant;
+import java.util.Map;
 
 /**
  * Дополнительные операции репозитория свечей.
  */
-public interface BufferRepository {
+public interface BufferRepository<C> {
 
-    /**
-     * Мапит {@link CandlestickDto} в {@link Candle} и сохраняет в БД.
-     *
-     * @param dto DTO свечи, содержащее все необходимые поля, включая period и instrument
-     * @return сохранённая сущность Candle
-     */
-    Candle saveFromDto(CandlestickDto dto);
+    boolean saveFromMap(Map<Instant, C> buffer);
+
+    Map<Instant, C> restoreFromStorage();
+
 }

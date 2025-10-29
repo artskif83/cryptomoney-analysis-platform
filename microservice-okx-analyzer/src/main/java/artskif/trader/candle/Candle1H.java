@@ -1,9 +1,11 @@
 package artskif.trader.candle;
 
 import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferRepository;
+import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
+import artskif.trader.repository.BufferRepository;
+import artskif.trader.repository.CandleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,12 +18,13 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 
 @ApplicationScoped
-public class Candle1H extends AbstractTimeSeriesTicker {
+public class Candle1H extends AbstractCandle {
 
     private final static String NAME = "1H-candle";
     private static final Logger LOG = Logger.getLogger(Candle1H.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
+    protected final BufferFileRepository<CandlestickDto> candleBufferFileRepository;
     protected final CandleEventBus bus;
     protected final Buffer<CandlestickDto> buffer;
     protected final Path pathForSave = Paths.get("candles1h.json");
@@ -30,8 +33,15 @@ public class Candle1H extends AbstractTimeSeriesTicker {
     public Candle1H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
         this.buffer = new Buffer<>(NAME, Duration.ofHours(1), 300);
-        this.candleBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
+        this.candleBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
+        this.candleBufferRepository = new CandleRepository();
+    }
+
+
+    @Override
+    protected BufferRepository<CandlestickDto> getBufferRepository() {
+        return candleBufferRepository;
     }
 
     @Override
@@ -55,8 +65,8 @@ public class Candle1H extends AbstractTimeSeriesTicker {
     }
 
     @Override
-    public BufferRepository<CandlestickDto> getBufferRepository() {
-        return candleBufferRepository;
+    public BufferFileRepository<CandlestickDto> getBufferFileRepository() {
+        return candleBufferFileRepository;
     }
 
     @Override

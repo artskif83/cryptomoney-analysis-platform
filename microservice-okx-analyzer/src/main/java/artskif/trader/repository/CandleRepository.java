@@ -7,10 +7,12 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import artskif.trader.mapper.CandlestickMapper;
 
-@ApplicationScoped
-public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>, BufferRepository {
+import java.time.Instant;
+import java.util.Map;
 
-    @Override
+@ApplicationScoped
+public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>, BufferRepository<CandlestickDto> {
+
     public Candle saveFromDto(CandlestickDto dto) {
         if (dto == null) return null;
 
@@ -20,5 +22,15 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         // Сохраняем сущность через Panache
         persist(candle);
         return candle;
+    }
+
+    @Override
+    public boolean saveFromMap(Map<Instant, CandlestickDto> buffer) {
+        return false;
+    }
+
+    @Override
+    public Map<Instant, CandlestickDto> restoreFromStorage() {
+        return Map.of();
     }
 }

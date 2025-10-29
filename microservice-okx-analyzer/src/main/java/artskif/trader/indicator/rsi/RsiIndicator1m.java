@@ -3,7 +3,7 @@ package artskif.trader.indicator.rsi;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferRepository;
+import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.common.PointState;
 import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
@@ -11,6 +11,8 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
+import artskif.trader.repository.BufferRepository;
+import artskif.trader.repository.RsiIndicatorRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
@@ -36,6 +38,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
     BufferRepository<RsiPoint> rsiBufferRepository;
+    BufferFileRepository<RsiPoint> rsiBufferFileRepository;
     StateRepository rsiStateRepository;
     Candle1m candle1m;
     Integer period; // Период индикатора
@@ -49,7 +52,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
-        this.rsiBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
+        this.rsiBufferRepository = new RsiIndicatorRepository();
+        this.rsiBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, RsiPoint.class));
         this.rsiStateRepository = new StateRepository(objectMapper, objectMapper.getTypeFactory()
                 .constructType(RsiState.class));
@@ -176,7 +180,12 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     }
 
     @Override
-    public BufferRepository<RsiPoint> getBufferRepository() {
+    public BufferFileRepository<RsiPoint> getBufferFileRepository() {
+        return rsiBufferFileRepository;
+    }
+
+    @Override
+    protected BufferRepository<RsiPoint> getBufferRepository() {
         return rsiBufferRepository;
     }
 

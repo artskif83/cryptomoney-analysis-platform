@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 
-public abstract class AbstractTimeSeriesTicker extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
+public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
 
     protected abstract CandleEventBus getEventBus();
     protected abstract CandleTimeframe getCandleTimeframe();

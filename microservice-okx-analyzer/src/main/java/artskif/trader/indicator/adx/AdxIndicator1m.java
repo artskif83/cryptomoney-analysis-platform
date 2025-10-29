@@ -4,7 +4,7 @@ package artskif.trader.indicator.adx;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferRepository;
+import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.common.PointState;
 import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
@@ -12,6 +12,8 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
+import artskif.trader.repository.AdxIndicatorRepository;
+import artskif.trader.repository.BufferRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
@@ -36,6 +38,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private final Buffer<AdxPoint> buffer;
 
     private final BufferRepository<AdxPoint> adxBufferRepository;
+    private final BufferFileRepository<AdxPoint> adxBufferFileRepository;
     private final StateRepository adxStateRepository;
     private final Candle1m candle1m;
     private final Path pathForSave;
@@ -54,7 +57,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         this.candle1m = candle1m;
 
         this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
-        this.adxBufferRepository = new BufferRepository<>(objectMapper, objectMapper.getTypeFactory()
+        this.adxBufferRepository = new AdxIndicatorRepository();
+        this.adxBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
         this.adxStateRepository = new StateRepository(objectMapper, objectMapper.getTypeFactory()
                 .constructType(AdxState.class));
@@ -127,23 +131,85 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         }
     }
 
-    @Override public CandleTimeframe getCandleTimeframe() { return CandleTimeframe.CANDLE_1M; }
-    @Override public Integer getPeriod() { return period; }
-    @Override public Instant getBucket() { return bucket; }
-    @Override public Instant getTs() { return ts; }
-    @Override public Buffer<AdxPoint> getBuffer() { return buffer; }
-    @Override public String getName() { return String.format("%s-%dp", NAME, period); }
-    @Override public Path getPathForSave() { return pathForSave; }
-    @Override public BufferRepository<AdxPoint> getBufferRepository() { return adxBufferRepository; }
+    @Override
+    public CandleTimeframe getCandleTimeframe() {
+        return CandleTimeframe.CANDLE_1M;
+    }
 
-    @Override public boolean isStateful() { return true; }
-    @Override public PointState getState() { return adxState; }
-    @Override protected StateRepository getStateRepository() { return adxStateRepository; }
-    @Override protected Path getPathForStateSave() { return pathForStateSave; }
+    @Override
+    public Integer getPeriod() {
+        return period;
+    }
 
-    @Override public BigDecimal getValue() { return value; }
-    @Override public BigDecimal getLastValue() { return lastValue; }
-    @Override public IndicatorType getType() { return IndicatorType.ADX; }
+    @Override
+    public Instant getBucket() {
+        return bucket;
+    }
+
+    @Override
+    public Instant getTs() {
+        return ts;
+    }
+
+    @Override
+    public Buffer<AdxPoint> getBuffer() {
+        return buffer;
+    }
+
+    @Override
+    public String getName() {
+        return String.format("%s-%dp", NAME, period);
+    }
+
+    @Override
+    public Path getPathForSave() {
+        return pathForSave;
+    }
+
+    @Override
+    public BufferFileRepository<AdxPoint> getBufferFileRepository() {
+        return adxBufferFileRepository;
+    }
+
+    @Override
+    protected BufferRepository<AdxPoint> getBufferRepository() {
+        return adxBufferRepository;
+    }
+
+    @Override
+    public boolean isStateful() {
+        return true;
+    }
+
+    @Override
+    public PointState getState() {
+        return adxState;
+    }
+
+    @Override
+    protected StateRepository getStateRepository() {
+        return adxStateRepository;
+    }
+
+    @Override
+    protected Path getPathForStateSave() {
+        return pathForStateSave;
+    }
+
+    @Override
+    public BigDecimal getValue() {
+        return value;
+    }
+
+    @Override
+    public BigDecimal getLastValue() {
+        return lastValue;
+    }
+
+    @Override
+    public IndicatorType getType() {
+        return IndicatorType.ADX;
+    }
 
     @Override
     public Logger log() {
