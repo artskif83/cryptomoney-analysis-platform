@@ -1,4 +1,4 @@
-package artskif.trader.common;
+package artskif.trader.buffer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

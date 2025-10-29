@@ -1,7 +1,6 @@
-package artskif.trader.common;
+package artskif.trader.buffer;
 
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 

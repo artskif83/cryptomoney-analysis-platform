@@ -14,6 +14,10 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
+// Добавленные импорты для мапинга DTO -> Entity
+import artskif.trader.entity.Candle;
+import artskif.trader.entity.CandleId;
+
 public class CandlestickMapper {
 
     private static final Logger LOG = Logger.getLogger(CandlestickMapper.class);
@@ -107,7 +111,7 @@ public class CandlestickMapper {
         }
     }
 
-    /** Преобразование одной строки OKX в д��менную свечу */
+    /** Преобразование одной строки OKX в доменную свечу */
     private static CandlestickDto getCandlestickDto(JsonNode node, CandleTimeframe period, String instrument) {
         CandlestickDto candle = new CandlestickDto();
         candle.setTimestamp(Instant.ofEpochMilli(node.get(0).asLong()));
@@ -122,5 +126,23 @@ public class CandlestickMapper {
         candle.setPeriod(period);
         candle.setInstrument(instrument);
         return candle;
+    }
+
+    // Новый метод: маппинг CandlestickDto -> сущность Candle
+    public static Candle mapDtoToEntity(CandlestickDto dto) {
+        if (dto == null) return null;
+        Instant ts = dto.getTimestamp();
+        CandleId id = new CandleId(dto.getInstrument(), dto.getPeriod().name(), ts);
+        return new Candle(
+                id,
+                dto.getOpen(),
+                dto.getHigh(),
+                dto.getLow(),
+                dto.getClose(),
+                dto.getVolume() != null ? dto.getVolume() : BigDecimal.ZERO,
+                dto.getVolumeCcy() != null ? dto.getVolumeCcy() : BigDecimal.ZERO,
+                dto.getVolumeCcyQuote() != null ? dto.getVolumeCcyQuote() : BigDecimal.ZERO,
+                Boolean.TRUE.equals(dto.getConfirmed())
+        );
     }
 }

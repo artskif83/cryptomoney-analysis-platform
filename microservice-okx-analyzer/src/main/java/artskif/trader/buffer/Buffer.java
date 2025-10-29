@@ -1,6 +1,5 @@
-package artskif.trader.common;
+package artskif.trader.buffer;
 
-import artskif.trader.candle.Candle1m;
 import lombok.Getter;
 import org.jboss.logging.Logger;
 

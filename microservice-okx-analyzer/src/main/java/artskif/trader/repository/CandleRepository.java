@@ -5,8 +5,7 @@ import artskif.trader.entity.Candle;
 import artskif.trader.entity.CandleId;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
-
-import java.time.Instant;
+import artskif.trader.mapper.CandlestickMapper;
 
 @ApplicationScoped
 public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>, BufferRepository {
@@ -15,20 +14,9 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
     public Candle saveFromDto(CandlestickDto dto) {
         if (dto == null) return null;
 
-        Instant ts = dto.getTimestamp();
-        CandleId id = new CandleId(dto.getInstrument(), dto.getPeriod().name(), ts);
+        // делегируем мапинг
+        Candle candle = CandlestickMapper.mapDtoToEntity(dto);
 
-        Candle candle = new Candle(
-                id,
-                dto.getOpen(),
-                dto.getHigh(),
-                dto.getLow(),
-                dto.getClose(),
-                dto.getVolume() != null ? dto.getVolume() : java.math.BigDecimal.ZERO,
-                dto.getVolumeCcy() != null ? dto.getVolumeCcy() : java.math.BigDecimal.ZERO,
-                dto.getVolumeCcyQuote() != null ? dto.getVolumeCcyQuote() : java.math.BigDecimal.ZERO,
-                Boolean.TRUE.equals(dto.getConfirmed())
-        );
         // Сохраняем сущность через Panache
         persist(candle);
         return candle;

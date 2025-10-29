@@ -1,10 +1,9 @@
 package artskif.trader.candle;
 
-import artskif.trader.common.Buffer;
-import artskif.trader.common.BufferRepository;
+import artskif.trader.buffer.Buffer;
+import artskif.trader.buffer.BufferRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
-import artskif.trader.kafka.KafkaProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

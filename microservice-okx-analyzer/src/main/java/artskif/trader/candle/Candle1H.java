@@ -1,7 +1,7 @@
 package artskif.trader.candle;
 
-import artskif.trader.common.Buffer;
-import artskif.trader.common.BufferRepository;
+import artskif.trader.buffer.Buffer;
+import artskif.trader.buffer.BufferRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
 import com.fasterxml.jackson.databind.ObjectMapper;

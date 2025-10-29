@@ -1,17 +1,11 @@
 package artskif.trader.common;
 
-import artskif.trader.dto.CandlestickDto;
-import artskif.trader.kafka.KafkaProducer;
-import artskif.trader.mapper.CandlestickMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.jboss.logging.Logger;
+import artskif.trader.buffer.BufferRepository;
+import artskif.trader.buffer.BufferedPoint;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.StreamSupport;
 
 public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged {
 

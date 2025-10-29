@@ -1,10 +1,9 @@
 package artskif.trader.indicator.rsi;
 
-import artskif.trader.candle.Candle1D;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.common.Buffer;
-import artskif.trader.common.BufferRepository;
+import artskif.trader.buffer.Buffer;
+import artskif.trader.buffer.BufferRepository;
 import artskif.trader.common.PointState;
 import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
@@ -13,7 +12,6 @@ import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
