@@ -20,31 +20,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-@NoArgsConstructor(force = true)
 public abstract class AbstractStrategy implements CandleEventListener {
 
     protected final AtomicReference<IndicatorFrame> lastFrame = new AtomicReference<>();
 
-    protected final CandleEventBus bus;
-    protected final List<IndicatorPoint> indicators; // см. AllIndicatorsProducer
-
-    protected AbstractStrategy(CandleEventBus bus, List<IndicatorPoint> indicators) {
-        this.bus = bus;
-        this.indicators = indicators;
-    }
-
+    protected abstract String getName();
+    protected abstract CandleEventBus getEventBus();
+    protected abstract List<IndicatorPoint> getIndicators();
     protected abstract CandleTimeframe getCandleType();
     protected abstract StrategyKind getStrategyKind();
-
-    @PostConstruct
-    void start() {
-        bus.subscribe(this); // сервис слушает ту же шину свечей
-    }
-
-    @PreDestroy
-    void stop() {
-        bus.unsubscribe(this);
-    }
 
     @Override
     public void onCandle(CandleEvent event) {
@@ -67,9 +51,9 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     /** Собираем полный срез по всем индикаторам */
     private IndicatorFrame assembleFrame(Instant bucket, CandleTimeframe period) {
-        List<IndicatorSnapshot> snapshots = new ArrayList<>(indicators.size());
+        List<IndicatorSnapshot> snapshots = new ArrayList<>(getIndicators().size());
 
-        for (IndicatorPoint ip : indicators) {
+        for (IndicatorPoint ip : getIndicators()) {
             BigDecimal value = ip.getValue();
             if (value == null) continue; // индикатор ещё не дал значение
 

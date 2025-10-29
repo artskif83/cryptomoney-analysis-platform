@@ -3,7 +3,7 @@ package strategy;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.indicator.IndicatorType;
-import artskif.trader.strategy.rsi.DualRsiStrategy;
+import artskif.trader.strategy.rsi.OneHourRsiStrategy;
 import my.signals.v1.OperationType;
 import my.signals.v1.Signal;
 import my.signals.v1.SignalLevel;
@@ -11,7 +11,6 @@ import my.signals.v1.StrategyKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -28,11 +27,11 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class DualRsiStrategyTest {
 
-    private DualRsiStrategy strategy;
+    private OneHourRsiStrategy strategy;
 
     @BeforeEach
     void setUp() {
-        strategy = new DualRsiStrategy();
+        strategy = new OneHourRsiStrategy();
     }
 
     // --------- фабрики снапшотов (используем сам record IndicatorSnapshot) ---------
