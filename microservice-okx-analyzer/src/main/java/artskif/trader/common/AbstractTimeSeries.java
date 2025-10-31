@@ -18,7 +18,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
 
     protected abstract BufferRepository<C> getBufferRepository();
 
-    protected abstract String getName();
+    public abstract String getName();
 
     protected void restoreBuffer() {
         log().infof("📥 [%s] Восстанавливаем информационные свечи из хранилища", getName());

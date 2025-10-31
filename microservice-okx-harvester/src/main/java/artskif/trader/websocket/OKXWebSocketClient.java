@@ -153,10 +153,10 @@ public class OKXWebSocketClient {
         {
           "op": "subscribe",
           "args": [
-            {"channel":"candle1m","instId":"BTC-USDT-SWAP"},
-            {"channel":"candle1H","instId":"BTC-USDT-SWAP"},
-            {"channel":"candle4H","instId":"BTC-USDT-SWAP"},
-            {"channel":"candle1D","instId":"BTC-USDT-SWAP"}
+            {"channel":"candle1m","instId":"BTC-USDT"},
+            {"channel":"candle1H","instId":"BTC-USDT"},
+            {"channel":"candle4H","instId":"BTC-USDT"},
+            {"channel":"candle1D","instId":"BTC-USDT"}
           ]
         }""";
         session.getAsyncRemote().sendText(subscribeMsg);

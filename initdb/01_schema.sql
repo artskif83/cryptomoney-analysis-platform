@@ -13,9 +13,7 @@ CREATE TABLE IF NOT EXISTS candles
     high           numeric(18, 8) NOT NULL,
     low            numeric(18, 8) NOT NULL,
     close          numeric(18, 8) NOT NULL,
-    volume         numeric(30, 8) NOT NULL,
-    volumeCcy      numeric(30, 8) NOT NULL,
-    volumeCcyQuote numeric(30, 8) NOT NULL,
+    volume         numeric(30, 8),
     confirmed      boolean        NOT NULL DEFAULT false,
     PRIMARY KEY (symbol, tf, ts)
 );
@@ -47,7 +45,5 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
     low    numeric(18, 8),
     close  numeric(18, 8),
     volume numeric(30, 8),
-    volumeCcy      numeric(30, 8),
-    volumeCcyQuote numeric(30, 8),
     confirmed      boolean DEFAULT false
 );

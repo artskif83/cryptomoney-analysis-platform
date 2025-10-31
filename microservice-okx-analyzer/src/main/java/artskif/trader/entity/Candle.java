@@ -24,14 +24,8 @@ public class Candle extends PanacheEntityBase {
     @Column(nullable = false, precision = 18, scale = 8)
     public BigDecimal close;
 
-    @Column(nullable = false, precision = 30, scale = 8)
+    @Column(nullable = true, precision = 30, scale = 8)
     public BigDecimal volume;
-
-    @Column(nullable = false, precision = 30, scale = 8)
-    public BigDecimal volumeCcy;
-
-    @Column(nullable = false, precision = 30, scale = 8)
-    public BigDecimal volumeCcyQuote;
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     public boolean confirmed;
@@ -40,16 +34,13 @@ public class Candle extends PanacheEntityBase {
     }
 
     public Candle(CandleId id, BigDecimal open, BigDecimal high,
-                  BigDecimal low, BigDecimal close, BigDecimal volume,
-                  BigDecimal volumeCcy, BigDecimal volumeCcyQuote, boolean confirmed) {
+                  BigDecimal low, BigDecimal close, BigDecimal volume,boolean confirmed) {
         this.id = id;
         this.open = open;
         this.high = high;
         this.low = low;
         this.close = close;
         this.volume = volume;
-        this.volumeCcy = volumeCcy;
-        this.volumeCcyQuote = volumeCcyQuote;
         this.confirmed = confirmed;
     }
 }

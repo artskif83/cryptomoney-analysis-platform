@@ -116,8 +116,8 @@ public class OKXRestApiClient {
                 if (ts < minTs) minTs = ts;
             }
 
-            // Отправляем ПАЧКУ целиком «как есть» — JSON массива data
-            String payload = data.toString(); // одно сообщение = вся страница
+            // Оборачиваем данные в объект с instId
+            String payload = String.format("{\"instId\":\"%s\",\"data\":%s}", instId, data.toString());
             producer.sendMessage(topic, payload);
 
             pagesLoaded++;

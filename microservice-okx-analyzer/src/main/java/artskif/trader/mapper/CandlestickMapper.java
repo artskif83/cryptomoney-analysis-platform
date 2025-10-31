@@ -23,12 +23,22 @@ public class CandlestickMapper {
     private static final Logger LOG = Logger.getLogger(CandlestickMapper.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static Map<Instant, CandlestickDto> mapJsonMessageToCandlestickMap(String message, CandleTimeframe period, String instrument) throws JsonProcessingException {
-        JsonNode arr = mapper.readTree(message);
-        if (!arr.isArray() || arr.isEmpty()) {
+    public static Map<Instant, CandlestickDto> mapJsonMessageToCandlestickMap(String message, CandleTimeframe period) throws JsonProcessingException {
+        JsonNode root = mapper.readTree(message);
+        
+        // Извлекаем instId из JSON
+        if (!root.has("instId") || !root.get("instId").isTextual()) {
+            LOG.warnf("⚠️ Отсутствует instId в сообщении: %s", message);
+            return new LinkedHashMap<>();
+        }
+        String instrument = root.get("instId").asText();
+        
+        // Извлекаем массив data
+        if (!root.has("data") || !root.get("data").isArray() || root.get("data").isEmpty()) {
             LOG.warnf("⚠️ Историческая пачка пуста/не массив: %s", message);
             return new LinkedHashMap<>();
         }
+        JsonNode arr = root.get("data");
 
         // Отсортируем по ts по возрастанию и соберём в LinkedHashMap для сохранения порядка.
         Map<Instant, CandlestickDto> ordered = new LinkedHashMap<>();
@@ -140,8 +150,6 @@ public class CandlestickMapper {
                 dto.getLow(),
                 dto.getClose(),
                 dto.getVolume() != null ? dto.getVolume() : BigDecimal.ZERO,
-                dto.getVolumeCcy() != null ? dto.getVolumeCcy() : BigDecimal.ZERO,
-                dto.getVolumeCcyQuote() != null ? dto.getVolumeCcyQuote() : BigDecimal.ZERO,
                 Boolean.TRUE.equals(dto.getConfirmed())
         );
     }

@@ -30,7 +30,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
      */
     public synchronized void restoreFromHistory(String message) {
         try {
-            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message, getCandleTimeframe(), null);
+            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message, getCandleTimeframe());
 
             if (ordered.isEmpty()) {
                 log().warnf("⚠️ [%s] После парсинга история пуста", getName());
