@@ -153,4 +153,40 @@ public class CandlestickMapper {
                 Boolean.TRUE.equals(dto.getConfirmed())
         );
     }
+
+    /**
+     * Конвертирует сущность Candle в DTO CandlestickDto
+     */
+    public static CandlestickDto mapEntityToDto(Candle candle) {
+        if (candle == null || candle.id == null) {
+            return null;
+        }
+
+        try {
+            CandlestickDto dto = new CandlestickDto();
+            dto.setTimestamp(candle.id.ts);
+            dto.setInstrument(candle.id.symbol);
+
+            // Парсим tf обратно в CandleTimeframe
+            if (candle.id.tf != null) {
+                try {
+                    dto.setPeriod(CandleTimeframe.valueOf(candle.id.tf));
+                } catch (IllegalArgumentException e) {
+                    LOG.warnf("Неизвестный таймфрейм: %s", candle.id.tf);
+                }
+            }
+
+            dto.setOpen(candle.open);
+            dto.setHigh(candle.high);
+            dto.setLow(candle.low);
+            dto.setClose(candle.close);
+            dto.setVolume(candle.volume);
+            dto.setConfirmed(candle.confirmed);
+
+            return dto;
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Не удалось сконвертировать свечу в DTO: %s", candle);
+            return null;
+        }
+    }
 }

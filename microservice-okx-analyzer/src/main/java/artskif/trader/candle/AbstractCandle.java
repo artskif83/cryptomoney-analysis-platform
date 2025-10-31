@@ -15,8 +15,14 @@ import java.util.Optional;
 
 public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> implements CandleTicker {
 
+    protected static final String DEFAULT_SYMBOL = "BTC-USDT";
+
     protected abstract CandleEventBus getEventBus();
-    protected abstract CandleTimeframe getCandleTimeframe();
+
+    @Override
+    protected String getSymbol() {
+        return DEFAULT_SYMBOL;
+    }
 
     @PostConstruct
     void init() {
@@ -40,9 +46,9 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             // Единым снимком, без нарушения последовательности:
             getBuffer().restoreItems(ordered); // Buffer.restoreItems(...) уже сделает publishSnapshot()
             saveBuffer(); // при желании можно вынести под флаг
-            log().infof("✅ [%s] Восстановили %d элементов из истории", getName(), ordered.size());
+            log().infof("✅ [%s] Восстановили и сохранили %d элементов из истории", getName(), ordered.size());
         } catch (Exception e) {
-            log().errorf(e, "❌ [%s] Не удалось восстановить историю: %s", getName(), e.getMessage());
+            log().errorf(e, "❌ [%s] Не удалось восстановить и сохранить историю: %s", getName(), e.getMessage());
         }
     }
 

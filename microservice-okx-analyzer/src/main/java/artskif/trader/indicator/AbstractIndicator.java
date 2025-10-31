@@ -14,10 +14,17 @@ import java.util.concurrent.BlockingQueue;
 
 public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable, IndicatorPoint {
 
+    protected static final String DEFAULT_SYMBOL = "BTC-USDT";
+
     protected final CandleEventBus bus;
 
     public AbstractIndicator(CandleEventBus bus) {
         this.bus = bus;
+    }
+
+    @Override
+    protected String getSymbol() {
+        return DEFAULT_SYMBOL;
     }
 
     private final BlockingQueue<CandleEvent> queue = new ArrayBlockingQueue<>(4096, true);

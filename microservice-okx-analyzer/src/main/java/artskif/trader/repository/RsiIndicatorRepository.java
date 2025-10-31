@@ -1,5 +1,6 @@
 package artskif.trader.repository;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Candle;
 import artskif.trader.indicator.rsi.RsiPoint;
@@ -15,7 +16,7 @@ public class RsiIndicatorRepository implements BufferRepository<RsiPoint>{
     }
 
     @Override
-    public Map<Instant, RsiPoint> restoreFromStorage() {
+    public Map<Instant, RsiPoint> restoreFromStorage(CandleTimeframe timeframe, String symbol) {
         return Map.of();
     }
 }

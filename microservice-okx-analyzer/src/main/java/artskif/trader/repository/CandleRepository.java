@@ -1,28 +1,29 @@
 package artskif.trader.repository;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Candle;
 import artskif.trader.entity.CandleId;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
-import artskif.trader.mapper.CandlestickMapper;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import io.quarkus.arc.Arc;
-import io.quarkus.arc.ManagedContext;
+import artskif.trader.mapper.CandlestickMapper;
+
 import org.hibernate.Session;
 import org.jboss.logging.Logger;
 
 import javax.sql.DataSource;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.sql.Statement;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.postgresql.PGConnection;
@@ -34,6 +35,8 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
     private static final Logger LOG = Logger.getLogger(CandleRepository.class);
 
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
+    private static final int DEFAULT_RESTORE_LIMIT = 100;
 
     @Inject
     DataSource dataSource;
@@ -49,25 +52,15 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         return candle;
     }
 
-    @Transactional
+    @ActivateRequestContext
     @Override
     public boolean saveFromMap(Map<Instant, CandlestickDto> buffer) {
         if (buffer == null || buffer.isEmpty()) return true;
-
-        ManagedContext requestContext = Arc.container().requestContext();
-        if (!requestContext.isActive()) {
-            requestContext.activate();
-            try {
-                return performSave(buffer);
-            } finally {
-                requestContext.terminate();
-            }
-        } else {
-            return performSave(buffer);
-        }
+        return performSave(buffer);
     }
 
-    private boolean performSave(Map<Instant, CandlestickDto> buffer) {
+    @Transactional
+    protected boolean performSave(Map<Instant, CandlestickDto> buffer) {
         String csv = buildCsv(buffer);
 
         if (csv.isEmpty()) return true;
@@ -86,18 +79,17 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     LOG.infof("В staging загружено строк: %d", copied);
 
                     String upsert = """
-                        INSERT INTO candles(symbol, tf, ts, open, high, low, close, volume, confirmed)
-                        SELECT symbol, tf, ts, open, high, low, close,
-                               COALESCE(volume, 0), COALESCE(confirmed, false)
-                        FROM stage_candles
-                        ON CONFLICT (symbol, tf, ts) DO UPDATE SET
-                            open = EXCLUDED.open,
-                            high = EXCLUDED.high,
-                            low = EXCLUDED.low,
-                            close = EXCLUDED.close,
-                            volume = EXCLUDED.volume,
-                            confirmed = EXCLUDED.confirmed;
-                        """;
+                            INSERT INTO candles(symbol, tf, ts, open, high, low, close, volume, confirmed)
+                            SELECT symbol, tf, ts, open, high, low, close,
+                                   COALESCE(volume, 0), COALESCE(confirmed, false)
+                            FROM stage_candles
+                            ON CONFLICT (symbol, tf, ts) DO UPDATE SET
+                                open = EXCLUDED.open,
+                                high = EXCLUDED.high,
+                                low = EXCLUDED.low,
+                                close = EXCLUDED.close,
+                                confirmed = EXCLUDED.confirmed;
+                            """;
                     int affected = stmt.executeUpdate(upsert);
                     LOG.debugf("Upsert затронул строк: %d", affected);
 
@@ -150,12 +142,66 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         }
     }
 
-    private String safe(String s) { return s == null ? "" : s; }
-    private String number(java.math.BigDecimal n) { return n == null ? "" : n.toPlainString(); }
-    private String numberOrZero(java.math.BigDecimal n) { return n == null ? "0" : n.toPlainString(); }
+    private String safe(String s) {
+        return s == null ? "" : s;
+    }
+
+    private String number(BigDecimal n) {
+        return n == null ? "" : n.toPlainString();
+    }
+
+    private String numberOrZero(BigDecimal n) {
+        return n == null ? "0" : n.toPlainString();
+    }
+
 
     @Override
-    public Map<Instant, CandlestickDto> restoreFromStorage() {
-        return Map.of();
+    public Map<Instant, CandlestickDto> restoreFromStorage(CandleTimeframe timeframe, String symbol) {
+        if (timeframe == null || symbol == null || symbol.isEmpty()) {
+            LOG.warn("Неверные параметры для восстановления свечей из базы данных");
+            return new LinkedHashMap<>();
+        }
+        return performRestore(timeframe, symbol);
+    }
+
+    @Transactional
+    protected Map<Instant, CandlestickDto> performRestore(CandleTimeframe timeframe, String symbol) {
+
+        try {
+            LOG.infof("Восстанавливаем последние %d свечей из базы данных для таймфрейма %s и символа %s",
+                    DEFAULT_RESTORE_LIMIT, timeframe, symbol);
+
+            // Получаем последние свечи для конкретного таймфрейма и символа, отсортированные по timestamp по убыванию
+            List<Candle> candles = find(
+                    "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
+            )
+                    .page(0, DEFAULT_RESTORE_LIMIT)
+                    .list();
+
+            if (candles.isEmpty()) {
+                LOG.infof("Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
+                return new LinkedHashMap<>();
+            }
+
+            // Переворачиваем порядок, чтобы получить свечи от старых к новым (по возрастанию timestamp)
+            Collections.reverse(candles);
+
+            // Конвертируем Entity в DTO и собираем в LinkedHashMap для сохранения порядка
+            Map<Instant, CandlestickDto> result = new LinkedHashMap<>();
+            for (Candle candle : candles) {
+                CandlestickDto dto = CandlestickMapper.mapEntityToDto(candle);
+                if (dto != null) {
+                    result.put(dto.getTimestamp(), dto);
+                }
+            }
+
+            LOG.infof("Восстановлено %d свечей из базы данных для таймфрейма %s и символа %s",
+                    result.size(), timeframe, symbol);
+            return result;
+        } catch (Exception ex) {
+            LOG.errorf(ex, "Ошибка при восстановлении свечей из базы данных для таймфрейма %s и символа %s",
+                    timeframe, symbol);
+            return new LinkedHashMap<>();
+        }
     }
 }

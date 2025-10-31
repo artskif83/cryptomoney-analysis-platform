@@ -1,5 +1,6 @@
 package artskif.trader.repository;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.indicator.adx.AdxPoint;
 import artskif.trader.indicator.rsi.RsiPoint;
 
@@ -13,7 +14,7 @@ public class AdxIndicatorRepository implements BufferRepository<AdxPoint>{
     }
 
     @Override
-    public Map<Instant, AdxPoint> restoreFromStorage() {
+    public Map<Instant, AdxPoint> restoreFromStorage(CandleTimeframe timeframe, String symbol) {
         return Map.of();
     }
 }
