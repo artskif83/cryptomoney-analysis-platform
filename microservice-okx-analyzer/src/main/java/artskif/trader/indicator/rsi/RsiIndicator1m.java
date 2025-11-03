@@ -15,9 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -41,7 +38,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     BigDecimal value;
     BigDecimal confirmedValue;
     Instant bucket;
-    Instant ts;
+    Instant processingTime;
 
     public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
@@ -58,47 +55,14 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
         this.bucket = bucket;
-        this.ts = Instant.now();
-
-        Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
-        if (bucket.isBefore(currentBucket)) return;// Нас интересуют только "свежие" свечи
-        if (this.rsiState != null && rsiState.getTimestamp() != null && !bucket.minus(interval).equals(rsiState.getTimestamp())) {
-            log().infof("📥 [%s] Сбрасываем состояние RSI из-за разницы во времени. Время текущего тика - %s. Время состояния - %s", getName(), bucket.toString(), rsiState.getTimestamp().toString());
-            this.rsiState = RsiState.empty(period);
-        }
-
+        this.processingTime = Instant.now();
+        Map<Instant, CandlestickDto> bufferSnapshot = candle1m.getBuffer().getSnapshot();
         // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
         if (rsiState != null && rsiState.getTimestamp() == null && !rsiState.isInitialized()) {
-            Map<Instant, CandlestickDto> snap = candle1m.getBuffer().getSnapshot();
-
-            if (snap != null && !snap.isEmpty()) {
-                // подтверждённые ↑
-                List<Map.Entry<Instant, CandlestickDto>> confirmedAsc = snap.entrySet().stream()
-                        .filter(e -> Boolean.TRUE.equals(e.getValue().getConfirmed()))
-                        .collect(Collectors.toList());
-
-                if (!confirmedAsc.isEmpty()) {
-                    // берём только хвост длиной <= period
-                    int size = confirmedAsc.size();
-                    int from = Math.max(0, size - period - 1);
-                    List<Map.Entry<Instant, CandlestickDto>> tailAsc = confirmedAsc.subList(from, size);
-
-                    rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
-                    if (rsiState != null)
-                        log().infof("📥 [%s] Значение RSI восстановлено из истории свечей - %s", getName(), rsiState);
-                } else {
-                    log().warnf("📥 [%s] Буфер свечей пуст", getName());
-                }
-            }
+            recalculateIndicator(bufferSnapshot);
         }
 
-        // 2) PREVIEW для текущего тика (если уже инициализированы)
-        RsiCalculator.preview(rsiState, c.getClose())
-                .ifPresent(rsi -> {
-                            value = rsi;
-                            buffer.putItem(bucket, new RsiPoint(bucket, rsi));
-                        }
-                );
+        calculateCurrentValue(c);
 
         // 3) Если свеча подтвердилась — коммитим состояние и кладём финальную точку
         if (Boolean.TRUE.equals(c.getConfirmed())) {
@@ -115,7 +79,40 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             });
 
             // сохраняем индикаторный ряд
-            saveBuffer();
+            initSaveBuffer();
+        }
+    }
+
+    private void calculateCurrentValue(CandlestickDto c) {
+        // 2) PREVIEW для текущего тика (если уже инициализированы)
+        RsiCalculator.preview(rsiState, c.getClose())
+                .ifPresent(rsi -> {
+                            value = rsi;
+                        }
+                );
+    }
+
+    private void recalculateIndicator(Map<Instant, CandlestickDto> bufferSnapshot) {
+        Map<Instant, CandlestickDto> snap = candle1m.getBuffer().getSnapshot();
+
+        if (snap != null && !snap.isEmpty()) {
+            // подтверждённые ↑
+            List<Map.Entry<Instant, CandlestickDto>> confirmedAsc = snap.entrySet().stream()
+                    .filter(e -> Boolean.TRUE.equals(e.getValue().getConfirmed()))
+                    .collect(Collectors.toList());
+
+            if (!confirmedAsc.isEmpty()) {
+                // берём только хвост длиной <= period
+                int size = confirmedAsc.size();
+                int from = Math.max(0, size - period - 1);
+                List<Map.Entry<Instant, CandlestickDto>> tailAsc = confirmedAsc.subList(from, size);
+
+                rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
+                if (rsiState != null)
+                    log().infof("📥 [%s] Значение RSI восстановлено из истории свечей - %s", getName(), rsiState);
+            } else {
+                log().warnf("📥 [%s] Буфер свечей пуст", getName());
+            }
         }
     }
 
@@ -135,8 +132,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     }
 
     @Override
-    public Instant getTs() {
-        return ts;
+    public Instant getProcessingTime() {
+        return processingTime;
     }
 
     @Override

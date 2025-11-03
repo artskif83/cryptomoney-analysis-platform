@@ -43,7 +43,7 @@ class DualRsiStrategyTest {
                 14, // период, подставь свой при необходимости
                 CandleTimeframe.CANDLE_1H,
                 b,  // bucket
-                b,  // ts
+                b,  // processingTime
                 BigDecimal.valueOf(prev),
                 BigDecimal.valueOf(curr)
         );

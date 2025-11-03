@@ -1,10 +1,9 @@
 package artskif.trader.indicator.adx;
 
 
+import artskif.trader.buffer.Buffer;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.common.PointState;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
@@ -17,12 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,7 +110,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
             });
 
             // сохраняем ряд и состояние
-            saveBuffer();
+            initSaveBuffer();
         }
     }
 
@@ -135,7 +130,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     }
 
     @Override
-    public Instant getTs() {
+    public Instant getProcessingTime() {
         return ts;
     }
 

@@ -6,8 +6,6 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -36,7 +34,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     public void init() {
         log().infof("🔌 [%s] Запуск процесса подсчета индикатора", getName());
 
-        restoreBuffer();
+        initRestoreBuffer();
         // подписка на события и старт фонового потока
         bus.subscribe(this);
         running = true;

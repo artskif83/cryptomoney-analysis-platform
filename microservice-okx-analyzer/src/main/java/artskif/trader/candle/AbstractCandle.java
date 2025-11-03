@@ -26,7 +26,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
 
     @PostConstruct
     void init() {
-        restoreBuffer();
+        initRestoreBuffer();
     }
 
     /**
@@ -45,7 +45,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
 
             // Единым снимком, без нарушения последовательности:
             getBuffer().restoreItems(ordered); // Buffer.restoreItems(...) уже сделает publishSnapshot()
-            saveBuffer(); // при желании можно вынести под флаг
+            initSaveBuffer(); // при желании можно вынести под флаг
             log().infof("✅ [%s] Восстановили и сохранили %d элементов из истории", getName(), ordered.size());
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось восстановить и сохранить историю: %s", getName(), e.getMessage());
@@ -54,7 +54,6 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
 
     public synchronized void handleTick(String message) {
         try {
-            //System.out.println("📥 [" + getName() + "] Пришло сообщение: " + message);
             CandlestickPayloadDto candlestickPayloadDto;
             Optional<CandlestickPayloadDto> opt = CandlestickMapper.map(message, getCandleTimeframe());
             if (opt.isPresent()) {
@@ -68,7 +67,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
             getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle));
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
-                saveBuffer();
+                initSaveBuffer();
             }
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());

@@ -13,5 +13,5 @@ public interface IndicatorPoint {
     CandleTimeframe getCandleTimeframe();
     Integer getPeriod();
     Instant getBucket();
-    Instant getTs();
+    Instant getProcessingTime();
 }

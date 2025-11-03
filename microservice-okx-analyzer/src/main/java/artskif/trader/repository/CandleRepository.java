@@ -73,7 +73,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
                     PGConnection pgConn = conn.unwrap(PGConnection.class);
                     CopyManager cm = pgConn.getCopyAPI();
-                    String copySql = "COPY stage_candles(symbol, tf, ts, open, high, low, close, volume, confirmed) " +
+                    String copySql = "COPY stage_candles(symbol, tf, processingTime, open, high, low, close, volume, confirmed) " +
                             "FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '', HEADER false)";
                     long copied = cm.copyIn(copySql, new StringReader(csv));
                     LOG.infof("В staging загружено строк: %d", copied);
@@ -173,7 +173,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
             // Получаем последние свечи для конкретного таймфрейма и символа, отсортированные по timestamp по убыванию
             List<Candle> candles = find(
-                    "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
+                    "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.processingTime DESC", symbol, timeframe.name()
             )
                     .page(0, DEFAULT_RESTORE_LIMIT)
                     .list();
