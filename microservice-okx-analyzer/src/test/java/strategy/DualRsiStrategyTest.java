@@ -3,7 +3,7 @@ package strategy;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.indicator.IndicatorType;
-import artskif.trader.strategy.rsi.OneHourRsiStrategy;
+import artskif.trader.strategy.rsi.FiveMinutesRsiStrategy;
 import my.signals.v1.OperationType;
 import my.signals.v1.Signal;
 import my.signals.v1.SignalLevel;
@@ -23,15 +23,15 @@ import static org.junit.jupiter.api.Assertions.*;
  *  - уровни по дневному RSI
  *  - запрет новых сигналов до пересечения 50 на H1
  *  - антидубль по одному и тому же H1-бару
- *  - первый вызов без lastValue
+ *  - первый вызов без confirmedValue
  */
 class DualRsiStrategyTest {
 
-    private OneHourRsiStrategy strategy;
+    private FiveMinutesRsiStrategy strategy;
 
     @BeforeEach
     void setUp() {
-        strategy = new OneHourRsiStrategy();
+        strategy = new FiveMinutesRsiStrategy();
     }
 
     // --------- фабрики снапшотов (используем сам record IndicatorSnapshot) ---------
@@ -57,7 +57,7 @@ class DualRsiStrategyTest {
                 14,
                 CandleTimeframe.CANDLE_1H,
                 b, b,
-                null,                                // lastValue = null
+                null,                                // confirmedValue = null
                 BigDecimal.valueOf(curr)
         );
     }
@@ -70,7 +70,7 @@ class DualRsiStrategyTest {
                 14,
                 CandleTimeframe.CANDLE_1D,
                 b, b,
-                null,                                // lastValue нам не нужен
+                null,                                // confirmedValue нам не нужен
                 curr == null ? null : BigDecimal.valueOf(curr)
         );
     }
@@ -178,7 +178,7 @@ class DualRsiStrategyTest {
 
     @Test
     void firstCall_withoutPrevReturnsNull_andInitializesState() {
-        // lastValue=null → первый вызов должен вернуть null и инициализировать состояние
+        // confirmedValue=null → первый вызов должен вернуть null и инициализировать состояние
         assertNull(strategy.generate(
                 h1NoPrev(55, "2025-01-01T09:00:00Z"),
                 d1(45.0, "2025-01-01T00:00:00Z"),

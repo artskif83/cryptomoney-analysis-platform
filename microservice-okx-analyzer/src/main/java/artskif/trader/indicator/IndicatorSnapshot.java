@@ -13,6 +13,6 @@ public record IndicatorSnapshot(
         CandleTimeframe candleTimeframe,
         Instant bucket,
         Instant ts,
-        BigDecimal lastValue,
+        BigDecimal confirmedValue,
         BigDecimal value
 ) {}

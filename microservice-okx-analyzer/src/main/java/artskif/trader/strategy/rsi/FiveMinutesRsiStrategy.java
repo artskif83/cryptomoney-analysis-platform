@@ -24,9 +24,9 @@ import java.util.UUID;
 
 @Startup
 @ApplicationScoped
-public class OneHourRsiStrategy extends AbstractStrategy {
+public class FiveMinutesRsiStrategy extends AbstractStrategy {
 
-    private final static Logger LOG = Logger.getLogger(OneHourRsiStrategy.class);
+    private final static Logger LOG = Logger.getLogger(FiveMinutesRsiStrategy.class);
     // ====== КОНСТАНТЫ RSI ======
     private static final BigDecimal RSI_30 = BigDecimal.valueOf(30);
     private static final BigDecimal RSI_40 = BigDecimal.valueOf(40);
@@ -58,7 +58,7 @@ public class OneHourRsiStrategy extends AbstractStrategy {
 
     @Override
     protected String getName() {
-        return "One Hour RSI Strategy";
+        return "Five Minutes RSI Strategy";
     }
 
     @Override
@@ -109,7 +109,7 @@ public class OneHourRsiStrategy extends AbstractStrategy {
     public Signal generate(IndicatorSnapshot rsiH1, IndicatorSnapshot rsiD1, BigDecimal price, StrategyKind kind) {
         if (rsiH1 == null || rsiD1 == null) return null;
         if (rsiH1.value() == null || rsiD1.value() == null) return null;
-        if (rsiH1.lastValue() == null) return null;
+        if (rsiH1.confirmedValue() == null) return null;
 
         // антидубль на уровне бара H1
         Instant h1Bar = rsiH1.bucket();
@@ -119,7 +119,7 @@ public class OneHourRsiStrategy extends AbstractStrategy {
             return null;
         }
 
-        BigDecimal h1Prev = rsiH1.lastValue();
+        BigDecimal h1Prev = rsiH1.confirmedValue();
         BigDecimal h1Curr = rsiH1.value();
         BigDecimal d1Curr = rsiD1.value();
 
@@ -200,7 +200,7 @@ public class OneHourRsiStrategy extends AbstractStrategy {
     // reset-состояние на пересечении 50
     private void updateStateForReset(IndicatorSnapshot rsiH1) {
         if (rsiH1 == null || rsiH1.value() == null) return;
-        BigDecimal prev = rsiH1.lastValue();
+        BigDecimal prev = rsiH1.confirmedValue();
         BigDecimal curr = rsiH1.value();
         if (prev != null && !canEmit && crosses(prev, curr, RSI_50)) {
             canEmit = true;

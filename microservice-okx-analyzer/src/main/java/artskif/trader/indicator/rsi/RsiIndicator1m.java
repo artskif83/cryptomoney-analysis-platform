@@ -3,9 +3,7 @@ package artskif.trader.indicator.rsi;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.common.PointState;
-import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
@@ -22,7 +20,6 @@ import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,31 +35,21 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
     BufferRepository<RsiPoint> rsiBufferRepository;
-    BufferFileRepository<RsiPoint> rsiBufferFileRepository;
-    StateRepository rsiStateRepository;
     Candle1m candle1m;
     Integer period; // Период индикатора
     RsiState rsiState; // состояние RSI + его репозиторий/путь
     BigDecimal value;
-    BigDecimal lastValue;
-    Path pathForSave;
-    Path pathForStateSave;
+    BigDecimal confirmedValue;
     Instant bucket;
     Instant ts;
 
     public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.rsiBufferRepository = new RsiIndicatorRepository();
-        this.rsiBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
-                .constructMapType(LinkedHashMap.class, Instant.class, RsiPoint.class));
-        this.rsiStateRepository = new StateRepository(objectMapper, objectMapper.getTypeFactory()
-                .constructType(RsiState.class));
         this.candle1m = candle1m;
         this.period = period;
         this.bucket = null;
         this.rsiState = RsiState.empty(period);
-        this.pathForSave = Paths.get(MessageFormat.format("rsiIndicator1m{0}p.json", period));
-        this.pathForStateSave = Paths.get(MessageFormat.format("rsiStateIndicator1m{0}p.json", period));
         this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
     }
 
@@ -123,14 +110,12 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
             upd.point.ifPresent(p -> {
                 value = p.getRsi();
-                lastValue = p.getRsi();
+                confirmedValue = p.getRsi();
                 buffer.putItem(bucket, p);
             });
 
             // сохраняем индикаторный ряд
             saveBuffer();
-            // сохраняем состояние RSI
-            saveState();
         }
     }
 
@@ -155,16 +140,6 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     }
 
     @Override
-    protected StateRepository getStateRepository() {
-        return rsiStateRepository;
-    }
-
-    @Override
-    protected Path getPathForStateSave() {
-        return pathForStateSave;
-    }
-
-    @Override
     public Buffer<RsiPoint> getBuffer() {
         return buffer;
     }
@@ -172,16 +147,6 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     @Override
     public String getName() {
         return String.format("%s-%dp", NAME, period);
-    }
-
-    @Override
-    public Path getPathForSave() {
-        return pathForSave;
-    }
-
-    @Override
-    public BufferFileRepository<RsiPoint> getBufferFileRepository() {
-        return rsiBufferFileRepository;
     }
 
     @Override
@@ -205,8 +170,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     }
 
     @Override
-    public BigDecimal getLastValue() {
-        return lastValue;
+    public BigDecimal getConfirmedValue() {
+        return confirmedValue;
     }
 
     @Override

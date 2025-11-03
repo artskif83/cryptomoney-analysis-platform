@@ -11,13 +11,6 @@ import java.time.Instant;
 
 public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged {
 
-    protected Instant lastBucket = null;
-
-
-    protected abstract Path getPathForSave();
-
-    protected abstract BufferFileRepository<C> getBufferFileRepository();
-
     protected abstract BufferRepository<C> getBufferRepository();
 
     protected abstract CandleTimeframe getCandleTimeframe();

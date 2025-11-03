@@ -8,9 +8,6 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
 import artskif.trader.indicator.IndicatorSnapshot;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.NoArgsConstructor;
 import my.signals.v1.StrategyKind;
 
 import java.math.BigDecimal;
@@ -69,7 +66,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
                     ip.getCandleTimeframe(),
                     ip.getBucket(), // у конкретного индикатора bucket может отличаться, сохраняем его
                     ip.getTs(), // у конкретного индикатора bucket может отличаться, сохраняем его
-                    ip.getLastValue(),
+                    ip.getConfirmedValue(),
                     value
             );
             snapshots.add(snap);

@@ -6,7 +6,6 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.Buffer;
 import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.common.PointState;
-import artskif.trader.common.StateRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
@@ -38,11 +37,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private final Buffer<AdxPoint> buffer;
 
     private final BufferRepository<AdxPoint> adxBufferRepository;
-    private final BufferFileRepository<AdxPoint> adxBufferFileRepository;
-    private final StateRepository adxStateRepository;
     private final Candle1m candle1m;
-    private final Path pathForSave;
-    private final Path pathForStateSave;
 
     private Integer period;
     private AdxState adxState;
@@ -58,14 +53,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
         this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
         this.adxBufferRepository = new AdxIndicatorRepository();
-        this.adxBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
-                .constructMapType(LinkedHashMap.class, Instant.class, AdxPoint.class));
-        this.adxStateRepository = new StateRepository(objectMapper, objectMapper.getTypeFactory()
-                .constructType(AdxState.class));
 
         this.adxState = AdxState.empty(period);
-        this.pathForSave = Paths.get(MessageFormat.format("adxIndicator1m{0}p.json", period));
-        this.pathForStateSave = Paths.get(MessageFormat.format("adxStateIndicator1m{0}p.json", period));
 
         this.period = period;
     }
@@ -127,7 +116,6 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
             // сохраняем ряд и состояние
             saveBuffer();
-            saveState();
         }
     }
 
@@ -162,16 +150,6 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     }
 
     @Override
-    public Path getPathForSave() {
-        return pathForSave;
-    }
-
-    @Override
-    public BufferFileRepository<AdxPoint> getBufferFileRepository() {
-        return adxBufferFileRepository;
-    }
-
-    @Override
     protected BufferRepository<AdxPoint> getBufferRepository() {
         return adxBufferRepository;
     }
@@ -187,22 +165,12 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     }
 
     @Override
-    protected StateRepository getStateRepository() {
-        return adxStateRepository;
-    }
-
-    @Override
-    protected Path getPathForStateSave() {
-        return pathForStateSave;
-    }
-
-    @Override
     public BigDecimal getValue() {
         return value;
     }
 
     @Override
-    public BigDecimal getLastValue() {
+    public BigDecimal getConfirmedValue() {
         return lastValue;
     }
 

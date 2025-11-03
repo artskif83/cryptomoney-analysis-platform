@@ -27,7 +27,6 @@ public class Candle1D extends AbstractCandle {
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
     protected final Buffer<CandlestickDto> buffer;
-    protected final Path pathForSave = Paths.get("candles1d.json");
 
     @Inject
     public Candle1D(ObjectMapper objectMapper, CandleEventBus bus) {
@@ -51,16 +50,6 @@ public class Candle1D extends AbstractCandle {
     @Override
     public String getName() {
         return NAME;
-    }
-
-    @Override
-    public Path getPathForSave() {
-        return pathForSave;
-    }
-
-    @Override
-    public BufferFileRepository<CandlestickDto> getBufferFileRepository() {
-        return candleBufferFileRepository;
     }
 
     @Override
