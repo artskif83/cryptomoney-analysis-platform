@@ -1,5 +1,6 @@
 package artskif.trader.indicator.rsi;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.PointState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ public class RsiState implements PointState {
     private Instant timestamp;     // время состояния
 
     private int period;                 // окно RSI (обычно 14)
+    private CandleTimeframe timeframe;  // таймфрейм свечей
 
     // для инициализации (seed) — накапливаем суммы приростов/потерь за period дельт
     private int seedCount;              // сколько дельт уже накопили (0..period)
@@ -33,10 +35,11 @@ public class RsiState implements PointState {
     // признак, что avgGain/avgLoss инициализированы
     private boolean initialized;
 
-    public static RsiState empty(int period) {
+    public static RsiState empty(int period, CandleTimeframe timeframe) {
         return new RsiState(
                 null,
                 period,
+                timeframe,
                 0,
                 BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO,
@@ -50,6 +53,7 @@ public class RsiState implements PointState {
         if (state == null) {return;}
         var restoreState = (RsiState) state;
         this.period = restoreState.getPeriod();
+        this.timeframe = restoreState.getTimeframe();
         this.setSeedCount(restoreState.getSeedCount());
         this.setTimestamp(restoreState.getTimestamp());
         this.setSeedGainSum(restoreState.getSeedGainSum());
@@ -66,6 +70,7 @@ public class RsiState implements PointState {
                                      boolean initialized) {
         RsiState n = new RsiState();
         n.setPeriod(this.getPeriod());
+        n.setTimeframe(this.getTimeframe());
         n.setTimestamp(bucket);
         n.setSeedCount(seedCount);
         n.setSeedGainSum(seedGainSum);

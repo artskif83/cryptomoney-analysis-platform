@@ -99,7 +99,7 @@ public class RsiCalculator {
                         avgGain, avgLoss, true);
 
                 Optional<BigDecimal> rsi = computeRsi(avgGain, avgLoss);
-                return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v)), next);
+                return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v, s.getTimeframe())), next);
             }
         }
 
@@ -114,7 +114,7 @@ public class RsiCalculator {
                 newAvgGain, newAvgLoss, true);
 
         Optional<BigDecimal> rsi = computeRsi(newAvgGain, newAvgLoss);
-        return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v)), next);
+        return new RsiUpdate(rsi.map(v -> new RsiPoint(bucket, v, s.getTimeframe())), next);
     }
 
     private static Optional<BigDecimal> computeRsi(BigDecimal avgGain, BigDecimal avgLoss) {

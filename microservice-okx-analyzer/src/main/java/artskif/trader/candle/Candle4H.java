@@ -31,7 +31,7 @@ public class Candle4H extends AbstractCandle {
     @Inject
     public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.buffer = new Buffer<>(NAME, Duration.ofHours(4), 300);
+        this.buffer = new Buffer<>(300);
         this.candleBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
                 .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
         this.candleBufferRepository = new CandleRepository();

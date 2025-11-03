@@ -11,7 +11,6 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.RsiIndicatorRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
@@ -27,15 +26,13 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private final static String NAME = "RSI-1m";
     private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
 
-    private final Buffer<RsiPoint> buffer;
-    private final Duration interval = Duration.ofMinutes(1);
-    private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
+    private final Buffer<RsiPoint> buffer; // Допустимая погрешность по времени
 
-    private long bufferVersion;
+    private Long candleBufferVersion;
     private BufferRepository<RsiPoint> rsiBufferRepository;
     private Candle1m candle1m;
     private Integer period; // Период индикатора
-    private RsiState rsiState; // состояние RSI + его репозиторий/путь
+    private RsiState rsiState; // состояние RSI
     private BigDecimal value;
     private BigDecimal confirmedValue;
     private Instant bucket;
@@ -47,8 +44,9 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         this.candle1m = candle1m;
         this.period = period;
         this.bucket = null;
-        this.rsiState = RsiState.empty(period);
-        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
+        this.rsiState = RsiState.empty(period, CandleTimeframe.CANDLE_1M);
+        this.buffer = new Buffer<>(100);
+        this.candleBufferVersion = 0L;
     }
 
     @Override
@@ -57,10 +55,10 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant bucket = ev.bucket();
         this.bucket = bucket;
         this.processingTime = Instant.now();
-        Map<Instant, CandlestickDto> bufferSnapshot = candle1m.getBuffer().getSnapshot();
+        Buffer<CandlestickDto> bufferSnapshot = candle1m.getBuffer();
         // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
-        if (rsiState != null && rsiState.getTimestamp() == null && !rsiState.isInitialized()) {
-            recalculateIndicator(bufferSnapshot);
+        if (rsiState != null && !rsiState.isInitialized()) {
+            recalculateIndicator(bufferSnapshot.getSnapshot());
         }
 
         calculateCurrentValue(c);
@@ -93,8 +91,7 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
                 );
     }
 
-    private void recalculateIndicator(Map<Instant, CandlestickDto> bufferSnapshot) {
-        Map<Instant, CandlestickDto> snap = candle1m.getBuffer().getSnapshot();
+    private void recalculateIndicator(Map<Instant, CandlestickDto> snap) {
 
         if (snap != null && !snap.isEmpty()) {
             // подтверждённые ↑

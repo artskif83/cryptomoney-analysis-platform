@@ -44,12 +44,9 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         super(bus);
         this.period = period;
         this.candle1m = candle1m;
-
-        this.buffer = new Buffer<>(String.format("%s-%dp", NAME, period), Duration.ofMinutes(1), 100);
+        this.buffer = new Buffer<>(100);
         this.adxBufferRepository = new AdxIndicatorRepository();
-
         this.adxState = AdxState.empty(period);
-
         this.period = period;
     }
 

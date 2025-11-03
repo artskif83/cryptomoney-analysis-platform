@@ -19,7 +19,7 @@ public class Buffer<C> {
     @Getter
     private volatile long version = 0L;
 
-    public Buffer(String name, Duration interval, int maxSize) {
+    public Buffer(int maxSize) {
         this.writeMap = new LimitedLinkedHashMap<>(maxSize); // порядок уже правильный
         this.snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(writeMap));
     }
