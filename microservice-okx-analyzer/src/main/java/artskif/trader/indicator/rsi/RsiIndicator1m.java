@@ -31,16 +31,17 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private final Duration interval = Duration.ofMinutes(1);
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5); // Допустимая погрешность по времени
 
-    BufferRepository<RsiPoint> rsiBufferRepository;
-    Candle1m candle1m;
-    Integer period; // Период индикатора
-    RsiState rsiState; // состояние RSI + его репозиторий/путь
-    BigDecimal value;
-    BigDecimal confirmedValue;
-    Instant bucket;
-    Instant processingTime;
+    private long bufferVersion;
+    private BufferRepository<RsiPoint> rsiBufferRepository;
+    private Candle1m candle1m;
+    private Integer period; // Период индикатора
+    private RsiState rsiState; // состояние RSI + его репозиторий/путь
+    private BigDecimal value;
+    private BigDecimal confirmedValue;
+    private Instant bucket;
+    private Instant processingTime;
 
-    public RsiIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
+    public RsiIndicator1m(Integer period, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.rsiBufferRepository = new RsiIndicatorRepository();
         this.candle1m = candle1m;

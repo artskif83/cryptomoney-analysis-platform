@@ -30,7 +30,6 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private final Duration interval = Duration.ofMinutes(1);
     private final Duration acceptableTimeMargin = Duration.ofSeconds(5);
     private final Buffer<AdxPoint> buffer;
-
     private final BufferRepository<AdxPoint> adxBufferRepository;
     private final Candle1m candle1m;
 
@@ -41,7 +40,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private Instant bucket;
     private Instant ts;
 
-    public AdxIndicator1m(Integer period, ObjectMapper objectMapper, Candle1m candle1m, CandleEventBus bus) {
+    public AdxIndicator1m(Integer period, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.period = period;
         this.candle1m = candle1m;

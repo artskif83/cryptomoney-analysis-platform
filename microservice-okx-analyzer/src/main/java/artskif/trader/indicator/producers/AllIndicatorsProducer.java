@@ -28,8 +28,6 @@ public class AllIndicatorsProducer {
     boolean rsiEnabled;
 
     @Inject
-    ObjectMapper objectMapper;
-    @Inject
     Candle1m candle1m;
     @Inject
     CandleEventBus bus;
@@ -48,7 +46,6 @@ public class AllIndicatorsProducer {
         if (rsiEnabled) {
             RsiIndicator1m ind = new RsiIndicator1m(
                     14,
-                    objectMapper,
                     candle1m,
                     bus
             );
@@ -62,7 +59,6 @@ public class AllIndicatorsProducer {
         if (adxEnabled) {
             AdxIndicator1m indAdx = new AdxIndicator1m(
                     14,
-                    objectMapper,
                     candle1m,
                     bus
             );
