@@ -55,10 +55,11 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant bucket = ev.bucket();
         this.bucket = bucket;
         this.processingTime = Instant.now();
-        Buffer<CandlestickDto> bufferSnapshot = candle1m.getBuffer();
+        Buffer<CandlestickDto> candleBuffer = candle1m.getBuffer();
         // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
-        if (rsiState != null && !rsiState.isInitialized()) {
-            recalculateIndicator(bufferSnapshot.getSnapshot());
+        if (candleBufferVersion != candleBuffer.getVersion() && !candleBuffer.isEmpty()) {
+            recalculateIndicator(candleBuffer.getSnapshot());
+            candleBufferVersion = candleBuffer.getVersion();
         }
 
         calculateCurrentValue(c);

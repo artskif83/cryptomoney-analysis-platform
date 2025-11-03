@@ -31,6 +31,11 @@ public class Buffer<C> {
     }
 
     // ===== API ПИСАТЕЛЯ (один поток) =====
+    /** Проверяет, пуст ли буфер. */
+    public boolean isEmpty() {
+        return snapshot.isEmpty();
+    }
+
     /** Полная загрузка: данные уже в нужном порядке — просто кладём и публикуем. */
     public void restoreItems(Map<Instant, C> data) {
         writeMap.putAll(data);     // LimitedLinkedHashMap сам обрежет при переполнении
