@@ -50,6 +50,13 @@ public class Buffer<C> {
         return inserted;
     }
 
+    /** Очистка буфера. */
+    public void clear() {
+        writeMap.clear();
+        publishSnapshot();
+        version++;
+    }
+
     @Override
     public String toString() {
         return "Buffer{items=" + snapshot.values() + '}';

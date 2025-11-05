@@ -14,7 +14,6 @@ import artskif.trader.repository.RsiIndicatorRepository;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +54,18 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         Instant bucket = ev.bucket();
         this.bucket = bucket;
         this.processingTime = Instant.now();
+
+        // Пропускаем, если bucket меньше или равен timestamp rsiState
+        if (rsiState.getTimestamp() != null && bucket.compareTo(rsiState.getTimestamp()) <= 0) {
+            log().debugf("📥 [%s] пропускаем свечи которые раньше текущего состояния. State - %s, bucket - %s",
+                    getName(), rsiState.getTimestamp(), bucket);
+            return;
+        }
+
         Buffer<CandlestickDto> candleBuffer = candle1m.getBuffer();
-        // 1) Если состояние ещё не готово — пытаемся поднять его из истории минутных свечей
+        // 1) Если версия буфера свечей изменилась — пересчитываем индикатор из буфера
         if (candleBufferVersion != candleBuffer.getVersion() && !candleBuffer.isEmpty()) {
+            log().infof("📥 [%s] версия буфера свечей изменилась — пересчитываем индикатор из буфера", getName());
             recalculateIndicator(candleBuffer.getSnapshot());
             candleBufferVersion = candleBuffer.getVersion();
         }
@@ -95,22 +103,34 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private void recalculateIndicator(Map<Instant, CandlestickDto> snap) {
 
         if (snap != null && !snap.isEmpty()) {
-            // подтверждённые ↑
+            // Обнуляем текущее состояние buffer и rsiState
+            buffer.clear();
+            rsiState = RsiState.empty(period, CandleTimeframe.CANDLE_1M);
+
+            // Фильтруем только подтверждённые свечи и сортируем по времени
             List<Map.Entry<Instant, CandlestickDto>> confirmedAsc = snap.entrySet().stream()
                     .filter(e -> Boolean.TRUE.equals(e.getValue().getConfirmed()))
+                    .sorted(Map.Entry.comparingByKey())
                     .collect(Collectors.toList());
 
             if (!confirmedAsc.isEmpty()) {
-                // берём только хвост длиной <= period
-                int size = confirmedAsc.size();
-                int from = Math.max(0, size - period - 1);
-                List<Map.Entry<Instant, CandlestickDto>> tailAsc = confirmedAsc.subList(from, size);
+                // Выполняем полный пересчет всех значений RSI
+                RsiCalculator.FullRecalculationResult result =
+                        RsiCalculator.recalculateFromSnapshot(rsiState, confirmedAsc);
 
-                rsiState = RsiCalculator.tryInitFromHistory(rsiState, tailAsc);
-                if (rsiState != null)
-                    log().infof("📥 [%s] Значение RSI восстановлено из истории свечей - %s", getName(), rsiState);
+                // Обновляем состояние
+                rsiState = result.finalState;
+
+                // Заполняем buffer пересчитанными точками
+                for (RsiPoint point : result.points) {
+                    buffer.putItem(point.getBucket(), point);
+                }
+
+                log().infof("📥 [%s] RSI индикатор полностью пересчитан из истории свечей. " +
+                                "Восстановлено точек: %d, финальное состояние: %s",
+                        getName(), result.points.size(), rsiState);
             } else {
-                log().warnf("📥 [%s] Буфер свечей пуст", getName());
+                log().warnf("📥 [%s] Буфер свечей не содержит подтвержденных данных", getName());
             }
         }
     }

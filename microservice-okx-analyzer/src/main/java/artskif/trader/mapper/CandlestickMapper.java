@@ -40,7 +40,7 @@ public class CandlestickMapper {
         }
         JsonNode arr = root.get("data");
 
-        // Отсортируем по processingTime по возрастанию и соберём в LinkedHashMap для сохранения порядка.
+        // Отсортируем по Timestamp по возрастанию и соберём в LinkedHashMap для сохранения порядка.
         Map<Instant, CandlestickDto> ordered = new LinkedHashMap<>();
 
         StreamSupport.stream(arr.spliterator(), false)

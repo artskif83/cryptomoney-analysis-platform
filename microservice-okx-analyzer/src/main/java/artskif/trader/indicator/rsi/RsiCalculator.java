@@ -28,12 +28,50 @@ public class RsiCalculator {
     }
 
     /**
+     * Класс для хранения результата полного пересчета RSI из истории.
+     */
+    public static final class FullRecalculationResult {
+        public final RsiState finalState;
+        public final List<RsiPoint> points;
+
+        public FullRecalculationResult(RsiState finalState, List<RsiPoint> points) {
+            this.finalState = finalState;
+            this.points = points;
+        }
+    }
+
+    /**
+     * Полный пересчет RSI из снапшота подтвержденных свечей.
+     * Пересчитывает все значения RSI и возвращает итоговое состояние и список точек.
+     */
+    public static FullRecalculationResult recalculateFromSnapshot(
+            RsiState initialState,
+            List<Map.Entry<Instant, CandlestickDto>> confirmedCandles) {
+
+        if (initialState == null) throw new RuntimeException("Состояние не инициализировано");
+        if (confirmedCandles == null || confirmedCandles.isEmpty()) {
+            return new FullRecalculationResult(initialState, List.of());
+        }
+
+        List<RsiPoint> points = new java.util.ArrayList<>();
+        RsiState currentState = initialState;
+
+        for (Map.Entry<Instant, CandlestickDto> entry : confirmedCandles) {
+            RsiUpdate upd = updateConfirmed(currentState, entry.getKey(), entry.getValue().getClose());
+            currentState = upd.state;
+            upd.point.ifPresent(points::add);
+        }
+
+        return new FullRecalculationResult(currentState, points);
+    }
+
+    /**
      * Быстрый «подъём» состояния из истории.
      * Проходит по подтверждённым свечам снапшота в порядке времени
      * и последовательно вызывает updateConfirmed(...).
      * Если истории мало — просто накапливает seedCount.
      */
-    public static RsiState tryInitFromHistory(RsiState s, List<Map.Entry<Instant, CandlestickDto>> lastConfirmedAsc) {
+    public static RsiState recalculateBuffer(RsiState s, List<Map.Entry<Instant, CandlestickDto>> lastConfirmedAsc) {
         if (s == null) throw new RuntimeException("Состояние не инициализировано");
         if (s.isInitialized()) return s;                 // уже готово — ничего не делаем
         if (lastConfirmedAsc == null || lastConfirmedAsc.isEmpty()) return s;

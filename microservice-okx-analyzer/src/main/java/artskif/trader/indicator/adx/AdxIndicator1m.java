@@ -12,7 +12,6 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.AdxIndicatorRepository;
 import artskif.trader.repository.BufferRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
@@ -38,7 +37,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private BigDecimal value;
     private BigDecimal lastValue;
     private Instant bucket;
-    private Instant ts;
+    private Instant processingTime;
 
     public AdxIndicator1m(Integer period, Candle1m candle1m, CandleEventBus bus) {
         super(bus);
@@ -56,7 +55,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
         CandlestickDto c = ev.candle();
         Instant bucket = ev.bucket();
         this.bucket = bucket;
-        this.ts = Instant.now();
+        this.processingTime = Instant.now();
 
         Instant currentBucket = Instant.now().minus(interval).minus(acceptableTimeMargin);
         if (bucket.isBefore(currentBucket)) return; // берём только свежие
@@ -127,7 +126,7 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     @Override
     public Instant getProcessingTime() {
-        return ts;
+        return processingTime;
     }
 
     @Override
