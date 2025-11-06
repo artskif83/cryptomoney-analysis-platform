@@ -11,6 +11,10 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.RsiIndicatorRepository;
+import io.quarkus.runtime.Startup;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
@@ -20,6 +24,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 
+@ApplicationScoped
 public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
 
     private final static String NAME = "RSI-1m";
@@ -37,16 +42,33 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
     private Instant bucket;
     private Instant processingTime;
 
-    public RsiIndicator1m(Integer period, Candle1m candle1m, CandleEventBus bus) {
+    // Конструктор без параметров для CDI
+    protected RsiIndicator1m() {
+        super(null);
+        this.candle1m = null;
+        this.buffer = new Buffer<>(100);
+        this.period = 14;
+        this.candleBufferVersion = 0L;
+        this.rsiState = RsiState.empty(period, CandleTimeframe.CANDLE_1M);
+    }
+
+    @Inject
+    public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.rsiBufferRepository = new RsiIndicatorRepository();
         this.candle1m = candle1m;
-        this.period = period;
+        this.period = 14;
         this.bucket = null;
         this.rsiState = RsiState.empty(period, CandleTimeframe.CANDLE_1M);
         this.buffer = new Buffer<>(100);
         this.candleBufferVersion = 0L;
     }
+
+//
+//    @Override
+//    public void init(){
+//        super.init();
+//    }
 
     @Override
     protected void process(CandleEvent ev) {

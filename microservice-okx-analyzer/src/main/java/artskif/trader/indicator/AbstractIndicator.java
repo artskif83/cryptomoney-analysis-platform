@@ -5,6 +5,7 @@ import artskif.trader.common.Stateable;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
+import jakarta.annotation.PostConstruct;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -14,6 +15,10 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     protected static final String DEFAULT_SYMBOL = "BTC-USDT";
 
     protected final CandleEventBus bus;
+    private final BlockingQueue<CandleEvent> queue = new ArrayBlockingQueue<>(4096, true);
+
+    private Thread worker;
+    private volatile boolean running = false;
 
     public AbstractIndicator(CandleEventBus bus) {
         this.bus = bus;
@@ -24,13 +29,10 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         return DEFAULT_SYMBOL;
     }
 
-    private final BlockingQueue<CandleEvent> queue = new ArrayBlockingQueue<>(4096, true);
-
-    private Thread worker;
-    private volatile boolean running = false;
 
     protected abstract void process(CandleEvent take);
 
+    @PostConstruct
     public void init() {
         log().infof("🔌 [%s] Запуск процесса подсчета индикатора", getName());
 

@@ -3,9 +3,14 @@ package artskif.trader.common;
 import artskif.trader.buffer.BufferedPoint;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.repository.BufferRepository;
+import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged {
+
+    private final AtomicBoolean saveEnabled = new AtomicBoolean(false);
 
     protected abstract BufferRepository<C> getBufferRepository();
 
@@ -21,9 +26,21 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
         getBuffer().restoreItems(getBufferRepository().restoreFromStorage(getCandleTimeframe(), getSymbol()));
     }
 
-    @ActivateRequestContext
     protected void initSaveBuffer() {
-        log().infof("📥 [%s] Сохраняем информационные свечи в хранилище", getName());
+        if (!isSaveEnabled()) {
+            log().infof("📥 [%s] Активировано сохранение по расписанию", getName());
+        }
+        saveEnabled.set(true);
+    }
+
+    public boolean isSaveEnabled() {
+        return saveEnabled.get();
+    }
+
+    @ActivateRequestContext
+    public void saveBuffer() {
+        log().infof("💾 [%s] Сохраняем информационные свечи в хранилище", getName());
         getBufferRepository().saveFromMap(getBuffer().getSnapshot());
+        saveEnabled.set(false);
     }
 }

@@ -1,6 +1,7 @@
 package artskif.trader.strategy.rsi;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.common.AbstractTimeSeries;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorFrame;
@@ -13,6 +14,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import my.signals.v1.*;
 import org.jboss.logging.Logger;
@@ -43,7 +45,7 @@ public class FiveMinutesRsiStrategy extends AbstractStrategy {
     @Inject
     protected CandleEventBus bus;
     @Inject
-    protected List<IndicatorPoint> indicators; // см. AllIndicatorsProducer
+    Instance<IndicatorPoint> indicators;
 
     @PostConstruct
     void start() {
@@ -68,7 +70,7 @@ public class FiveMinutesRsiStrategy extends AbstractStrategy {
 
     @Override
     protected List<IndicatorPoint> getIndicators() {
-        return indicators;
+        return indicators.stream().toList();
     }
 
     @Override

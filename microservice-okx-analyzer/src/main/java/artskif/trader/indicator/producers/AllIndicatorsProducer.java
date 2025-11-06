@@ -32,42 +32,42 @@ public class AllIndicatorsProducer {
     @Inject
     CandleEventBus bus;
 
-    /**
-     * Отдаём один CDI-бин типа List<IndicatorPoint>, который уже собран на старте
-     */
-    @Produces
-    @ApplicationScoped
-    public List<IndicatorPoint> allIndicators() {
-        LOG.info("🔌 Создаем все возможные индикаторы");
-
-        List<IndicatorPoint> list = new ArrayList<>();
-
-
-        if (rsiEnabled) {
-            RsiIndicator1m ind = new RsiIndicator1m(
-                    14,
-                    candle1m,
-                    bus
-            );
-            ind.init();
-            // подпишется на bus/прочитает состояние/подогреет буфер
-            list.add(ind);
-        } else {
-            LOG.info("⚙️ OKX RSI индикатор отключен (okx.rsi.enabled=false)");
-        }
-
-        if (adxEnabled) {
-            AdxIndicator1m indAdx = new AdxIndicator1m(
-                    14,
-                    candle1m,
-                    bus
-            );
-            indAdx.init();
-            list.add(indAdx);
-        } else {
-            LOG.info("⚙️ OKX ADX индикатор отключен (okx.adx.enabled=false)");
-        }
-
-        return list;
-    }
+//    /**
+//     * Отдаём один CDI-бин типа List<IndicatorPoint>, который уже собран на старте
+//     */
+//    @Produces
+//    @ApplicationScoped
+//    public List<IndicatorPoint> allIndicators() {
+//        LOG.info("🔌 Создаем все возможные индикаторы");
+//
+//        List<IndicatorPoint> list = new ArrayList<>();
+//
+//
+//        if (rsiEnabled) {
+//            RsiIndicator1m ind = new RsiIndicator1m(
+//                    14,
+//                    candle1m,
+//                    bus
+//            );
+//            ind.init();
+//            // подпишется на bus/прочитает состояние/подогреет буфер
+//            list.add(ind);
+//        } else {
+//            LOG.info("⚙️ OKX RSI индикатор отключен (okx.rsi.enabled=false)");
+//        }
+//
+//        if (adxEnabled) {
+//            AdxIndicator1m indAdx = new AdxIndicator1m(
+//                    14,
+//                    candle1m,
+//                    bus
+//            );
+//            indAdx.init();
+//            list.add(indAdx);
+//        } else {
+//            LOG.info("⚙️ OKX ADX индикатор отключен (okx.adx.enabled=false)");
+//        }
+//
+//        return list;
+//    }
 }
