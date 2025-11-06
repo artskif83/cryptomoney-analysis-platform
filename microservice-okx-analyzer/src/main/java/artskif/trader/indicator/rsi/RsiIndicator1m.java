@@ -64,12 +64,6 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
         this.candleBufferVersion = 0L;
     }
 
-//
-//    @Override
-//    public void init(){
-//        super.init();
-//    }
-
     @Override
     protected void process(CandleEvent ev) {
         CandlestickDto c = ev.candle();
@@ -99,8 +93,8 @@ public class RsiIndicator1m extends AbstractIndicator<RsiPoint> {
             RsiCalculator.RsiUpdate upd = RsiCalculator.updateConfirmed(rsiState, bucket, c.getClose());
             this.rsiState = upd.state;
 
-            log().infof("📥 [%s] Получено новое значение  RSI - %s", getName(), upd.point);
-            log().infof("📥 [%s] Получено новое значение  State RSI - %s", getName(), upd.state);
+            log().debugf("📥 [%s] Получено новое значение  RSI - %s", getName(), upd.point);
+            log().debugf("📥 [%s] Получено новое значение  State RSI - %s", getName(), upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getRsi();

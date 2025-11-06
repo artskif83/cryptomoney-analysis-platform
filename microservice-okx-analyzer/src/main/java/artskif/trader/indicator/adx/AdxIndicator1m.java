@@ -12,6 +12,8 @@ import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.AdxIndicatorRepository;
 import artskif.trader.repository.BufferRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@ApplicationScoped
 public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
 
     private final static String NAME = "ADX-1m";
@@ -39,14 +42,23 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
     private Instant bucket;
     private Instant processingTime;
 
-    public AdxIndicator1m(Integer period, Candle1m candle1m, CandleEventBus bus) {
+    public AdxIndicator1m() {
+        super(null);
+        this.candle1m = null;
+        this.buffer = new Buffer<>(100);
+        this.adxState = AdxState.empty(14);
+        this.adxBufferRepository = new AdxIndicatorRepository();
+    }
+
+    @Inject
+    public AdxIndicator1m(Candle1m candle1m, CandleEventBus bus) {
         super(bus);
         this.period = period;
         this.candle1m = candle1m;
         this.buffer = new Buffer<>(100);
         this.adxBufferRepository = new AdxIndicatorRepository();
-        this.adxState = AdxState.empty(period);
-        this.period = period;
+        this.adxState = AdxState.empty(14);
+        this.period = 14;
     }
 
     @Override
@@ -95,8 +107,8 @@ public class AdxIndicator1m extends AbstractIndicator<AdxPoint> {
             AdxCalculator.AdxUpdate upd = AdxCalculator.updateConfirmed(adxState, bucket, c);
             this.adxState = upd.state;
 
-            log().infof("📥 [%s] Получено новое значение ADX - %s", getName(), upd.point);
-            log().infof("📥 [%s] Новое состояние ADX - %s", getName(), upd.state);
+            log().debugf("📥 [%s] Получено новое значение ADX - %s", getName(), upd.point);
+            log().debugf("📥 [%s] Новое состояние ADX - %s", getName(), upd.state);
 
             upd.point.ifPresent(p -> {
                 value = p.getAdx();
