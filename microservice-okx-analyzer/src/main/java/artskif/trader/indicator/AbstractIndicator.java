@@ -2,11 +2,14 @@ package artskif.trader.indicator;
 
 import artskif.trader.common.AbstractTimeSeries;
 import artskif.trader.common.Stateable;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
+import java.time.Instant;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -24,13 +27,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         this.bus = bus;
     }
 
-    @Override
-    protected String getSymbol() {
-        return DEFAULT_SYMBOL;
-    }
-
-
-    protected abstract void process(CandleEvent take);
+    protected abstract void handleEvent(CandleEvent ev);
 
     @PostConstruct
     public void init() {
@@ -44,10 +41,16 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         worker.start();
     }
 
+    @PreDestroy
     public void shutdown() {
         bus.unsubscribe(this);
         running = false;
         if (worker != null) worker.interrupt();
+    }
+
+    @Override
+    protected String getSymbol() {
+        return DEFAULT_SYMBOL;
     }
 
     @Override
@@ -58,7 +61,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         // При желании можно заменить на offer(ev, timeout, unit) или политику "drop oldest".
         boolean offered = queue.offer(event);
         if (!offered) {
-            System.err.println("❌ [" + getName() + "] Очередь обработки переполнена, событие отброшено: " + event);
+            log().errorf("❌ [%s] Очередь обработки переполнена, событие отброшено: %s", getName(), event);
         }
     }
 
@@ -67,7 +70,7 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         log().infof("🔗 [%s] Запущен поток подсчета индикатора", getName());
         while (running) {
             try {
-                process(queue.take());
+                handleEvent(queue.take());
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {

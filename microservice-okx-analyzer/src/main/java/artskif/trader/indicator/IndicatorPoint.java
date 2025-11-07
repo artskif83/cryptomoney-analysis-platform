@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public interface IndicatorPoint {
-    BigDecimal getValue();
+    BigDecimal getCurrentValue();
     BigDecimal getConfirmedValue();
     IndicatorType getType();
     String getName();

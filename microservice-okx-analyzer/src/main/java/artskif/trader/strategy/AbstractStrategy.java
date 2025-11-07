@@ -51,7 +51,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         List<IndicatorSnapshot> snapshots = new ArrayList<>(getIndicators().size());
 
         for (IndicatorPoint ip : getIndicators()) {
-            BigDecimal value = ip.getValue();
+            BigDecimal value = ip.getCurrentValue();
             if (value == null) continue; // индикатор ещё не дал значение
 
             // Красивое имя, если индикатор наследуется от AbstractIndicator
