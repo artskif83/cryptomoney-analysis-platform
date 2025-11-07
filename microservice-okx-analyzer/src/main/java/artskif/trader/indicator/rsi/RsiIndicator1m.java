@@ -9,9 +9,11 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
+import artskif.trader.indicator.rsi.metrics.AbstractMetrics;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.RsiIndicatorRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
@@ -23,7 +25,7 @@ import java.util.stream.Collectors;
 
 
 @ApplicationScoped
-public class RsiIndicator1m extends RsiAbstractIndicator{
+public class RsiIndicator1m extends RsiAbstractIndicator {
 
     private final static String NAME = "RSI-1m";
     private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
@@ -31,12 +33,12 @@ public class RsiIndicator1m extends RsiAbstractIndicator{
     private final static Integer BUFFER_SIZE = 100; // Размер буфера для хранения точек индикатора
 
     protected RsiIndicator1m() {
-        super(null, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, null);
+        super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE);
     }
 
     @Inject
-    public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus) {
-        super(bus, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, candle1m);
+    public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus, Instance<AbstractMetrics> metrics) {
+        super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE);
     }
 
     @Override

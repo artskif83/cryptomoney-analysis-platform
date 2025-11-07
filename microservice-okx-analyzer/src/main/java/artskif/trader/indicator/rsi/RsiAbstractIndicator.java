@@ -4,11 +4,15 @@ import artskif.trader.buffer.Buffer;
 import artskif.trader.candle.AbstractCandle;
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.common.AbstractTimeSeries;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
+import artskif.trader.indicator.rsi.metrics.AbstractMetrics;
 import artskif.trader.repository.BufferRepository;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,16 +33,18 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
     protected BigDecimal confirmedValue;
     protected Instant bucket;
     protected Instant processingTime;
+    protected Instance<AbstractMetrics> metrics;
 
-    public RsiAbstractIndicator(CandleEventBus bus, Integer period, BufferRepository<RsiPoint> rsiBufferRepository,
-                                int bufferSize, AbstractCandle candle) {
+    public RsiAbstractIndicator(AbstractCandle candle, CandleEventBus bus, Instance<AbstractMetrics> metrics, Integer period, BufferRepository<RsiPoint> rsiBufferRepository,
+                                int bufferSize) {
         super(bus);
         this.period = period;
         this.rsiBufferRepository = rsiBufferRepository; // Размер буфера для хранения точек индик
         this.buffer = new Buffer<>(bufferSize);
         this.candle = candle;
         this.candleBufferVersion = 0L;
-        this.rsiState =RsiState.empty(period, getCandleTimeframe());
+        this.rsiState = RsiState.empty(period, getCandleTimeframe());
+        this.metrics = metrics;
     }
 
     @Override
@@ -54,6 +60,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         if (candleBufferVersion != candleBuffer.getVersion() && !candleBuffer.isEmpty()) {
             log().infof("📥 [%s] версия буфера свечей изменилась — пересчитываем индикатор из буфера", getName());
             recalculateIndicator(candleBuffer.getSnapshot());
+            recalculateMetrics();
             candleBufferVersion = candleBuffer.getVersion();
         }
 
@@ -84,13 +91,17 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         log().debugf("📥 [%s] Получено новое значение  State RSI - %s", getName(), upd.state);
 
         upd.point.ifPresent(p -> {
-            currentValue = p.getRsi();
-            confirmedValue = p.getRsi();
+            currentValue = p.rsi();
+            confirmedValue = p.rsi();
             buffer.putItem(bucket, p);
         });
 
         // сохраняем индикаторный ряд
         initSaveBuffer();
+    }
+
+    protected void handleMetric(CandleEvent ev){
+
     }
 
     private boolean isObsoleteCandle(Instant bucket) {
@@ -107,7 +118,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         if (snap != null && !snap.isEmpty()) {
             // Обнуляем текущее состояние buffer и rsiState
             buffer.clear();
-            rsiState = RsiState.empty(period, CandleTimeframe.CANDLE_1M);
+            rsiState = RsiState.empty(period, getCandleTimeframe());
 
             // Фильтруем только подтверждённые свечи и сортируем по времени
             List<Map.Entry<Instant, CandlestickDto>> confirmedAsc = snap.entrySet().stream()
@@ -125,7 +136,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
 
                 // Заполняем buffer пересчитанными точками
                 for (RsiPoint point : result.points) {
-                    buffer.putItem(point.getBucket(), point);
+                    buffer.putItem(point.bucket(), point);
                 }
 
                 log().infof("📥 [%s] RSI индикатор полностью пересчитан из истории свечей. " +
@@ -135,5 +146,9 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
                 log().warnf("📥 [%s] Буфер свечей не содержит подтвержденных данных", getName());
             }
         }
+    }
+
+    private void recalculateMetrics(){
+        metrics.forEach(metric -> metric.recalculateMetric(buffer));
     }
 }
