@@ -24,7 +24,6 @@ public class Candle1H extends AbstractCandle {
     private static final Logger LOG = Logger.getLogger(Candle1H.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
-    protected final BufferFileRepository<CandlestickDto> candleBufferFileRepository;
     protected final CandleEventBus bus;
     protected final Buffer<CandlestickDto> buffer;
 
@@ -32,8 +31,6 @@ public class Candle1H extends AbstractCandle {
     public Candle1H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
         this.buffer = new Buffer<>(300);
-        this.candleBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
-                .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
         this.candleBufferRepository = new CandleRepository();
     }
 

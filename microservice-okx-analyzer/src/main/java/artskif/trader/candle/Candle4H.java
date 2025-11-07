@@ -1,7 +1,6 @@
 package artskif.trader.candle;
 
 import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferFileRepository;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.repository.BufferRepository;
@@ -24,7 +23,6 @@ public class Candle4H extends AbstractCandle {
     private static final Logger LOG = Logger.getLogger(Candle4H.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
-    protected final BufferFileRepository<CandlestickDto> candleBufferFileRepository;
     protected final CandleEventBus bus;
     protected final Buffer<CandlestickDto> buffer;
 
@@ -32,8 +30,6 @@ public class Candle4H extends AbstractCandle {
     public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
         this.buffer = new Buffer<>(300);
-        this.candleBufferFileRepository = new BufferFileRepository<>(objectMapper, objectMapper.getTypeFactory()
-                .constructMapType(LinkedHashMap.class, Instant.class, CandlestickDto.class));
         this.candleBufferRepository = new CandleRepository();
     }
 
