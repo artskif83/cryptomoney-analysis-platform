@@ -18,12 +18,14 @@ public class Candle1m extends AbstractCandle {
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
-    protected final TimeSeriesBuffer<CandlestickDto> timeSeriesBuffer;
+    protected final TimeSeriesBuffer<CandlestickDto> liveBuffer;
+    protected final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
 
     @Inject
     public Candle1m(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.timeSeriesBuffer = new TimeSeriesBuffer<>(500, CandleTimeframe.CANDLE_1M.getDuration());
+        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_1M.getDuration());
+        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_1M.getDuration());
         this.candleBufferRepository = new CandleRepository();
     }
 
@@ -39,8 +41,13 @@ public class Candle1m extends AbstractCandle {
     }
 
     @Override
-    public TimeSeriesBuffer<CandlestickDto> getBuffer() {
-        return timeSeriesBuffer;
+    public TimeSeriesBuffer<CandlestickDto> getLiveBuffer() {
+        return liveBuffer;
+    }
+
+    @Override
+    public TimeSeriesBuffer<CandlestickDto> getHistoricalBuffer() {
+        return historicalBuffer;
     }
 
     @Override

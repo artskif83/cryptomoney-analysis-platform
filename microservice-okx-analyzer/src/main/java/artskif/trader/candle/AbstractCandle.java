@@ -44,7 +44,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             }
 
             // Единым снимком, без нарушения последовательности:
-            getBuffer().restoreItems(ordered);
+            getLiveBuffer().restoreItems(ordered);
             initSaveBuffer();
             log().infof("✅ [%s] Восстановили и сохранили %d элементов из истории", getName(), ordered.size());
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             Instant bucket = candle.getTimestamp();
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
-                getBuffer().putItem(bucket, candle);
+                getLiveBuffer().putItem(bucket, candle);
                 initSaveBuffer();
             }
             getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));

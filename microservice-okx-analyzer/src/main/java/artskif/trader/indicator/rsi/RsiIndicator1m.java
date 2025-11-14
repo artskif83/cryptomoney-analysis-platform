@@ -24,14 +24,15 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
     private final static Integer PERIOD = 14; // Период индикатора RSI
     private final static Integer BUFFER_SIZE = 100; // Размер буфера для хранения точек индикатора
+    private final static Integer BUFFER_HISTORICAL_SIZE = 10000; // Размер буфера для хранения исторических точек индикатора
 
     protected RsiIndicator1m() {
-        super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE);
+        super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Inject
     public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
-        super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE);
+        super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Override
@@ -55,8 +56,13 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Override
-    public TimeSeriesBuffer<RsiPoint> getBuffer() {
-        return rsiTimeSeriesBuffer;
+    public TimeSeriesBuffer<RsiPoint> getLiveBuffer() {
+        return rsiLiveBuffer;
+    }
+
+    @Override
+    public TimeSeriesBuffer<RsiPoint> getHistoricalBuffer() {
+        return null;
     }
 
     @Override

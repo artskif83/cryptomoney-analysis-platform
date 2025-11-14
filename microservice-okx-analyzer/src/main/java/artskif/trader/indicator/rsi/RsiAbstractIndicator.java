@@ -17,7 +17,8 @@ import java.util.Map;
 
 public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
 
-    protected final TimeSeriesBuffer<RsiPoint> rsiTimeSeriesBuffer; // Буфер для хранения точек индикатора
+    protected final TimeSeriesBuffer<RsiPoint> rsiLiveBuffer; // Буфер для хранения актуальных точек RSI
+    protected final TimeSeriesBuffer<RsiPoint> rsiHistoricalBuffer; // Буфер для хранения исторических точек RSI
 
     protected RsiState rsiState; // состояние RSI
     protected RsiPoint lastPoint; // состояние RSI
@@ -29,11 +30,12 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
     protected List<Stage<RsiPipelineContext>> metrics;
 
     public RsiAbstractIndicator(AbstractCandle candle, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics, Integer period, BufferRepository<RsiPoint> rsiBufferRepository,
-                                int bufferSize) {
+                                int bufferSize, int bufferHistoricalSize) {
         super(bus);
         this.period = period;
         this.rsiBufferRepository = rsiBufferRepository; // Размер буфера для хранения точек индик
-        this.rsiTimeSeriesBuffer = new TimeSeriesBuffer<>(bufferSize, getCandleTimeframe().getDuration());
+        this.rsiLiveBuffer = new TimeSeriesBuffer<>(bufferSize, getCandleTimeframe().getDuration());
+        this.rsiHistoricalBuffer = new TimeSeriesBuffer<>(bufferHistoricalSize, getCandleTimeframe().getDuration());
         this.candle = candle;
         this.rsiState = RsiState.empty(period, getCandleTimeframe());
         this.metrics = metrics != null ? metrics.stream()
@@ -48,9 +50,9 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         this.bucket = bucket;
         this.lastProcessingTime = Instant.now();
 
-        TimeSeriesBuffer<CandlestickDto> candleBuffer = candle.getBuffer();
+        TimeSeriesBuffer<CandlestickDto> candleBuffer = candle.getLiveBuffer();
         // Если версия буфера свечей изменилась — пересчитываем индикатор из буфера
-        if (rsiTimeSeriesBuffer.getLastBucket() == null || (candleBuffer.getLastBucket() != null && rsiTimeSeriesBuffer.getLastBucket().isBefore(candleBuffer.getLastBucket()))) {
+        if (rsiLiveBuffer.getLastBucket() == null || (candleBuffer.getLastBucket() != null && rsiLiveBuffer.getLastBucket().isBefore(candleBuffer.getLastBucket()))) {
             log().infof("📥 [%s] версия буфера свечей изменилась — пересчитываем индикатор из буфера", getName());
             recalculateIndicator(candleBuffer);
         }
@@ -61,7 +63,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         if (seriesBuffer != null && !seriesBuffer.isEmpty()) {
 
             // Фильтруем только подтверждённые свечи и сортируем по времени
-            List<Map.Entry<Instant, CandlestickDto>> confirmedCandles = seriesBuffer.getItemsAfter(rsiTimeSeriesBuffer.getLastBucket())
+            List<Map.Entry<Instant, CandlestickDto>> confirmedCandles = seriesBuffer.getItemsAfter(rsiLiveBuffer.getLastBucket())
                     .entrySet().stream()
                     .filter(e -> Boolean.TRUE.equals(e.getValue().getConfirmed()))
                     .sorted(Map.Entry.comparingByKey())
@@ -93,7 +95,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
 
                     // Сохраняем точку в буфер, если она присутствует
                     if (context.point() != null) {
-                        rsiTimeSeriesBuffer.putItem(context.point().bucket(), context.point());
+                        rsiLiveBuffer.putItem(context.point().bucket(), context.point());
                         processedPoints++;
                     }
                 }
@@ -101,7 +103,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
                 log().debugf("📥 [%s] RSI индикатор пересчитан из истории свечей. " +
                                 "Восстановлено точек: %d, финальное состояние: %s",
                         getName(), processedPoints, rsiState);
-                lastPoint = rsiTimeSeriesBuffer.getLastItem();
+                lastPoint = rsiLiveBuffer.getLastItem();
                 initSaveBuffer();
             } else {
                 log().warnf("📥 [%s] Буфер свечей не содержит подтвержденных данных", getName());
