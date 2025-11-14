@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable, IndicatorPoint {
+public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable, IndicatorPoint<C> {
 
     protected static final String DEFAULT_SYMBOL = "BTC-USDT";
 

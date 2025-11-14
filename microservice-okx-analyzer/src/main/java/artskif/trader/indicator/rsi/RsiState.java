@@ -1,7 +1,9 @@
 package artskif.trader.indicator.rsi;
 
+import artskif.trader.buffer.LimitedLinkedHashMap;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.PointState;
+import artskif.trader.dto.CandlestickDto;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +17,9 @@ import java.time.Instant;
 @AllArgsConstructor
 @RegisterForReflection
 public class RsiState implements PointState {
+
+    private static final Integer LAST_N_COUNT = 10;
+
     private Instant timestamp;     // время состояния
 
     private int period;                 // окно RSI (обычно 14)
@@ -31,6 +36,9 @@ public class RsiState implements PointState {
 
     // предыдущий подтверждённый close
     private BigDecimal lastClose;
+    private LimitedLinkedHashMap<Instant, RsiPoint> lastNRsi;
+    private LimitedLinkedHashMap<Instant, CandlestickDto> lastNCandles;
+
 
     // признак, что avgGain/avgLoss инициализированы
     private boolean initialized;
@@ -44,24 +52,10 @@ public class RsiState implements PointState {
                 BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO,
                 null,
+                new LimitedLinkedHashMap<>(LAST_N_COUNT),
+                new LimitedLinkedHashMap<>(LAST_N_COUNT),
                 false
         );
-    }
-
-    @Override
-    public void restoreObject(PointState state) {
-        if (state == null) {return;}
-        var restoreState = (RsiState) state;
-        this.period = restoreState.getPeriod();
-        this.timeframe = restoreState.getTimeframe();
-        this.setSeedCount(restoreState.getSeedCount());
-        this.setTimestamp(restoreState.getTimestamp());
-        this.setSeedGainSum(restoreState.getSeedGainSum());
-        this.setSeedLossSum(restoreState.getSeedLossSum());
-        this.setAvgGain(restoreState.getAvgGain());
-        this.setAvgLoss(restoreState.getAvgLoss());
-        this.setLastClose(restoreState.getLastClose());
-        this.setInitialized(restoreState.isInitialized());
     }
 
     public RsiState cloneWith(Instant bucket, BigDecimal lastClose,
@@ -78,7 +72,25 @@ public class RsiState implements PointState {
         n.setAvgGain(avgGain);
         n.setAvgLoss(avgLoss);
         n.setLastClose(lastClose);
+        n.setLastNRsi(this.getLastNRsi());
+        n.setLastNCandles(this.getLastNCandles());
         n.setInitialized(initialized);
         return n;
+    }
+
+    @Override
+    public String toString() {
+        return "RsiState{" +
+                "timestamp=" + timestamp +
+                ", period=" + period +
+                ", timeframe=" + timeframe +
+                ", seedCount=" + seedCount +
+                ", seedGainSum=" + seedGainSum +
+                ", seedLossSum=" + seedLossSum +
+                ", avgGain=" + avgGain +
+                ", avgLoss=" + avgLoss +
+                ", lastClose=" + lastClose +
+                ", initialized=" + initialized +
+                '}';
     }
 }

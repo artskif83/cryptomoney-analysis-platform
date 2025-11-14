@@ -3,9 +3,7 @@ package artskif.trader.strategy.rsi;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
-import artskif.trader.indicator.IndicatorFrame;
 import artskif.trader.indicator.IndicatorPoint;
-import artskif.trader.indicator.IndicatorSnapshot;
 import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.strategy.AbstractStrategy;
 import io.quarkus.runtime.Startup;
@@ -69,12 +67,13 @@ public class RsiStrategy extends AbstractStrategy {
     }
 
     @Override
+    protected StrategyKind getStrategyKind() {
+        return StrategyKind.RSI_DUAL_TF;
+    }
+
+    @Override
     public void onCandle(CandleEvent event) {
         super.onCandle(event); // соберёт IndicatorFrame и положит в lastFrame
-        final var frame = getLastFrame();
-        if (frame == null) return;
-
-        Signal signal = generate(frame);
 
 //        if (signal != null) {
 //            //producer.sendSignal(signal);
@@ -82,31 +81,7 @@ public class RsiStrategy extends AbstractStrategy {
 //        }
     }
 
-    private Signal generate(IndicatorFrame frame) {
-    return buildSignal(frame.bucket(), BigDecimal.valueOf(0L), StrategyKind.RSI_DUAL_TF, OperationType.BUY, SignalLevel.SMALL);
-    }
 
-    public StrategyKind getStrategyKind() {
-        return StrategyKind.RSI_DUAL_TF;
-    }
-
-    private static Signal buildSignal(Instant bucket, BigDecimal price, StrategyKind kind,
-                                      OperationType op, SignalLevel lvl) {
-        Signal.Builder b = Signal.newBuilder()
-                .setOperation(op)
-                .setStrategy(kind)
-                .setLevel(lvl)
-                .setId(UUID.randomUUID().toString())
-                .setSymbol(Symbol.newBuilder().setBase("BTC").setQuote("USDT").build());
-
-        if (bucket != null) {
-            b.setTime(bucket);
-        }
-        if (price != null) {
-            b.setPrice(price.doubleValue());
-        }
-        return b.build();
-    }
 
 
 }

@@ -1,5 +1,5 @@
 package artskif.trader.buffer;
 
 public interface BufferedPoint<C> {
-    Buffer<C> getBuffer();
+    TimeSeriesBuffer<C> getBuffer();
 }

@@ -2,14 +2,11 @@ package artskif.trader.indicator.rsi;
 
 import artskif.trader.candle.Candle1m;
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.buffer.Buffer;
+import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.common.PointState;
-import artskif.trader.dto.CandlestickDto;
-import artskif.trader.events.CandleEvent;
+import artskif.trader.common.Stage;
 import artskif.trader.events.CandleEventBus;
-import artskif.trader.indicator.AbstractIndicator;
 import artskif.trader.indicator.IndicatorType;
-import artskif.trader.indicator.rsi.metrics.AbstractMetrics;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.RsiIndicatorRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,11 +14,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 
 @ApplicationScoped
@@ -37,7 +30,7 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Inject
-    public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus, Instance<AbstractMetrics> metrics) {
+    public RsiIndicator1m(Candle1m candle1m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
         super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE);
     }
 
@@ -58,12 +51,12 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
 
     @Override
     public Instant getProcessingTime() {
-        return processingTime;
+        return lastProcessingTime;
     }
 
     @Override
-    public Buffer<RsiPoint> getBuffer() {
-        return buffer;
+    public TimeSeriesBuffer<RsiPoint> getBuffer() {
+        return rsiTimeSeriesBuffer;
     }
 
     @Override
@@ -87,13 +80,8 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Override
-    public BigDecimal getCurrentValue() {
-        return currentValue;
-    }
-
-    @Override
-    public BigDecimal getConfirmedValue() {
-        return confirmedValue;
+    public RsiPoint getLastPoint() {
+        return lastPoint;
     }
 
     @Override

@@ -46,6 +46,7 @@ public class CandlestickMapper {
         StreamSupport.stream(arr.spliterator(), false)
                 .filter(JsonNode::isArray)
                 .map(node -> mapCandlestickHistoryNodeToDto(node, period, instrument))
+                .filter(CandlestickDto::getConfirmed)
                 .sorted(Comparator.comparing(CandlestickDto::getTimestamp))
                 .forEach(r -> {
                     Instant bucket = r.getTimestamp();

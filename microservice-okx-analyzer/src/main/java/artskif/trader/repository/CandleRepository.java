@@ -36,7 +36,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    private static final int DEFAULT_RESTORE_LIMIT = 100;
+    private static final int DEFAULT_RESTORE_LIMIT = 10000000; // Максимальное количество свечей для восстановления
 
     @Inject
     DataSource dataSource;
@@ -168,15 +168,15 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
     protected Map<Instant, CandlestickDto> performRestore(CandleTimeframe timeframe, String symbol) {
 
         try {
-            LOG.infof("Восстанавливаем последние %d свечей из базы данных для таймфрейма %s и символа %s",
-                    DEFAULT_RESTORE_LIMIT, timeframe, symbol);
 
             // Получаем последние свечи для конкретного таймфрейма и символа, отсортированные по timestamp по убыванию
             List<Candle> candles = find(
                     "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
             )
-                    .page(0, DEFAULT_RESTORE_LIMIT)
                     .list();
+
+            LOG.infof("Восстанавливаем последние %d свечей из базы данных для таймфрейма %s и символа %s",
+                    candles.size(), timeframe, symbol);
 
             if (candles.isEmpty()) {
                 LOG.infof("Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
@@ -190,7 +190,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             Map<Instant, CandlestickDto> result = new LinkedHashMap<>();
             for (Candle candle : candles) {
                 CandlestickDto dto = CandlestickMapper.mapEntityToDto(candle);
-                if (dto != null) {
+                if (dto != null && dto.getConfirmed()) {
                     result.put(dto.getTimestamp(), dto);
                 }
             }

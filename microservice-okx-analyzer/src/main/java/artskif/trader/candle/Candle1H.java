@@ -1,7 +1,6 @@
 package artskif.trader.candle;
 
-import artskif.trader.buffer.Buffer;
-import artskif.trader.buffer.BufferFileRepository;
+import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.repository.BufferRepository;
@@ -11,12 +10,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-
 @ApplicationScoped
 public class Candle1H extends AbstractCandle {
 
@@ -25,12 +18,12 @@ public class Candle1H extends AbstractCandle {
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
-    protected final Buffer<CandlestickDto> buffer;
+    protected final TimeSeriesBuffer<CandlestickDto> timeSeriesBuffer;
 
     @Inject
     public Candle1H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.buffer = new Buffer<>(300);
+        this.timeSeriesBuffer = new TimeSeriesBuffer<>(1000000, CandleTimeframe.CANDLE_1H.getDuration());
         this.candleBufferRepository = new CandleRepository();
     }
 
@@ -46,8 +39,8 @@ public class Candle1H extends AbstractCandle {
     }
 
     @Override
-    public Buffer<CandlestickDto> getBuffer() {
-        return buffer;
+    public TimeSeriesBuffer<CandlestickDto> getBuffer() {
+        return timeSeriesBuffer;
     }
 
     @Override

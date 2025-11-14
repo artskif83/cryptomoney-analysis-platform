@@ -5,9 +5,8 @@ import artskif.trader.candle.CandleTimeframe;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public interface IndicatorPoint {
-    BigDecimal getCurrentValue();
-    BigDecimal getConfirmedValue();
+public interface IndicatorPoint<C> {
+    C getLastPoint();
     IndicatorType getType();
     String getName();
     CandleTimeframe getCandleTimeframe();
