@@ -2,6 +2,7 @@ package artskif.trader.restapi;
 
 
 import artskif.trader.kafka.KafkaProducer;
+import artskif.trader.repository.CandleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.runtime.Startup;
@@ -25,37 +26,40 @@ public class OKXRestApiClient {
 
     private static final Logger LOG = Logger.getLogger(OKXRestApiClient.class);
 
-    @Inject KafkaProducer producer;
+    @Inject
+    KafkaProducer producer;
+    @Inject
+    CandleRepository candleRepository;
 
     // === Config ===
     @ConfigProperty(name = "okx.history.enabled", defaultValue = "true")
     boolean historyEnabled;
 
-    @ConfigProperty(name = "okx.history.base-url", defaultValue = "https://www.okx.com")
+    @ConfigProperty(name = "okx.history.baseUrl", defaultValue = "https://www.okx.com")
     String baseUrl;
 
-    @ConfigProperty(name = "okx.history.inst-id", defaultValue = "BTC-USDT")
+    @ConfigProperty(name = "okx.history.instId", defaultValue = "BTC-USDT")
     String instId;
 
     @ConfigProperty(name = "okx.history.limit", defaultValue = "100")
     int limit;
 
-    @ConfigProperty(name = "okx.history.start-epoch-ms", defaultValue = "1609459200000")
+    @ConfigProperty(name = "okx.history.startEpochMs", defaultValue = "1609459200000")
     long startEpochMs;
 
-    @ConfigProperty(name = "okx.history.request-pause-ms", defaultValue = "250")
+    @ConfigProperty(name = "okx.history.requestPauseMs", defaultValue = "250")
     long requestPauseMs;
 
-    @ConfigProperty(name = "okx.history.max-retries", defaultValue = "5")
+    @ConfigProperty(name = "okx.history.maxRetries", defaultValue = "5")
     int maxRetries;
 
-    @ConfigProperty(name = "okx.history.retry-backoff-ms", defaultValue = "1000")
+    @ConfigProperty(name = "okx.history.retryBackoffMs", defaultValue = "1000")
     long retryBackoffMs;
 
     @ConfigProperty(name = "okx.history.bars", defaultValue = "1m,1H,4H,1D")
     List<String> bars;
 
-    @ConfigProperty(name = "okx.history.pages-limit", defaultValue = "50")
+    @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "50")
     int pagesLimit;
 
     private final HttpClient http = HttpClient.newHttpClient();
@@ -85,7 +89,17 @@ public class OKXRestApiClient {
         final String topic = "okx-candle-" + normalizeBarForTopic(bar) + "-history";
         LOG.infof("📥 Тянем историю: bar=%s -> topic=%s", bar, topic);
 
-        Long before = null; // первый запрос — без before
+        // Получаем timestamp последней свечи из БД
+        String timeframeForDb = "CANDLE_" + normalizeBarForTopic(bar).toUpperCase();
+        long latestTimestamp = candleRepository.getLatestCandleTimestamp(instId, timeframeForDb, startEpochMs);
+
+        LOG.infof("📍 Граница загрузки: bar=%s stopAt=%d (%s)",
+                bar, latestTimestamp, Instant.ofEpochMilli(latestTimestamp));
+
+        // Начинаем с текущего момента
+        Long to = null;
+        Long from = latestTimestamp;
+
         int pagesLoaded = 0;
 
         while (true) {
@@ -94,10 +108,10 @@ public class OKXRestApiClient {
                 break;
             }
 
-            Optional<JsonNode> rootOpt = callHistoryIndexCandles(instId, bar, limit, null, before);
+            // Используем from для загрузки данных ОТ НОВЫХ К СТАРЫМ
+            Optional<JsonNode> rootOpt = callHistoryIndexCandles(instId, bar, limit, from, to);
             if (rootOpt.isEmpty()) {
-                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s before=%s", bar, String.valueOf(before));
-                // идём к следующему бару
+                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s to=%s", bar, Instant.ofEpochMilli(to));
                 break;
             }
 
@@ -108,30 +122,48 @@ public class OKXRestApiClient {
                 break;
             }
 
-            // Вычислим minTs для условия остановки по времени
+            // Вычислим minTs для проверки границы и пагинации
             long minTs = Long.MAX_VALUE;
             for (JsonNode arr : data) {
-                // массив формата [ts, o, h, l, c, ...] — берём только ts
                 long ts = arr.get(0).asLong();
                 if (ts < minTs) minTs = ts;
             }
 
+            // Выводим данные в человекочитаемом формате
+            if (LOG.isDebugEnabled()) {
+                LOG.debugf("📊 Полученные данные для bar=%s:", bar);
+                for (JsonNode arr : data) {
+                    if (arr.isArray() && arr.size() >= 6) {
+                        long timestamp = arr.get(0).asLong();
+                        double open = arr.get(1).asDouble();
+                        double high = arr.get(2).asDouble();
+                        double low = arr.get(3).asDouble();
+                        double close = arr.get(4).asDouble();
+                        double volume = arr.get(5).asDouble();
+                        LOG.debugf("  🕐 %s | O:%.2f H:%.2f L:%.2f C:%.2f V:%.2f",
+                                Instant.ofEpochMilli(timestamp), open, high, low, close, volume);
+                    }
+                }
+            }
+
             // Оборачиваем данные в объект с instId
-            String payload = String.format("{\"instId\":\"%s\",\"data\":%s}", instId, data.toString());
+            boolean isLast = (to == null);
+            String payload = String.format("{\"instId\":\"%s\",\"isLast\":%s,\"data\":%s}", instId, isLast, data);
             producer.sendMessage(topic, payload);
 
-            pagesLoaded++;
-            LOG.infof("📦 Отправлена страница #%d (%d записей) для bar=%s; minTs=%d",
-                    pagesLoaded, data.size(), bar, minTs);
-
-            // пагинация назад по before
-            before = minTs - 1;
-
-            // условие выхода по нижней границе
-            if (before < startEpochMs) {
-                LOG.infof("⛳ Достигнута нижняя граница startEpochMs=%d для bar=%s", startEpochMs, bar);
+            // Проверяем, не достигли ли мы границы (последняя запись в БД или startEpochMs)
+            if (minTs <= latestTimestamp) {
+                LOG.infof("⛳ Достигнута граница загрузки: minTs=%d (%s) <= latestTimestamp=%d для bar=%s",
+                        minTs, Instant.ofEpochMilli(minTs), latestTimestamp, bar);
                 break;
             }
+
+            pagesLoaded++;
+            LOG.infof("📦 Отправлена страница #%d (%d записей) для bar=%s; minTs=%d (%s)",
+                    pagesLoaded, data.size(), bar, minTs, Instant.ofEpochMilli(minTs));
+
+            // Пагинация: следующий запрос должен получить данные РАНЬШЕ minTs
+            to = minTs - 1;
 
             sleep(requestPauseMs);
         }
@@ -141,16 +173,20 @@ public class OKXRestApiClient {
      * Делает вызов OKX с ретраями. Возвращает Optional.empty(), если все попытки исчерпаны.
      * НЕ бросает исключение наружу — чтобы не уронить приложение и продолжить с другими барами.
      */
-    private Optional<JsonNode> callHistoryIndexCandles(String instId, String bar, int limit, Long after, Long before) {
+    private Optional<JsonNode> callHistoryIndexCandles(String instId, String bar, int limit, Long before, Long after) {
+        // Тут странность OKX API потому что он выдает данные начиная от before и до after )))
         StringBuilder uri = new StringBuilder(baseUrl)
-                .append("/api/v5/market/history-index-candles")
+                .append("/api/v5/market/history-candles")
                 .append("?instId=").append(url(instId))
                 .append("&bar=").append(url(bar))
                 .append("&limit=").append(limit);
-        if (after != null)  uri.append("&after=").append(after);
+        if (after != null) uri.append("&after=").append(after);
         if (before != null) uri.append("&before=").append(before);
 
-        HttpRequest req = HttpRequest.newBuilder(URI.create(uri.toString()))
+        String fullUrl = uri.toString();
+        LOG.debugf("🌐 Запрос к OKX API: %s", fullUrl);
+
+        HttpRequest req = HttpRequest.newBuilder(URI.create(fullUrl))
                 .header("Accept", "application/json")
                 .GET()
                 .build();
@@ -186,11 +222,16 @@ public class OKXRestApiClient {
 
     private static String normalizeBarForTopic(String bar) {
         switch (bar) {
-            case "1m": return "1m";
-            case "1H": return "1h";
-            case "4H": return "4h";
-            case "1D": return "1d";
-            default:   return bar.toLowerCase(Locale.ROOT);
+            case "1m":
+                return "1m";
+            case "1H":
+                return "1h";
+            case "4H":
+                return "4h";
+            case "1D":
+                return "1d";
+            default:
+                return bar.toLowerCase(Locale.ROOT);
         }
     }
 
@@ -199,7 +240,9 @@ public class OKXRestApiClient {
     }
 
     private static void sleep(long ms) {
-        try { TimeUnit.MILLISECONDS.sleep(ms); } catch (InterruptedException ie) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(ms);
+        } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }
     }

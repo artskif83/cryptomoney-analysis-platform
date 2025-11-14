@@ -25,5 +25,10 @@ dependencies {
     implementation 'io.quarkus:quarkus-kubernetes'
     implementation 'io.quarkus:quarkus-arc'
     implementation "io.quarkus:quarkus-websockets-client"
+
+    // Database dependencies
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+
     testImplementation 'io.quarkus:quarkus-junit5'
 }
