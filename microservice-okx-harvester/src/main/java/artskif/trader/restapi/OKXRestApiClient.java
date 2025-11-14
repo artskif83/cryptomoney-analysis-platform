@@ -56,7 +56,7 @@ public class OKXRestApiClient {
     @ConfigProperty(name = "okx.history.retryBackoffMs", defaultValue = "1000")
     long retryBackoffMs;
 
-    @ConfigProperty(name = "okx.history.bars", defaultValue = "1m,1H,4H,1D")
+    @ConfigProperty(name = "okx.history.bars", defaultValue = "5m,4H,1W")
     List<String> bars;
 
     @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "50")
@@ -222,14 +222,12 @@ public class OKXRestApiClient {
 
     private static String normalizeBarForTopic(String bar) {
         switch (bar) {
-            case "1m":
-                return "1m";
-            case "1H":
-                return "1h";
+            case "5m":
+                return "5m";
             case "4H":
                 return "4h";
-            case "1D":
-                return "1d";
+            case "1W":
+                return "1w";
             default:
                 return bar.toLowerCase(Locale.ROOT);
         }
