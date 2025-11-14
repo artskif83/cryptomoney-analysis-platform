@@ -8,6 +8,7 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
@@ -21,6 +22,15 @@ public class HistoryConsumer {
 
     private final static Logger LOG = Logger.getLogger(HistoryConsumer.class);
 
+    @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
+    boolean candle1mEnabled;
+    @ConfigProperty(name = "analysis.candle1h.enabled", defaultValue = "true")
+    boolean candle1hEnabled;
+    @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
+    boolean candle4hEnabled;
+    @ConfigProperty(name = "analysis.candle1d.enabled", defaultValue = "true")
+    boolean candle1dEnabled;
+
     @Inject Candle1m candle1m;
     @Inject Candle1H candle1H;
     @Inject Candle4H candle4H;
@@ -33,21 +43,29 @@ public class HistoryConsumer {
 
     @Incoming("candle-1m-history")
     public void consume1mHistory(String message) {
-        candle1m.restoreFromHistory(message);
+        if (candle1mEnabled) {
+            candle1m.restoreFromHistory(message);
+        }
     }
 
     @Incoming("candle-1h-history")
     public void consume1hHistory(String message) {
-        candle1H.restoreFromHistory(message);
+        if (candle1hEnabled) {
+            candle1H.restoreFromHistory(message);
+        }
     }
 
     @Incoming("candle-4h-history")
     public void consume4hHistory(String message) {
-        candle4H.restoreFromHistory(message);
+        if (candle4hEnabled) {
+            candle4H.restoreFromHistory(message);
+        }
     }
 
     @Incoming("candle-1d-history")
     public void consume1dHistory(String message) {
-        candle1D.restoreFromHistory(message);
+        if (candle1dEnabled) {
+            candle1D.restoreFromHistory(message);
+        }
     }
 }
