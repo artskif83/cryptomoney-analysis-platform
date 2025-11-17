@@ -2,6 +2,7 @@ package artskif.trader.candle;
 
 import artskif.trader.common.AbstractTimeSeries;
 import artskif.trader.dto.CandlestickDto;
+import artskif.trader.dto.CandlestickHistoryDto;
 import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
@@ -36,16 +37,23 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
      */
     public synchronized void restoreFromHistory(String message) {
         try {
-            Map<Instant, CandlestickDto> ordered = CandlestickMapper.mapJsonMessageToCandlestickMap(message, getCandleTimeframe());
+            CandlestickHistoryDto historyDto = CandlestickMapper.mapJsonMessageToCandlestickMap(message, getCandleTimeframe());
 
-            if (ordered.isEmpty()) {
+            if (historyDto.getData().isEmpty()) {
                 log().warnf("⚠️ [%s] После парсинга история пуста", getName());
                 return;
             }
 
             // Единым снимком, без нарушения последовательности:
-            getHistoricalBuffer().restoreItems(ordered);
-            log().infof("✅ [%s] Добавили в буфер %d элементов из истории", getName(), ordered.size());
+            getHistoricalBuffer().restoreItems(historyDto.getData());
+            log().infof("✅ [%s] Добавили в исторический буфер %d элементов (instId=%s, isLast=%s)",
+                    getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast());
+            if (historyDto.isLast()) {
+                getLiveBuffer().restoreItems(historyDto.getData());
+                log().infof("✅ [%s] Добавили в актуальный буфер %d элементов (instId=%s, isLast=%s)",
+                        getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast());
+            }
+
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
         }

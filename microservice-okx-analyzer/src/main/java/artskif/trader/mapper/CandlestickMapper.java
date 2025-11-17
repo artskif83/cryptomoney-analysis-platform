@@ -2,6 +2,7 @@ package artskif.trader.mapper;
 
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.dto.CandlestickPayloadDto;
+import artskif.trader.dto.CandlestickHistoryDto;
 import artskif.trader.candle.CandleTimeframe;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,20 +24,23 @@ public class CandlestickMapper {
     private static final Logger LOG = Logger.getLogger(CandlestickMapper.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static Map<Instant, CandlestickDto> mapJsonMessageToCandlestickMap(String message, CandleTimeframe period) throws JsonProcessingException {
+    public static CandlestickHistoryDto mapJsonMessageToCandlestickMap(String message, CandleTimeframe period) throws JsonProcessingException {
         JsonNode root = mapper.readTree(message);
         
         // Извлекаем instId из JSON
         if (!root.has("instId") || !root.get("instId").isTextual()) {
             LOG.warnf("⚠️ Отсутствует instId в сообщении: %s", message);
-            return new LinkedHashMap<>();
+            return new CandlestickHistoryDto("", false, new LinkedHashMap<>());
         }
         String instrument = root.get("instId").asText();
         
+        // Извлекаем isLast из JSON (по умолчанию false, если отсутствует)
+        boolean isLast = root.has("isLast") && root.get("isLast").asBoolean();
+
         // Извлекаем массив data
         if (!root.has("data") || !root.get("data").isArray() || root.get("data").isEmpty()) {
             LOG.warnf("⚠️ Историческая пачка пуста/не массив: %s", message);
-            return new LinkedHashMap<>();
+            return new CandlestickHistoryDto(instrument, isLast, new LinkedHashMap<>());
         }
         JsonNode arr = root.get("data");
 
@@ -45,29 +49,14 @@ public class CandlestickMapper {
 
         StreamSupport.stream(arr.spliterator(), false)
                 .filter(JsonNode::isArray)
-                .map(node -> mapCandlestickHistoryNodeToDto(node, period, instrument))
+                .map(node -> getCandlestickDto(node, period, instrument))
                 .filter(CandlestickDto::getConfirmed)
-                .sorted(Comparator.comparing(CandlestickDto::getTimestamp))
                 .forEach(r -> {
                     Instant bucket = r.getTimestamp();
                     ordered.put(bucket, r);
                 });
 
-        return ordered;
-    }
-
-    /** Преобразование одной строки OKX в доменную свечу. */
-    public static CandlestickDto mapCandlestickHistoryNodeToDto(JsonNode node, CandleTimeframe period, String instrument) {
-        CandlestickDto candle = new CandlestickDto();
-        candle.setTimestamp(Instant.ofEpochMilli(node.get(0).asLong()));
-        candle.setOpen(new BigDecimal(node.get(1).asText()));
-        candle.setHigh(new BigDecimal(node.get(2).asText()));
-        candle.setLow(new BigDecimal(node.get(3).asText()));
-        candle.setClose(new BigDecimal(node.get(4).asText()));
-        candle.setConfirmed("1".equals(node.get(5).asText()));
-        candle.setPeriod(period);
-        candle.setInstrument(instrument);
-        return candle;
+        return new CandlestickHistoryDto(instrument, isLast, ordered);
     }
 
     /** Возвращает пусто, если сообщение служебное или некорректное */
