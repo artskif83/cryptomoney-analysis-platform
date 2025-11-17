@@ -10,7 +10,7 @@ import jakarta.inject.Inject;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.time.Duration;
+
 import jakarta.websocket.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ClientEndpoint
 @Startup
 @ApplicationScoped
-public class OKXWebSocketClient {
+public class OKXCandlesWebSocketClient {
 
     // === Настройки ===
     private static final String WS_ENDPOINT = "wss://ws.okx.com:8443/ws/v5/business"; // при необходимости замените на /public
@@ -36,7 +36,7 @@ public class OKXWebSocketClient {
     private static final long WATCHDOG_PERIOD_MS = 5_000L;       // период проверки соединения
     private static final long INACTIVITY_RECONNECT_MS = 30_000L; // если нет сообщений дольше этого — переоткрываем
 
-    private static final Logger LOG = Logger.getLogger(OKXWebSocketClient.class);
+    private static final Logger LOG = Logger.getLogger(OKXCandlesWebSocketClient.class);
 
     @ConfigProperty(name = "okx.websocket.enabled", defaultValue = "true")
     boolean websocketEnabled;

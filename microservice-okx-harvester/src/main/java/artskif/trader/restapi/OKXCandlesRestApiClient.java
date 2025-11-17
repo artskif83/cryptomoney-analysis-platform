@@ -18,13 +18,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Startup
 @ApplicationScoped
-public class OKXRestApiClient {
+public class OKXCandlesRestApiClient {
 
-    private static final Logger LOG = Logger.getLogger(OKXRestApiClient.class);
+    private static final Logger LOG = Logger.getLogger(OKXCandlesRestApiClient.class);
 
     @Inject
     KafkaProducer producer;
@@ -41,7 +42,7 @@ public class OKXRestApiClient {
     @ConfigProperty(name = "okx.history.instId", defaultValue = "BTC-USDT")
     String instId;
 
-    @ConfigProperty(name = "okx.history.limit", defaultValue = "100")
+    @ConfigProperty(name = "okx.history.limit", defaultValue = "300")
     int limit;
 
     @ConfigProperty(name = "okx.history.startEpochMs", defaultValue = "1609459200000")
@@ -56,14 +57,18 @@ public class OKXRestApiClient {
     @ConfigProperty(name = "okx.history.retryBackoffMs", defaultValue = "1000")
     long retryBackoffMs;
 
-    @ConfigProperty(name = "okx.history.bars", defaultValue = "5m,4H,1W")
-    List<String> bars;
+    @ConfigProperty(name = "okx.history.timeframes", defaultValue = "5m,4H,1W")
+    List<String> timeframes;
 
-    @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "50")
+    @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "1")
     int pagesLimit;
+
+    @ConfigProperty(name = "okx.history.threadPoolSize", defaultValue = "3")
+    int threadPoolSize;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper om = new ObjectMapper();
+    private ExecutorService executorService;
 
     @PostConstruct
     void onStart() {
@@ -71,18 +76,56 @@ public class OKXRestApiClient {
             LOG.warn("⚙️ OKX RestAPI Исторический клиент отключен (okx.history.enabled=false)");
             return;
         }
-        LOG.infof("🚀 Старт исторического харвестера OKX: instId=%s bars=%s start=%s pagesLimit=%d limit=%d",
-                instId, bars, Instant.ofEpochMilli(startEpochMs), pagesLimit, limit);
+        LOG.infof("🚀 Старт исторического харвестера OKX: instId=%s bars=%s start=%s pagesLimit=%d limit=%d threadPoolSize=%d",
+                instId, timeframes, Instant.ofEpochMilli(startEpochMs), pagesLimit, limit, threadPoolSize);
 
-        for (String bar : bars) {
+        // Создаем пул потоков для параллельной обработки таймфреймов
+        executorService = Executors.newFixedThreadPool(threadPoolSize);
+
+        try {
+            // Создаем CompletableFuture для каждого таймфрейма
+            List<CompletableFuture<Void>> futures = timeframes.stream()
+                    .map(bar -> CompletableFuture.runAsync(() -> {
+                        try {
+                            harvestBar(bar);
+                        } catch (Throwable t) {
+                            // НЕ валим приложение — логируем и идём дальше
+                            LOG.errorf(t, "❌ Невосстановимая ошибка при загрузке бара %s", bar);
+                        }
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // Ожидаем завершения всех задач
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0])
+            );
+
+            // Блокируем до завершения всех задач
+            allFutures.join();
+
+            LOG.info("✅ Исторический харвестер OKX завершил начальную загрузку");
+        } finally {
+            // Корректно останавливаем пул потоков
+            shutdownExecutorService();
+        }
+    }
+
+    private void shutdownExecutorService() {
+        if (executorService != null && !executorService.isShutdown()) {
+            LOG.info("🛑 Остановка пула потоков...");
+            executorService.shutdown();
             try {
-                harvestBar(bar);
-            } catch (Throwable t) {
-                // НЕ валим приложение — логируем и идём дальше к следующему бару
-                LOG.errorf(t, "❌ Невосстановимая ошибка при загрузке бара %s, продолжаем со следующими", bar);
+                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                        LOG.error("❌ Пул потоков не остановился");
+                    }
+                }
+            } catch (InterruptedException ie) {
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
-        LOG.info("✅ Исторический харвестер OKX завершил начальную загрузку");
     }
 
     private void harvestBar(String bar) {
@@ -111,7 +154,8 @@ public class OKXRestApiClient {
             // Используем from для загрузки данных ОТ НОВЫХ К СТАРЫМ
             Optional<JsonNode> rootOpt = callHistoryIndexCandles(instId, bar, limit, from, to);
             if (rootOpt.isEmpty()) {
-                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s to=%s", bar, Instant.ofEpochMilli(to));
+                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s to=%s", bar,
+                        to != null ? Instant.ofEpochMilli(to) : "null");
                 break;
             }
 
