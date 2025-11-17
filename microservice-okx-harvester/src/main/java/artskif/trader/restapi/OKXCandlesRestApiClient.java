@@ -154,7 +154,7 @@ public class OKXCandlesRestApiClient {
             // Используем from для загрузки данных ОТ НОВЫХ К СТАРЫМ
             Optional<JsonNode> rootOpt = callHistoryIndexCandles(instId, bar, limit, from, to);
             if (rootOpt.isEmpty()) {
-                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s to=%s", bar,
+                LOG.warnf("⚠️ Пропускаем страницу (исчерпаны повторы) для bar=%s to=%s", bar, 
                         to != null ? Instant.ofEpochMilli(to) : "null");
                 break;
             }

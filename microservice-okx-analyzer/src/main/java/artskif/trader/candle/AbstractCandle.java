@@ -44,11 +44,10 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             }
 
             // Единым снимком, без нарушения последовательности:
-            getLiveBuffer().restoreItems(ordered);
-            initSaveBuffer();
-            log().infof("✅ [%s] Восстановили и сохранили %d элементов из истории", getName(), ordered.size());
+            getHistoricalBuffer().restoreItems(ordered);
+            log().infof("✅ [%s] Добавили в буфер %d элементов из истории", getName(), ordered.size());
         } catch (Exception e) {
-            log().errorf(e, "❌ [%s] Не удалось восстановить и сохранить историю: %s", getName(), e.getMessage());
+            log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
         }
     }
 

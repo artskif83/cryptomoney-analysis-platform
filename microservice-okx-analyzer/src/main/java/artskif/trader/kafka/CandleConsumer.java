@@ -1,10 +1,8 @@
 package artskif.trader.kafka;
 
-import artskif.trader.candle.Candle1D;
-import artskif.trader.candle.Candle1H;
-import artskif.trader.candle.Candle1m;
+import artskif.trader.candle.Candle1W;
+import artskif.trader.candle.Candle5M;
 import artskif.trader.candle.Candle4H;
-import artskif.trader.indicator.rsi.RsiIndicator1m;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,41 +17,30 @@ public class CandleConsumer {
 
     private final static Logger LOG = Logger.getLogger(CandleConsumer.class);
 
-    @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
-    boolean candle1mEnabled;
-    @ConfigProperty(name = "analysis.candle1h.enabled", defaultValue = "true")
-    boolean candle1hEnabled;
+    @ConfigProperty(name = "analysis.candle5m.enabled", defaultValue = "true")
+    boolean candle5mEnabled;
     @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
     boolean candle4hEnabled;
-    @ConfigProperty(name = "analysis.candle1d.enabled", defaultValue = "true")
-    boolean candle1dEnabled;
+    @ConfigProperty(name = "analysis.candle1w.enabled", defaultValue = "true")
+    boolean candle1wEnabled;
 
 
     @Inject
-    Candle1m candle1m;
-    @Inject
-    Candle1H candle1H;
+    Candle5M candle5m;
     @Inject
     Candle4H candle4H;
     @Inject
-    Candle1D candle1D;
+    Candle1W candle1w;
 
     @PostConstruct
     void init() {
         LOG.info("🔌 Старт консюмера для обработки свечей");
     }
 
-    @Incoming("candle-1m")
-    public void consume1m(String message) {
-        if (candle1mEnabled) {
-            candle1m.handleTick(message);
-        }
-    }
-
-    @Incoming("candle-1h")
-    public void consume1H(String message) {
-        if (candle1hEnabled) {
-            candle1H.handleTick(message);
+    @Incoming("candle-5m")
+    public void consume5m(String message) {
+        if (candle5mEnabled) {
+            candle5m.handleTick(message);
         }
     }
 
@@ -64,10 +51,10 @@ public class CandleConsumer {
         }
     }
 
-    @Incoming("candle-1d")
-    public void consume1D(String message) {
-        if (candle1dEnabled) {
-            candle1D.handleTick(message);
+    @Incoming("candle-1w")
+    public void consume1W(String message) {
+        if (candle1wEnabled) {
+            candle1w.handleTick(message);
         }
     }
 }

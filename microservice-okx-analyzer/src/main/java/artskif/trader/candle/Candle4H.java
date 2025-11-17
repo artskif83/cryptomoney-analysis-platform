@@ -24,8 +24,8 @@ public class Candle4H extends AbstractCandle {
     @Inject
     public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_1M.getDuration());
-        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_1M.getDuration());
+        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_4H.getDuration());
+        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_4H.getDuration());
         this.candleBufferRepository = new CandleRepository();
     }
 

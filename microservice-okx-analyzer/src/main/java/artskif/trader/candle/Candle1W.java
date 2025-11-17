@@ -11,10 +11,10 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
-public class Candle1D extends AbstractCandle {
+public class Candle1W extends AbstractCandle {
 
-    private final static String NAME = "1D-candle";
-    private static final Logger LOG = Logger.getLogger(Candle1D.class);
+    private final static String NAME = "1w-candle";
+    private static final Logger LOG = Logger.getLogger(Candle1W.class);
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
@@ -22,16 +22,16 @@ public class Candle1D extends AbstractCandle {
     protected final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
 
     @Inject
-    public Candle1D(ObjectMapper objectMapper, CandleEventBus bus) {
+    public Candle1W(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_1M.getDuration());
-        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_1M.getDuration());
+        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_1W.getDuration());
+        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_1W.getDuration());
         this.candleBufferRepository = new CandleRepository();
     }
 
     @Override
     protected CandleTimeframe getCandleTimeframe() {
-        return CandleTimeframe.CANDLE_1D;
+        return CandleTimeframe.CANDLE_1W;
     }
 
     @Override
@@ -64,3 +64,5 @@ public class Candle1D extends AbstractCandle {
         return LOG;
     }
 }
+
+

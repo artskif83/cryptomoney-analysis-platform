@@ -36,7 +36,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    private static final int DEFAULT_RESTORE_LIMIT = 10000000; // Максимальное количество свечей для восстановления
+    private static final int DEFAULT_RESTORE_LIMIT = 300; // Максимальное количество свечей для восстановления
 
     @Inject
     DataSource dataSource;
