@@ -46,12 +46,12 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
 
             // Единым снимком, без нарушения последовательности:
             getHistoricalBuffer().restoreItems(historyDto.getData());
-            log().infof("✅ [%s] Добавили в исторический буфер %d элементов (instId=%s, isLast=%s)",
-                    getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast());
+            log().infof("✅ [%s] Добавили в исторический буфер %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
+                    getName(), historyDto.getData().size(), getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             if (historyDto.isLast()) {
                 getLiveBuffer().restoreItems(historyDto.getData());
-                log().infof("✅ [%s] Добавили в актуальный буфер %d элементов (instId=%s, isLast=%s)",
-                        getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast());
+                log().infof("✅ [%s] Добавили в актуальный буфер %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
+                        getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             }
 
         } catch (Exception e) {
@@ -65,7 +65,9 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             Optional<CandlestickPayloadDto> opt = CandlestickMapper.map(message, getCandleTimeframe());
             if (opt.isPresent()) {
                 candlestickPayloadDto = opt.get();
-            } else { return; }
+            } else {
+                return;
+            }
 
             CandlestickDto candle = candlestickPayloadDto.getCandle();
 
@@ -74,8 +76,8 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
                 getLiveBuffer().putItem(bucket, candle);
                 initSaveBuffer();
+                getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
             }
-            getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());
         }

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class TimeSeriesBuffer<C> {
 
@@ -15,26 +16,29 @@ public class TimeSeriesBuffer<C> {
     private static final int EXTRA_CHECK_COUNT = 10; // Дополнительные элементы для проверки
     private static final int BATCH_SIZE = 300; // Размер партии для восстановления
     private final Duration bucketDuration;
-    @Getter
-    protected final LimitedLinkedHashMap<Instant, C> writeMap; // только писатель
+    private final int maxSize;
 
-    // lock-free, упорядочено, неизменяемо
     @Getter
-    protected volatile Map<Instant, C> snapshot; // только читатели
+    protected final ConcurrentSkipListMap<Instant, C> dataMap;
+
     @Getter
     private volatile Instant lastBucket = null;
     @Getter
     private volatile C lastItem = null;
 
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration) {
-        this.writeMap = new LimitedLinkedHashMap<>(maxSize); // порядок уже правильный
-        this.snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(writeMap));
+        this.maxSize = maxSize;
+        this.dataMap = new ConcurrentSkipListMap<>();
         this.bucketDuration = bucketDuration;
     }
 
-    // ===== ПУБЛИКАЦИЯ СНИМКА =====
-    private void publishSnapshot() {
-        this.snapshot = Collections.unmodifiableMap(new LinkedHashMap<>(writeMap));
+    /**
+     * Удаляет старые элементы если размер превышает maxSize.
+     */
+    private void trimToSize() {
+        while (dataMap.size() > maxSize) {
+            dataMap.pollFirstEntry();
+        }
     }
 
     /**
@@ -45,18 +49,18 @@ public class TimeSeriesBuffer<C> {
      * @param lastCount количество последних элементов для проверки
      */
     private void checkContinuity(int lastCount) {
-        if (writeMap.size() < 2) {
+        if (dataMap.size() < 2) {
             return; // Нечего проверять
         }
 
         // Получаем последние lastCount элементов
-        int checkSize = Math.min(lastCount, writeMap.size());
+        int checkSize = Math.min(lastCount, dataMap.size());
         Instant[] buckets = new Instant[checkSize];
         int index = 0;
-        int skip = writeMap.size() - checkSize;
+        int skip = dataMap.size() - checkSize;
         int current = 0;
 
-        for (Instant bucket : writeMap.keySet()) {
+        for (Instant bucket : dataMap.keySet()) {
             if (current >= skip) {
                 buckets[index++] = bucket;
             }
@@ -77,13 +81,20 @@ public class TimeSeriesBuffer<C> {
         }
     }
 
-    // ===== API ПИСАТЕЛЯ (один поток) =====
 
     /**
      * Проверяет, пуст ли буфер.
      */
     public boolean isEmpty() {
-        return snapshot.isEmpty();
+        return dataMap.isEmpty();
+    }
+
+
+    /**
+     * Показывает текущий размер буфера.
+     */
+    public Integer size() {
+        return dataMap.size();
     }
 
     /**
@@ -94,19 +105,8 @@ public class TimeSeriesBuffer<C> {
             return;
         }
 
-        // Проверяем, что новые данные корректно соединяются с последним бакетом
-        if (lastBucket != null) {
-            Instant firstNewBucket = data.keySet().iterator().next();
-            Duration gap = Duration.between(lastBucket, firstNewBucket);
-
-            if (gap.isNegative() || gap.compareTo(bucketDuration) > 0) {
-                LOG.warnf("Элементы не добавлены(restoreItems). Нарушена непрерывность данных: lastBucket=%s, firstNewBucket=%s, gap=%s, maxAllowed=%s",
-                        lastBucket, firstNewBucket, gap, bucketDuration);
-                return;
-            }
-        }
-
-        writeMap.putAll(data);     // LimitedLinkedHashMap сам обрежет при переполнении
+        dataMap.putAll(data);
+        trimToSize(); // Удаляем старые элементы если превышен лимит
 
         // Обновляем lastBucket и lastItem на последний элемент из новых данных
         Instant lastKey = null;
@@ -119,8 +119,6 @@ public class TimeSeriesBuffer<C> {
             lastBucket = lastKey;
             lastItem = lastValue;
         }
-
-        publishSnapshot();
 
         // Проверяем непрерывность: количество добавленных элементов + дополнительные
         checkContinuity(data.size() + EXTRA_CHECK_COUNT);
@@ -141,7 +139,8 @@ public class TimeSeriesBuffer<C> {
             }
         }
 
-        C inserted = writeMap.put(bucket, item);
+        C inserted = dataMap.put(bucket, item);
+        trimToSize(); // Удаляем старые элементы если превышен лимит
 
         // Обновляем lastBucket если новый бакет позже текущего
         if (lastBucket == null || bucket.isAfter(lastBucket)) {
@@ -149,7 +148,6 @@ public class TimeSeriesBuffer<C> {
             lastItem = item;
         }
 
-        publishSnapshot(); // Публикуем новый снимок
 
         // Проверяем непрерывность: 1 добавленный элемент + дополнительные
         checkContinuity(1 + EXTRA_CHECK_COUNT);
@@ -167,7 +165,7 @@ public class TimeSeriesBuffer<C> {
     public Map<Instant, C> getItemsAfter(Instant bucket) {
         Map<Instant, C> result = new LinkedHashMap<>();
 
-        for (Map.Entry<Instant, C> entry : snapshot.entrySet()) {
+        for (Map.Entry<Instant, C> entry : dataMap.entrySet()) {
             if (bucket == null || entry.getKey().isAfter(bucket)) {
                 result.put(entry.getKey(), entry.getValue());
 
@@ -184,14 +182,13 @@ public class TimeSeriesBuffer<C> {
      * Очистка буфера.
      */
     public void clear() {
-        writeMap.clear();
-        publishSnapshot();
+        dataMap.clear();
         lastBucket = null;
         lastItem = null;
     }
 
     @Override
     public String toString() {
-        return "Buffer{itemsCount=" + snapshot.values().size() + '}';
+        return "Buffer{itemsCount=" + dataMap.size() + '}';
     }
 }

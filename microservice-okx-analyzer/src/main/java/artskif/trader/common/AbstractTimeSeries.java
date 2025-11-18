@@ -39,7 +39,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     @ActivateRequestContext
     public void saveBuffer() {
         log().infof("💾 [%s] Сохраняем информационные свечи в хранилище", getName());
-        getBufferRepository().saveFromMap(getLiveBuffer().getSnapshot());
+        getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
         saveEnabled.set(false);
     }
 }
