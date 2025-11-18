@@ -15,6 +15,8 @@ public class Candle4H extends AbstractCandle {
 
     private final static String NAME = "4H-candle";
     private static final Logger LOG = Logger.getLogger(Candle4H.class);
+    private static final int MAX_LIVE_BUFFER_SIZE = 300;
+    private static final int MAX_HISTORICAL_BUFFER_SIZE = 100000;
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
     protected final CandleEventBus bus;
@@ -24,8 +26,8 @@ public class Candle4H extends AbstractCandle {
     @Inject
     public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(300, CandleTimeframe.CANDLE_4H.getDuration());
-        this.historicalBuffer = new TimeSeriesBuffer<>(100000, CandleTimeframe.CANDLE_4H.getDuration());
+        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration());
+        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration());
         this.candleBufferRepository = new CandleRepository();
     }
 
@@ -52,6 +54,16 @@ public class Candle4H extends AbstractCandle {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public Integer getMaxLiveBufferSize() {
+        return MAX_LIVE_BUFFER_SIZE;
+    }
+
+    @Override
+    public Integer getMaxHistoryBufferSize() {
+        return MAX_HISTORICAL_BUFFER_SIZE;
     }
 
     @Override

@@ -122,6 +122,7 @@ public class CandlestickMapper {
         candle.setVolume(new BigDecimal(node.get(5).asText()));
         candle.setVolumeCcy(new BigDecimal(node.get(6).asText()));
         candle.setVolumeCcyQuote(new BigDecimal(node.get(7).asText()));
+        candle.setSaved(false);
         candle.setConfirmed("1".equals(node.get(8).asText()));
         candle.setPeriod(period);
         candle.setInstrument(instrument);

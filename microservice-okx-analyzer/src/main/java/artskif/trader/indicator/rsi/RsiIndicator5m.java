@@ -3,7 +3,6 @@ package artskif.trader.indicator.rsi;
 import artskif.trader.candle.Candle5M;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
-import artskif.trader.common.PointState;
 import artskif.trader.common.Stage;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
@@ -23,16 +22,16 @@ public class RsiIndicator5m extends RsiAbstractIndicator {
     private final static String NAME = "RSI-5m";
     private final static Logger LOG = Logger.getLogger(RsiIndicator5m.class);
     private final static Integer PERIOD = 14; // Период индикатора RSI
-    private final static Integer BUFFER_SIZE = 100; // Размер буфера для хранения точек индикатора
+    private final static Integer BUFFER_LIVE_SIZE = 100; // Размер буфера для хранения точек индикатора
     private final static Integer BUFFER_HISTORICAL_SIZE = 10000; // Размер буфера для хранения исторических точек индикатора
 
     protected RsiIndicator5m() {
-        super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, BUFFER_HISTORICAL_SIZE);
+        super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Inject
     public RsiIndicator5m(Candle5M candle5m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
-        super(candle5m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_SIZE, BUFFER_HISTORICAL_SIZE);
+        super(candle5m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Override
@@ -63,6 +62,16 @@ public class RsiIndicator5m extends RsiAbstractIndicator {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public Integer getMaxLiveBufferSize() {
+        return BUFFER_LIVE_SIZE;
+    }
+
+    @Override
+    public Integer getMaxHistoryBufferSize() {
+        return BUFFER_HISTORICAL_SIZE;
     }
 
     @Override

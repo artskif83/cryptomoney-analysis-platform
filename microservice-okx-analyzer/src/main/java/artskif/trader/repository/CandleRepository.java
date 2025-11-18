@@ -56,7 +56,13 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
     @Override
     public boolean saveFromMap(Map<Instant, CandlestickDto> buffer) {
         if (buffer == null || buffer.isEmpty()) return true;
-        return performSave(buffer);
+        Map<Instant, CandlestickDto> unsavedBuffer = buffer.entrySet().stream()
+                .filter(e -> !Boolean.TRUE.equals(e.getValue().getSaved()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+        if (unsavedBuffer.isEmpty()) return true;
+
+        return performSave(unsavedBuffer);
     }
 
     @Transactional
@@ -98,6 +104,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     throw new RuntimeException(e);
                 }
             });
+            buffer.values().forEach(dto -> dto.setSaved(true));
             return true;
         } catch (RuntimeException ex) {
             LOG.error("Ошибка при сохранении свечей через COPY -> stage_candles", ex);
@@ -156,24 +163,24 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
 
     @Override
-    public Map<Instant, CandlestickDto> restoreFromStorage(CandleTimeframe timeframe, String symbol) {
+    public Map<Instant, CandlestickDto> restoreFromStorage(Integer size, CandleTimeframe timeframe, String symbol) {
         if (timeframe == null || symbol == null || symbol.isEmpty()) {
             LOG.warn("Неверные параметры для восстановления свечей из базы данных");
             return new LinkedHashMap<>();
         }
-        return performRestore(timeframe, symbol);
+        return performRestore(size, timeframe, symbol);
     }
 
     @Transactional
-    protected Map<Instant, CandlestickDto> performRestore(CandleTimeframe timeframe, String symbol) {
+    protected Map<Instant, CandlestickDto> performRestore(Integer size, CandleTimeframe timeframe, String symbol) {
 
         try {
 
             // Получаем последние свечи для конкретного таймфрейма и символа, отсортированные по timestamp по убыванию
+            int limit = size != null ? size : DEFAULT_RESTORE_LIMIT;
             List<Candle> candles = find(
                     "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
-            )
-                    .list();
+            ).page(0, limit).list();
 
             LOG.infof("Восстанавливаем последние %d свечей из базы данных для таймфрейма %s и символа %s",
                     candles.size(), timeframe, symbol);
@@ -183,14 +190,12 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 return new LinkedHashMap<>();
             }
 
-            // Переворачиваем порядок, чтобы получить свечи от старых к новым (по возрастанию timestamp)
-            Collections.reverse(candles);
-
             // Конвертируем Entity в DTO и собираем в LinkedHashMap для сохранения порядка
             Map<Instant, CandlestickDto> result = new LinkedHashMap<>();
             for (Candle candle : candles) {
                 CandlestickDto dto = CandlestickMapper.mapEntityToDto(candle);
                 if (dto != null && dto.getConfirmed()) {
+                    dto.setSaved(true);
                     result.put(dto.getTimestamp(), dto);
                 }
             }

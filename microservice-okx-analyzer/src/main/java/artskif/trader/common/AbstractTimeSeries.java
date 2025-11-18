@@ -19,10 +19,14 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
 
     public abstract String getName();
 
+    public abstract Integer getMaxLiveBufferSize();
+
+    public abstract Integer getMaxHistoryBufferSize();
+
     @ActivateRequestContext
     protected void initRestoreBuffer() {
         log().infof("📥 [%s] Восстанавливаем информационные свечи из хранилища", getName());
-        getLiveBuffer().restoreItems(getBufferRepository().restoreFromStorage(getCandleTimeframe(), getSymbol()));
+        getLiveBuffer().restoreItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
     }
 
     protected void initSaveBuffer() {
@@ -40,6 +44,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     public void saveBuffer() {
         log().infof("💾 [%s] Сохраняем информационные свечи в хранилище", getName());
         getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
+        getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
         saveEnabled.set(false);
     }
 }

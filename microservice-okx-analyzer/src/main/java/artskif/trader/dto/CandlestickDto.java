@@ -21,6 +21,7 @@ public class CandlestickDto {
     private BigDecimal volumeCcy;
     private BigDecimal volumeCcyQuote;
     private Boolean confirmed;
+    private Boolean saved;
 
     // Новые поля
     private CandleTimeframe period;

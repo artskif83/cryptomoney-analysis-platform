@@ -53,7 +53,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                 log().infof("✅ [%s] Добавили в актуальный буфер %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
                         getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             }
-
+            initSaveBuffer();
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
         }
