@@ -51,6 +51,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                     getName(), historyDto.getData().size(), getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             if (historyDto.isLast()) {
                 getLiveBuffer().restoreItems(historyDto.getData());
+                getLiveBuffer().incrementVersion();
                 log().infof("✅ [%s] Добавили в актуальный буфер %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
                         getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             }

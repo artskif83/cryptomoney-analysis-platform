@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
-
+import java.util.concurrent.atomic.AtomicInteger;
 public class TimeSeriesBuffer<C> {
 
     private final static Logger LOG = Logger.getLogger(TimeSeriesBuffer.class);
@@ -27,11 +27,18 @@ public class TimeSeriesBuffer<C> {
     private volatile Instant firstBucket = null;
     @Getter
     private volatile C firstItem = null;
+    @Getter
+    private final AtomicInteger version;
 
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration) {
         this.maxSize = maxSize;
         this.dataMap = new ConcurrentSkipListMap<>();
         this.bucketDuration = bucketDuration;
+        this.version = new AtomicInteger(0);
+    }
+
+    public void incrementVersion() {
+        this.version.incrementAndGet();
     }
 
     /**
@@ -237,6 +244,7 @@ public class TimeSeriesBuffer<C> {
         return "Buffer{itemsCount=" + dataMap.size() +
                        ", maxSize=" + maxSize +
                        ", firstBucket=" + firstBucket +
-                       ", lastBucket=" + lastBucket + '}';
+                       ", lastBucket=" + lastBucket +
+                       ", lastItem=" + lastItem + '}';
     }
 }

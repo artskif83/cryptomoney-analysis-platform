@@ -9,6 +9,7 @@ import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.RsiIndicatorRepository;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -16,7 +17,7 @@ import org.jboss.logging.Logger;
 
 import java.time.Instant;
 
-
+@Startup
 @ApplicationScoped
 public class RsiIndicator5m extends RsiAbstractIndicator {
 
