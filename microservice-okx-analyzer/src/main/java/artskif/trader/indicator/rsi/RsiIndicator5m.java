@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle5M;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.common.Stage;
+import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;
@@ -82,16 +83,6 @@ public class RsiIndicator5m extends RsiAbstractIndicator {
     @Override
     public IndicatorType getType() {
         return IndicatorType.RSI;
-    }
-
-    @Override
-    public boolean isStateful() {
-        return true;
-    }
-
-    @Override
-    public RsiState getState() {
-        return rsiState;
     }
 
     @Override

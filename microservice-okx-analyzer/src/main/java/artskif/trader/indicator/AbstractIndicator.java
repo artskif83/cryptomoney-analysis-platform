@@ -1,19 +1,17 @@
 package artskif.trader.indicator;
 
 import artskif.trader.common.AbstractTimeSeries;
-import artskif.trader.common.Stateable;
-import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
+import artskif.trader.events.CandleEventType;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
-import java.time.Instant;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, Stateable, IndicatorPoint<C> {
+public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> implements CandleEventListener, Runnable, IndicatorPoint<C> {
 
     protected static final String DEFAULT_SYMBOL = "BTC-USDT";
 
@@ -27,7 +25,8 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         this.bus = bus;
     }
 
-    protected abstract void handleEvent(CandleEvent ev);
+    protected abstract void handleTickEvent(CandleEvent ev);
+    protected abstract void handleHistoryEvent(CandleEvent take);
 
     @PostConstruct
     public void init() {
@@ -70,7 +69,13 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
         log().infof("🔗 [%s] Запущен поток подсчета индикатора", getName());
         while (running) {
             try {
-                handleEvent(queue.take());
+                CandleEvent take = queue.take();
+                if (take.type() == CandleEventType.CANDLE_TICK) {
+                    handleTickEvent(take);
+                } else if (take.type() == CandleEventType.CANDLE_HISTORY) {
+                    handleHistoryEvent(take);
+                }
+
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (Exception ignored) {

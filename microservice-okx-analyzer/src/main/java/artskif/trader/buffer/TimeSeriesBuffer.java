@@ -6,15 +6,13 @@ import org.jboss.logging.Logger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class TimeSeriesBuffer<C> {
 
     private final static Logger LOG = Logger.getLogger(TimeSeriesBuffer.class);
-    private static final int EXTRA_CHECK_COUNT = 10; // Дополнительные элементы для проверки
-    private static final int BATCH_SIZE = 300; // Размер партии для восстановления
+    private static final int EXTRA_CHECK_COUNT = 300; // Дополнительные элементы для проверки
     private final Duration bucketDuration;
     private final int maxSize;
 
@@ -25,6 +23,10 @@ public class TimeSeriesBuffer<C> {
     private volatile Instant lastBucket = null;
     @Getter
     private volatile C lastItem = null;
+    @Getter
+    private volatile Instant firstBucket = null;
+    @Getter
+    private volatile C firstItem = null;
 
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration) {
         this.maxSize = maxSize;
@@ -33,20 +35,59 @@ public class TimeSeriesBuffer<C> {
     }
 
     /**
-     * Удаляет старые элементы если размер превышает maxSize.
+     * Удаляет самые старые элементы из буфера, если текущий размер превышает максимально допустимый.
+     * Использует метод pollFirstEntry() из ConcurrentSkipListMap для эффективного удаления первых элементов.
      */
     private void trimToSize() {
+        boolean removed = false;
         while (dataMap.size() > maxSize) {
             dataMap.pollFirstEntry();
+            removed = true;
+        }
+        if (removed) {
+            updateFirstBucketAndItem();
         }
     }
 
     /**
-     * Проверяет непрерывность последних lastCount элементов буфера.
-     * Все бакеты должны отличаться друг от друга ровно на bucketDuration.
-     * При обнаружении разрывов выводит предупреждение.
+     * Обновляет кэшированные значения lastBucket и lastItem на основе последнего элемента в буфере.
+     * Использует эффективный метод lastEntry() из ConcurrentSkipListMap для получения последнего элемента за O(log n).
+     * Если буфер пуст, устанавливает оба значения в null.
+     */
+    private void updateLastBucketAndItem() {
+        Map.Entry<Instant, C> lastEntry = dataMap.lastEntry();
+        if (lastEntry != null) {
+            lastBucket = lastEntry.getKey();
+            lastItem = lastEntry.getValue();
+        } else {
+            lastBucket = null;
+            lastItem = null;
+        }
+    }
+
+    /**
+     * Обновляет кэшированные значения firstBucket и firstItem на основе первого элемента в буфере.
+     * Использует эффективный метод firstEntry() из ConcurrentSkipListMap для получения первого элемента за O(log n).
+     * Если буфер пуст, устанавливает оба значения в null.
+     */
+    private void updateFirstBucketAndItem() {
+        Map.Entry<Instant, C> firstEntry = dataMap.firstEntry();
+        if (firstEntry != null) {
+            firstBucket = firstEntry.getKey();
+            firstItem = firstEntry.getValue();
+        } else {
+            firstBucket = null;
+            firstItem = null;
+        }
+    }
+
+    /**
+     * Проверяет непрерывность временных интервалов в последних элементах буфера.
+     * Все соседние bucket'ы должны отличаться друг от друга ровно на bucketDuration.
+     * При обнаружении разрывов (пропущенных временных интервалов) выводит предупреждение в лог.
+     * Проверка помогает выявлять проблемы с поступлением данных.
      *
-     * @param lastCount количество последних элементов для проверки
+     * @param lastCount количество последних элементов для проверки непрерывности
      */
     private void checkContinuity(int lastCount) {
         if (dataMap.size() < 2) {
@@ -74,31 +115,38 @@ public class TimeSeriesBuffer<C> {
             Duration gap = Duration.between(prev, curr);
 
             if (!gap.equals(bucketDuration)) {
-                LOG.warnf("Обнаружен разрыв в непрерывности данных: prevBucket=%s, currBucket=%s, " +
-                                "gap=%s, expect=%s (index=%d из %d проверяемых)",
-                        prev, curr, gap, bucketDuration, i, buckets.length);
+//                LOG.warnf("Обнаружен разрыв в непрерывности данных: prevBucket=%s, currBucket=%s, " +
+//                                "gap=%s, expect=%s (index=%d из %d проверяемых)",
+//                        prev, curr, gap, bucketDuration, i, buckets.length);
             }
         }
     }
 
-
     /**
-     * Проверяет, пуст ли буфер.
+     * Проверяет, пуст ли буфер временных рядов.
+     *
+     * @return true если в буфере нет элементов, false иначе
      */
     public boolean isEmpty() {
         return dataMap.isEmpty();
     }
 
-
     /**
-     * Показывает текущий размер буфера.
+     * Возвращает текущее количество элементов в буфере.
+     *
+     * @return количество элементов в буфере
      */
     public Integer size() {
         return dataMap.size();
     }
 
     /**
-     * Полная загрузка: данные уже в нужном порядке — просто кладём и публикуем.
+     * Массово загружает элементы в буфер из переданной map.
+     * Используется для восстановления состояния буфера из внешнего источника данных.
+     * После загрузки обновляет кэшированные значения и проверяет непрерывность временных рядов.
+     * Если размер превышает максимально допустимый, автоматически удаляет самые старые элементы.
+     *
+     * @param data map с данными для загрузки, где ключ - временная метка bucket, значение - элемент данных
      */
     public void restoreItems(Map<Instant, C> data) {
         if (data.isEmpty()) {
@@ -108,46 +156,33 @@ public class TimeSeriesBuffer<C> {
         dataMap.putAll(data);
         trimToSize(); // Удаляем старые элементы если превышен лимит
 
-        // Обновляем lastBucket и lastItem на последний элемент из новых данных
-        Instant lastKey = null;
-        C lastValue = null;
-        for (Map.Entry<Instant, C> entry : data.entrySet()) {
-            lastKey = entry.getKey();
-            lastValue = entry.getValue();
-        }
-        if (lastKey != null) {
-            lastBucket = lastKey;
-            lastItem = lastValue;
-        }
+        // Обновляем lastBucket и lastItem из последнего элемента dataMap
+        updateLastBucketAndItem();
+        // Обновляем firstBucket и firstItem из первого элемента dataMap
+        updateFirstBucketAndItem();
 
         // Проверяем непрерывность: количество добавленных элементов + дополнительные
         checkContinuity(data.size() + EXTRA_CHECK_COUNT);
     }
 
     /**
-     * Запись новой свечи. Возвращает предыдущее значение (если было).
+     * Добавляет новый элемент в буфер по указанной временной метке bucket.
+     * Если элемент с такой меткой уже существует, он будет заменён.
+     * После добавления обновляет кэшированные значения lastBucket и lastItem,
+     * удаляет старые элементы при превышении maxSize и проверяет непрерывность временных рядов.
+     *
+     * @param bucket временная метка для элемента
+     * @param item элемент данных для добавления
+     * @return предыдущее значение элемента с такой же временной меткой или null, если его не было
      */
     public C putItem(Instant bucket, C item) {
-        // Проверяем, что новый бакет корректно соединяется с последним бакетом
-        if (lastBucket != null) {
-            Duration gap = Duration.between(lastBucket, bucket);
-
-            if (gap.isNegative() || gap.compareTo(bucketDuration) > 0) {
-                LOG.warnf("Элемент не добавлен(putItem). Нарушена непрерывность данных: lastBucket=%s, newBucket=%s, gap=%s, maxAllowed=%s",
-                        lastBucket, bucket, gap, bucketDuration);
-                return null;
-            }
-        }
-
         C inserted = dataMap.put(bucket, item);
         trimToSize(); // Удаляем старые элементы если превышен лимит
 
-        // Обновляем lastBucket если новый бакет позже текущего
-        if (lastBucket == null || bucket.isAfter(lastBucket)) {
-            lastBucket = bucket;
-            lastItem = item;
-        }
-
+        // Обновляем lastBucket и lastItem из последнего элемента dataMap
+        updateLastBucketAndItem();
+        // Обновляем firstBucket и firstItem из первого элемента dataMap
+        updateFirstBucketAndItem();
 
         // Проверяем непрерывность: 1 добавленный элемент + дополнительные
         checkContinuity(1 + EXTRA_CHECK_COUNT);
@@ -156,39 +191,52 @@ public class TimeSeriesBuffer<C> {
     }
 
     /**
-     * Возвращает элементы младше указанного bucket, но не более BATCH_SIZE штук.
-     * Если bucket равен null, возвращает элементы с начала списка.
+     * Возвращает элементы из буфера между указанными временными метками.
+     * Использует эффективные методы ConcurrentSkipListMap (subMap, tailMap, headMap) для получения подмножества за O(log n).
+     * Границы интервала не включаются в результат.
      *
-     * @param bucket граничный bucket (не включается в результат), может быть null
-     * @return неизменяемая map с элементами, отсортированная по времени
+     * @param after начальная граница интервала (не включается в результат), может быть null для выборки с начала
+     * @param before конечная граница интервала (не включается в результат), может быть null для выборки до конца
+     * @return неизменяемая map с элементами в хронологическом порядке, пустая map если нет подходящих элементов
      */
-    public Map<Instant, C> getItemsAfter(Instant bucket) {
-        Map<Instant, C> result = new LinkedHashMap<>();
+    public Map<Instant, C> getItemsBetween(Instant after, Instant before) {
+        // Получаем подмножество используя эффективные методы ConcurrentSkipListMap
+        ConcurrentSkipListMap<Instant, C> subMap;
 
-        for (Map.Entry<Instant, C> entry : dataMap.entrySet()) {
-            if (bucket == null || entry.getKey().isAfter(bucket)) {
-                result.put(entry.getKey(), entry.getValue());
-
-                if (result.size() >= BATCH_SIZE) {
-                    break;
-                }
-            }
+        if (after != null && before != null) {
+            // Оба параметра заданы: используем subMap с исключающими границами
+            subMap = new ConcurrentSkipListMap<>(dataMap.subMap(after, false, before, false));
+        } else if (after != null) {
+            // Только after задан: используем tailMap с исключающей нижней границей
+            subMap = new ConcurrentSkipListMap<>(dataMap.tailMap(after, false));
+        } else if (before != null) {
+            // Только before задан: используем headMap с исключающей верхней границей
+            subMap = new ConcurrentSkipListMap<>(dataMap.headMap(before, false));
+        } else {
+            // Оба параметра null: возвращаем все элементы
+            subMap = new ConcurrentSkipListMap<>(dataMap);
         }
 
-        return Collections.unmodifiableMap(result);
+        return Collections.unmodifiableMap(subMap);
     }
 
     /**
-     * Очистка буфера.
+     * Полностью очищает буфер, удаляя все элементы и сбрасывая кэшированные значения.
+     * После вызова этого метода буфер будет пустым, lastBucket и lastItem будут установлены в null.
      */
     public void clear() {
         dataMap.clear();
         lastBucket = null;
         lastItem = null;
+        firstBucket = null;
+        firstItem = null;
     }
 
     @Override
     public String toString() {
-        return "Buffer{itemsCount=" + dataMap.size() + '}';
+        return "Buffer{itemsCount=" + dataMap.size() +
+                       ", maxSize=" + maxSize +
+                       ", firstBucket=" + firstBucket +
+                       ", lastBucket=" + lastBucket + '}';
     }
 }

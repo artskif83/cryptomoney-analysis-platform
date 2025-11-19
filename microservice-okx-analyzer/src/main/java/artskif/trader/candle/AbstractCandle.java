@@ -6,6 +6,7 @@ import artskif.trader.dto.CandlestickHistoryDto;
 import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
+import artskif.trader.events.CandleEventType;
 import artskif.trader.mapper.CandlestickMapper;
 import jakarta.annotation.PostConstruct;
 
@@ -54,6 +55,8 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                         getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             }
             initSaveBuffer();
+            getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
+
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
         }
@@ -76,7 +79,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
                 getLiveBuffer().putItem(bucket, candle);
                 initSaveBuffer();
-                getEventBus().publish(new CandleEvent(getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
+                getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
             }
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());
