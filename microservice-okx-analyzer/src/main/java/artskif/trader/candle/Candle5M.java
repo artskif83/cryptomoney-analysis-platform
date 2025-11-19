@@ -15,7 +15,7 @@ public class Candle5M extends AbstractCandle {
 
     private final static String NAME = "5m-candle";
     private static final Logger LOG = Logger.getLogger(Candle5M.class);
-    private static final int MAX_LIVE_BUFFER_SIZE = 300;
+    private static final int MAX_LIVE_BUFFER_SIZE = 50;
     private static final int MAX_HISTORICAL_BUFFER_SIZE = 100000;
 
     protected final BufferRepository<CandlestickDto> candleBufferRepository;
