@@ -35,8 +35,8 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         super(bus);
         this.period = period;
         this.rsiBufferRepository = rsiBufferRepository; // Размер буфера для хранения точек индик
-        this.rsiLiveBuffer = new TimeSeriesBuffer<>(bufferSize, getCandleTimeframe().getDuration());
-        this.rsiHistoricalBuffer = new TimeSeriesBuffer<>(bufferHistoricalSize, getCandleTimeframe().getDuration());
+        this.rsiLiveBuffer = new TimeSeriesBuffer<>(bufferSize, getCandleTimeframe().getDuration(), getName()+"-live");
+        this.rsiHistoricalBuffer = new TimeSeriesBuffer<>(bufferHistoricalSize, getCandleTimeframe().getDuration(), getName()+"-historical");
         this.candle = candle;
         this.rsiLiveState = RsiState.empty(period, getCandleTimeframe());
         this.rsiHistoricalState = RsiState.empty(period, getCandleTimeframe());

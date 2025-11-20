@@ -78,9 +78,13 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             Instant bucket = candle.getTimestamp();
             // Если новый тик принадлежит новой свече — подтвердить предыдущую
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
-                getLiveBuffer().putItem(bucket, candle);
-                initSaveBuffer();
-                getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
+                log().debugf("🕯️ [%s] Получена подтвержденная свеча: bucket=%s, o=%s, h=%s, l=%s, c=%s, v=%s",
+                        getName(), bucket, candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume());
+                CandlestickDto candlestickDto = getLiveBuffer().putLastItem(bucket, candle);
+                if (candlestickDto != null) {
+                    initSaveBuffer();
+                    getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
+                }
             }
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());

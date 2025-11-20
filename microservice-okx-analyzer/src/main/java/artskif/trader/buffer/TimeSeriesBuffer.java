@@ -9,12 +9,16 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 public class TimeSeriesBuffer<C> {
 
     private final static Logger LOG = Logger.getLogger(TimeSeriesBuffer.class);
     private static final int EXTRA_CHECK_COUNT = 300; // Дополнительные элементы для проверки
     private final Duration bucketDuration;
     private final int maxSize;
+
+    @Getter
+    private final String name;
 
     @Getter
     protected final ConcurrentSkipListMap<Instant, C> dataMap;
@@ -31,9 +35,14 @@ public class TimeSeriesBuffer<C> {
     private final AtomicInteger version;
 
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration) {
+        this(maxSize, bucketDuration, "unnamed");
+    }
+
+    public TimeSeriesBuffer(int maxSize, Duration bucketDuration, String name) {
         this.maxSize = maxSize;
         this.dataMap = new ConcurrentSkipListMap<>();
         this.bucketDuration = bucketDuration;
+        this.name = name;
         this.version = new AtomicInteger(0);
     }
 
@@ -122,9 +131,9 @@ public class TimeSeriesBuffer<C> {
             Duration gap = Duration.between(prev, curr);
 
             if (!gap.equals(bucketDuration)) {
-//                LOG.warnf("Обнаружен разрыв в непрерывности данных: prevBucket=%s, currBucket=%s, " +
-//                                "gap=%s, expect=%s (index=%d из %d проверяемых)",
-//                        prev, curr, gap, bucketDuration, i, buckets.length);
+                LOG.debugf("[%s] Обнаружен разрыв в непрерывности данных: prevBucket=%s, currBucket=%s, " +
+                                "gap=%s, expect=%s (index=%d из %d проверяемых)",
+                        name, prev, curr, gap, bucketDuration, i, buckets.length);
             }
         }
     }
@@ -168,21 +177,40 @@ public class TimeSeriesBuffer<C> {
         // Обновляем firstBucket и firstItem из первого элемента dataMap
         updateFirstBucketAndItem();
 
-        // Проверяем непрерывность: количество добавленных элементов + дополнительные
-        checkContinuity(data.size() + EXTRA_CHECK_COUNT);
+        if (LOG.isDebugEnabled()) {
+            // Проверяем непрерывность: количество добавленных элементов + дополнительные
+            checkContinuity(data.size() + EXTRA_CHECK_COUNT);
+        }
     }
 
     /**
-     * Добавляет новый элемент в буфер по указанной временной метке bucket.
-     * Если элемент с такой меткой уже существует, он будет заменён.
-     * После добавления обновляет кэшированные значения lastBucket и lastItem,
-     * удаляет старые элементы при превышении maxSize и проверяет непрерывность временных рядов.
+     * Добавляет новый элемент в конец буфера с проверкой непрерывности временных интервалов.
      *
      * @param bucket временная метка для элемента
-     * @param item элемент данных для добавления
+     * @param item   элемент данных для добавления
      * @return предыдущее значение элемента с такой же временной меткой или null, если его не было
      */
+    public C putLastItem(Instant bucket, C item) {
+        if (lastBucket != null) {
+            Duration gap = Duration.between(lastBucket, bucket);
+
+            if (gap.isNegative() || gap.compareTo(bucketDuration) > 0) {
+                LOG.debugf("[%s] Элемент не добавлен(putItem). Нарушена непрерывность данных: lastBucket=%s, newBucket=%s, gap=%s, maxAllowed=%s",
+                        name, lastBucket, bucket, gap, bucketDuration);
+                return null;
+            }
+        }
+        C c = putItem(bucket, item);
+
+        if (LOG.isDebugEnabled()) {
+            // Проверяем непрерывность: 1 добавленный элемент + дополнительные
+            checkContinuity(1 + EXTRA_CHECK_COUNT);
+        }
+        return c;
+    }
+
     public C putItem(Instant bucket, C item) {
+
         C inserted = dataMap.put(bucket, item);
         trimToSize(); // Удаляем старые элементы если превышен лимит
 
@@ -190,9 +218,6 @@ public class TimeSeriesBuffer<C> {
         updateLastBucketAndItem();
         // Обновляем firstBucket и firstItem из первого элемента dataMap
         updateFirstBucketAndItem();
-
-        // Проверяем непрерывность: 1 добавленный элемент + дополнительные
-        checkContinuity(1 + EXTRA_CHECK_COUNT);
 
         return inserted;
     }
@@ -202,7 +227,7 @@ public class TimeSeriesBuffer<C> {
      * Использует эффективные методы ConcurrentSkipListMap (subMap, tailMap, headMap) для получения подмножества за O(log n).
      * Границы интервала не включаются в результат.
      *
-     * @param after начальная граница интервала (не включается в результат), может быть null для выборки с начала
+     * @param after  начальная граница интервала (не включается в результат), может быть null для выборки с начала
      * @param before конечная граница интервала (не включается в результат), может быть null для выборки до конца
      * @return неизменяемая map с элементами в хронологическом порядке, пустая map если нет подходящих элементов
      */
@@ -242,9 +267,9 @@ public class TimeSeriesBuffer<C> {
     @Override
     public String toString() {
         return "Buffer{itemsCount=" + dataMap.size() +
-                       ", maxSize=" + maxSize +
-                       ", firstBucket=" + firstBucket +
-                       ", lastBucket=" + lastBucket +
-                       ", lastItem=" + lastItem + '}';
+                ", maxSize=" + maxSize +
+                ", firstBucket=" + firstBucket +
+                ", lastBucket=" + lastBucket +
+                ", lastItem=" + lastItem + '}';
     }
 }

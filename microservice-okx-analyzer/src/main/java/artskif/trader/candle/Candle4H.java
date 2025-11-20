@@ -13,7 +13,7 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class Candle4H extends AbstractCandle {
 
-    private final static String NAME = "4H-candle";
+    private final static String NAME = "CANDLE-4H";
     private static final Logger LOG = Logger.getLogger(Candle4H.class);
     private static final int MAX_LIVE_BUFFER_SIZE = 50;
     private static final int MAX_HISTORICAL_BUFFER_SIZE = 100000;
@@ -26,8 +26,8 @@ public class Candle4H extends AbstractCandle {
     @Inject
     public Candle4H(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration());
-        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration());
+        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration(), NAME + "-live");
+        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_4H.getDuration(), NAME + "-historical");
         this.candleBufferRepository = new CandleRepository();
     }
 
