@@ -11,10 +11,10 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
-public class Candle5M extends AbstractCandle {
+public class Candle1M extends AbstractCandle {
 
-    private final static String NAME = "CANDLE-5m";
-    private static final Logger LOG = Logger.getLogger(Candle5M.class);
+    private final static String NAME = "CANDLE-1m";
+    private static final Logger LOG = Logger.getLogger(Candle1M.class);
     private static final int MAX_LIVE_BUFFER_SIZE = 50;
     private static final int MAX_HISTORICAL_BUFFER_SIZE = 100000;
 
@@ -24,10 +24,10 @@ public class Candle5M extends AbstractCandle {
     protected final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
 
     @Inject
-    public Candle5M(ObjectMapper objectMapper, CandleEventBus bus) {
+    public Candle1M(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_5M.getDuration(), NAME + "-live");
-        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_5M.getDuration(), NAME + "-historical");
+        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_1M.getDuration(), NAME + "-live");
+        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_1M.getDuration(), NAME + "-historical");
         this.candleBufferRepository = new CandleRepository();
     }
 
@@ -39,7 +39,7 @@ public class Candle5M extends AbstractCandle {
 
     @Override
     protected CandleTimeframe getCandleTimeframe() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_1M;
     }
 
     @Override

@@ -57,7 +57,7 @@ public class OKXCandlesRestApiClient {
     @ConfigProperty(name = "okx.history.retryBackoffMs", defaultValue = "1000")
     long retryBackoffMs;
 
-    @ConfigProperty(name = "okx.history.timeframes", defaultValue = "5m,4H,1W")
+    @ConfigProperty(name = "okx.history.timeframes", defaultValue = "1m,4H,1W")
     List<String> timeframes;
 
     @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "1")
@@ -266,8 +266,8 @@ public class OKXCandlesRestApiClient {
 
     private static String normalizeBarForTopic(String bar) {
         switch (bar) {
-            case "5m":
-                return "5m";
+            case "1m":
+                return "1m";
             case "4H":
                 return "4h";
             case "1W":

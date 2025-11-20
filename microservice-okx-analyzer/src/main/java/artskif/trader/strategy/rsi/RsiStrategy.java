@@ -63,7 +63,7 @@ public class RsiStrategy extends AbstractStrategy {
 
     @Override
     protected CandleTimeframe getCandleType() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_1M;
     }
 
     @Override

@@ -1,7 +1,7 @@
 package artskif.trader.kafka;
 
 import artskif.trader.candle.Candle1W;
-import artskif.trader.candle.Candle5M;
+import artskif.trader.candle.Candle1M;
 import artskif.trader.candle.Candle4H;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
@@ -17,8 +17,8 @@ public class CandleConsumer {
 
     private final static Logger LOG = Logger.getLogger(CandleConsumer.class);
 
-    @ConfigProperty(name = "analysis.candle5m.enabled", defaultValue = "true")
-    boolean candle5mEnabled;
+    @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
+    boolean candle1mEnabled;
     @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
     boolean candle4hEnabled;
     @ConfigProperty(name = "analysis.candle1w.enabled", defaultValue = "true")
@@ -26,7 +26,7 @@ public class CandleConsumer {
 
 
     @Inject
-    Candle5M candle5m;
+    Candle1M candle1m;
     @Inject
     Candle4H candle4H;
     @Inject
@@ -37,10 +37,10 @@ public class CandleConsumer {
         LOG.info("🔌 Старт консюмера для обработки свечей");
     }
 
-    @Incoming("candle-5m")
-    public void consume5m(String message) {
-        if (candle5mEnabled) {
-            candle5m.handleTick(message);
+    @Incoming("candle-1m")
+    public void consume1m(String message) {
+        if (candle1mEnabled) {
+            candle1m.handleTick(message);
         }
     }
 
