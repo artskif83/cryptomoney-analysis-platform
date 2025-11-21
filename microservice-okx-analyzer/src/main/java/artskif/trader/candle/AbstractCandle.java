@@ -46,9 +46,10 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             }
 
             // Единым снимком, без нарушения последовательности:
+            Integer initialSize = getHistoricalBuffer().size();
             getHistoricalBuffer().restoreItems(historyDto.getData());
             log().infof("✅ [%s] Добавили в исторический буфер %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
-                    getName(), historyDto.getData().size(), getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
+                    getName(), getHistoricalBuffer().size() - initialSize, getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
             if (historyDto.isLast()) {
                 getLiveBuffer().restoreItems(historyDto.getData());
                 getLiveBuffer().incrementVersion();
@@ -81,7 +82,7 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                 log().debugf("🕯️ [%s] Получена подтвержденная свеча: bucket=%s, o=%s, h=%s, l=%s, c=%s, v=%s",
                         getName(), bucket, candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume());
                 CandlestickDto candlestickDto = getLiveBuffer().putLastItem(bucket, candle);
-                if (candlestickDto != null) {
+                if (candlestickDto == null) {
                     initSaveBuffer();
                     getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
                 }

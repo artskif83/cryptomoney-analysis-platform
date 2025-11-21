@@ -15,13 +15,13 @@ public class TimeSeriesBuffer<C> {
     private final static Logger LOG = Logger.getLogger(TimeSeriesBuffer.class);
     private static final int EXTRA_CHECK_COUNT = 300; // Дополнительные элементы для проверки
     private final Duration bucketDuration;
-    private final int maxSize;
 
     @Getter
     private final String name;
-
     @Getter
-    protected final ConcurrentSkipListMap<Instant, C> dataMap;
+    private final int maxSize;
+    @Getter
+    private final ConcurrentSkipListMap<Instant, C> dataMap;
 
     @Getter
     private volatile Instant lastBucket = null;
@@ -33,10 +33,6 @@ public class TimeSeriesBuffer<C> {
     private volatile C firstItem = null;
     @Getter
     private final AtomicInteger version;
-
-    public TimeSeriesBuffer(int maxSize, Duration bucketDuration) {
-        this(maxSize, bucketDuration, "unnamed");
-    }
 
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration, String name) {
         this.maxSize = maxSize;
