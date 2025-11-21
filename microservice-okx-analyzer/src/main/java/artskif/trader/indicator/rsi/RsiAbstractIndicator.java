@@ -14,12 +14,15 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
 
     protected final TimeSeriesBuffer<RsiPoint> rsiLiveBuffer; // Буфер для хранения актуальных точек RSI
     protected final TimeSeriesBuffer<RsiPoint> rsiHistoricalBuffer; // Буфер для хранения исторических точек RSI
 
+    protected AtomicInteger rsiLiveVersion; // версия буфера текущего RSI
+    protected AtomicInteger rsiHistoricalVersion; // версия буфера исторического RSI
     protected RsiState rsiLiveState; // состояние RSI
     protected RsiState rsiHistoricalState; // состояние RSI
     protected RsiPoint lastPoint; // состояние RSI
@@ -43,62 +46,73 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         this.metrics = metrics != null ? metrics.stream()
                 .sorted(Comparator.comparingInt(Stage::order))
                 .toList() : List.of();
+        rsiLiveVersion = new AtomicInteger(0);
+        rsiHistoricalVersion = new AtomicInteger(0);
     }
 
     @Override
     protected void handleHistoryEvent(CandleEvent take) {
 
         TimeSeriesBuffer<CandlestickDto> candleHistoricalBuffer = candle.getHistoricalBuffer();
-        // Если версия буфера свечей изменилась — пересчитываем индикатор из буфера
-        if (rsiHistoricalBuffer.getFirstBucket() == null || (candleHistoricalBuffer.getFirstBucket() != null && rsiHistoricalBuffer.getFirstBucket().isAfter(candleHistoricalBuffer.getFirstBucket()))) {
-            if (rsiHistoricalBuffer.size() == rsiHistoricalBuffer.getMaxSize()) {
-                log().debugf("📥 [%s] Буфер RSI индикатора переполнен. Максимальное количество элементов %s", getName(), rsiHistoricalBuffer.getMaxSize());
-                return;
-            }
-            log().debugf("📥 [%s] Начинаем пересчет исторического RSI индикатора. Пересчет до свечи %s", getName(), rsiHistoricalBuffer.getFirstBucket());
-            Map<Instant, CandlestickDto> candleItemsBetween = candleHistoricalBuffer.getItemsBetween(null, rsiHistoricalBuffer.getFirstBucket());
-            rsiHistoricalState = RsiState.empty(period, getCandleTimeframe());
-            RsiPipelineContext context = recalculateIndicator(candleItemsBetween, rsiHistoricalState, rsiHistoricalBuffer);
-            if (context != null) {
-                rsiHistoricalState = context.state();
-                initSaveBuffer();
-            }
-            log().debugf("📥 [%s] Исторический RSI индикатор пересчитан. Финальное состояние %s и буфер %s",
-                    getName(), rsiHistoricalState, rsiHistoricalBuffer);
+
+        RsiPipelineContext context = recalculateIndicator(rsiHistoricalBuffer, candleHistoricalBuffer, "Исторический буфер", rsiHistoricalState, rsiHistoricalVersion);
+        if (context != null) {
+            rsiHistoricalState = context.state();
+            initSaveBuffer();
+        }
+        if (rsiHistoricalVersion.get() != candleHistoricalBuffer.getVersion().get()) {
+            rsiHistoricalVersion.set(candleHistoricalBuffer.getVersion().get());
         }
     }
 
     @Override
     protected void handleTickEvent(CandleEvent ev) {
-        this.bucket = ev.bucket();
         this.lastProcessingTime = Instant.now();
 
-        TimeSeriesBuffer<CandlestickDto> liveBuffer = candle.getLiveBuffer();
-        // Если версия буфера свечей изменилась — пересчитываем индикатор из буфера
-        if (rsiLiveBuffer.getLastBucket() == null || (liveBuffer.getLastBucket() != null && rsiLiveBuffer.getLastBucket().isBefore(liveBuffer.getLastBucket()))) {
-            log().debugf("📥 [%s] Начинаем пересчет актуального RSI индикатора", getName());
+        TimeSeriesBuffer<CandlestickDto> candleLiveBuffer = candle.getLiveBuffer();
 
-            Map<Instant, CandlestickDto> candleItemsBetween = liveBuffer.getItemsBetween(rsiLiveBuffer.getLastBucket(), null);
-            if (rsiLiveBuffer.getLastBucket() == null) {
-                rsiLiveState = RsiState.empty(period, getCandleTimeframe());
-            }
 
-            RsiPipelineContext context = recalculateIndicator(candleItemsBetween, rsiLiveState, rsiLiveBuffer);
-            if (context != null) {
-                rsiLiveState = context.state();
-                initSaveBuffer();
-            }
-            lastPoint = rsiLiveBuffer.getLastItem();
-            log().debugf("📥 [%s] Актуальный RSI индикатор пересчитан. Финальное состояние %s и буфер %s",
-                    getName(), rsiLiveState, rsiLiveBuffer);
+        RsiPipelineContext context = recalculateIndicator(rsiLiveBuffer, candleLiveBuffer, "Актуальный буфер", rsiLiveState, rsiLiveVersion);
+        if (context != null) {
+            rsiLiveState = context.state();
+            initSaveBuffer();
         }
+        if (rsiLiveVersion.get() != candleLiveBuffer.getVersion().get()) {
+            rsiLiveVersion.set(candleLiveBuffer.getVersion().get());
+        }
+        lastPoint = rsiLiveBuffer.getLastItem();
     }
 
-    private synchronized RsiPipelineContext recalculateIndicator(Map<Instant, CandlestickDto> candleItems, RsiState rsiState, TimeSeriesBuffer<RsiPoint> rsiBuffer) {
-        RsiPipelineContext context = null;
-        if (candleItems != null && !candleItems.isEmpty()) {
+    private synchronized RsiPipelineContext recalculateIndicator(TimeSeriesBuffer<RsiPoint> rsiBuffer, TimeSeriesBuffer<CandlestickDto> candleBuffer, String bufferDescription, RsiState rsiState, AtomicInteger version) {
 
-            for (Map.Entry<Instant, CandlestickDto> entry : candleItems.entrySet()) {
+        if (candleBuffer.isEmpty() || candleBuffer.getLastBucket() == null) {
+            log().debugf("📥 [%s] %s свечей пустой, пропускаем пересчет исторического RSI индикатора", getName(), bufferDescription);
+            return null;
+        }
+        if (rsiBuffer.size() == rsiBuffer.getMaxSize()) {
+            log().debugf("📥 [%s] %s RSI индикатора переполнен. Максимальное количество элементов %s", getName(), bufferDescription, rsiBuffer.getMaxSize());
+            return null;
+        }
+
+        log().debugf("📥 [%s] %s пересчитывается. RSI буфер: [%s - %s], Candle буфер: [%s - %s]",
+                getName(), bufferDescription,
+                rsiBuffer.getFirstBucket(), rsiBuffer.getLastBucket(),
+                candleBuffer.getFirstBucket(), candleBuffer.getLastBucket());
+        if (rsiBuffer.getLastBucket() == null
+                || rsiBuffer.getLastBucket().isAfter(candleBuffer.getLastBucket())
+                || version.get() != candleBuffer.getVersion().get()) {
+            log().debugf("📥 [%s] %s очищаем состояние и пересчитываем с нуля. Причина: rsiLastBucket=%s, candleLastBucket=%s, rsiVersion=%d, candleVersion=%d",
+                    getName(), bufferDescription, rsiBuffer.getLastBucket(), candleBuffer.getLastBucket(), version.get(), candleBuffer.getVersion().get());
+            rsiState = RsiState.empty(period, getCandleTimeframe());
+            rsiBuffer.clear();
+        }
+        Map<Instant, CandlestickDto> candleItemsBetween = candleBuffer.getItemsBetween(rsiBuffer.getLastBucket(), null);
+
+        log().debugf("📥 [%s] %s пересчитываем для %d элементов", getName(), bufferDescription, candleItemsBetween.size());
+        RsiPipelineContext context = null;
+        if (!candleItemsBetween.isEmpty()) {
+
+            for (Map.Entry<Instant, CandlestickDto> entry : candleItemsBetween.entrySet()) {
                 Instant candleBucket = entry.getKey();
                 CandlestickDto candleDto = entry.getValue();
 
@@ -120,6 +134,8 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
                     rsiBuffer.putItem(context.point().bucket(), context.point());
                 }
             }
+            log().debugf("📥 [%s] %s RSI индикатор пересчитан. Финальное состояние %s и буфер %s",
+                    getName(), bufferDescription, rsiState, rsiBuffer);
         } else {
             log().warnf("📥 [%s] Буфер свечей не содержит подтвержденных данных", getName());
         }

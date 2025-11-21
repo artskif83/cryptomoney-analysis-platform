@@ -26,7 +26,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     @ActivateRequestContext
     protected void initRestoreBuffer() {
         log().infof("📥 [%s] Восстанавливаем информационные свечи из хранилища", getName());
-        getLiveBuffer().restoreItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
+        getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
     }
 
     protected void initSaveBuffer() {

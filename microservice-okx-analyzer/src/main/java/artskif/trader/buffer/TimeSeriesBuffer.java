@@ -34,6 +34,9 @@ public class TimeSeriesBuffer<C> {
     @Getter
     private final AtomicInteger version;
 
+    // Объект для синхронизации операций модификации буфера
+    private final Object modificationLock = new Object();
+
     public TimeSeriesBuffer(int maxSize, Duration bucketDuration, String name) {
         this.maxSize = maxSize;
         this.dataMap = new ConcurrentSkipListMap<>();
@@ -94,47 +97,6 @@ public class TimeSeriesBuffer<C> {
     }
 
     /**
-     * Проверяет непрерывность временных интервалов в последних элементах буфера.
-     * Все соседние bucket'ы должны отличаться друг от друга ровно на bucketDuration.
-     * При обнаружении разрывов (пропущенных временных интервалов) выводит предупреждение в лог.
-     * Проверка помогает выявлять проблемы с поступлением данных.
-     *
-     * @param lastCount количество последних элементов для проверки непрерывности
-     */
-    private void checkContinuity(int lastCount) {
-        if (dataMap.size() < 2) {
-            return; // Нечего проверять
-        }
-
-        // Получаем последние lastCount элементов
-        int checkSize = Math.min(lastCount, dataMap.size());
-        Instant[] buckets = new Instant[checkSize];
-        int index = 0;
-        int skip = dataMap.size() - checkSize;
-        int current = 0;
-
-        for (Instant bucket : dataMap.keySet()) {
-            if (current >= skip) {
-                buckets[index++] = bucket;
-            }
-            current++;
-        }
-
-        // Проверяем непрерывность
-        for (int i = 1; i < buckets.length; i++) {
-            Instant prev = buckets[i - 1];
-            Instant curr = buckets[i];
-            Duration gap = Duration.between(prev, curr);
-
-            if (!gap.equals(bucketDuration)) {
-                LOG.debugf("[%s] Обнаружен разрыв в непрерывности данных: prevBucket=%s, currBucket=%s, " +
-                                "gap=%s, expect=%s (index=%d из %d проверяемых)",
-                        name, prev, curr, gap, bucketDuration, i, buckets.length);
-            }
-        }
-    }
-
-    /**
      * Проверяет, пуст ли буфер временных рядов.
      *
      * @return true если в буфере нет элементов, false иначе
@@ -160,62 +122,38 @@ public class TimeSeriesBuffer<C> {
      *
      * @param data map с данными для загрузки, где ключ - временная метка bucket, значение - элемент данных
      */
-    public void restoreItems(Map<Instant, C> data) {
+    public void putItems(Map<Instant, C> data) {
         if (data.isEmpty()) {
             return;
         }
 
-        dataMap.putAll(data);
-        trimToSize(); // Удаляем старые элементы если превышен лимит
+        synchronized (modificationLock) {
+            dataMap.putAll(data);
+            trimToSize(); // Удаляем старые элементы если превышен лимит
 
-        // Обновляем lastBucket и lastItem из последнего элемента dataMap
-        updateLastBucketAndItem();
-        // Обновляем firstBucket и firstItem из первого элемента dataMap
-        updateFirstBucketAndItem();
-
-        if (LOG.isDebugEnabled()) {
-            // Проверяем непрерывность: количество добавленных элементов + дополнительные
-            checkContinuity(data.size() + EXTRA_CHECK_COUNT);
+            // Обновляем lastBucket и lastItem из последнего элемента dataMap
+            updateLastBucketAndItem();
+            // Обновляем firstBucket и firstItem из первого элемента dataMap
+            updateFirstBucketAndItem();
         }
     }
 
-    /**
-     * Добавляет новый элемент в конец буфера с проверкой непрерывности временных интервалов.
-     *
-     * @param bucket временная метка для элемента
-     * @param item   элемент данных для добавления
-     * @return предыдущее значение элемента с такой же временной меткой или null, если его не было
-     */
-    public C putLastItem(Instant bucket, C item) {
-        if (lastBucket != null) {
-            Duration gap = Duration.between(lastBucket, bucket);
-
-            if (gap.isNegative() || gap.compareTo(bucketDuration) > 0) {
-                LOG.debugf("[%s] Элемент не добавлен(putItem). Нарушена непрерывность данных: lastBucket=%s, newBucket=%s, gap=%s, maxAllowed=%s",
-                        name, lastBucket, bucket, gap, bucketDuration);
-                return null;
-            }
+    public boolean putItem(Instant bucket, C item) {
+        if (item == null) {
+            return false;
         }
-        C c = putItem(bucket, item);
 
-        if (LOG.isDebugEnabled()) {
-            // Проверяем непрерывность: 1 добавленный элемент + дополнительные
-            checkContinuity(1 + EXTRA_CHECK_COUNT);
+        synchronized (modificationLock) {
+            C inserted = dataMap.put(bucket, item);
+            trimToSize(); // Удаляем старые элементы если превышен лимит
+
+            // Обновляем lastBucket и lastItem из последнего элемента dataMap
+            updateLastBucketAndItem();
+            // Обновляем firstBucket и firstItem из первого элемента dataMap
+            updateFirstBucketAndItem();
+
+            return inserted == null;
         }
-        return c;
-    }
-
-    public C putItem(Instant bucket, C item) {
-
-        C inserted = dataMap.put(bucket, item);
-        trimToSize(); // Удаляем старые элементы если превышен лимит
-
-        // Обновляем lastBucket и lastItem из последнего элемента dataMap
-        updateLastBucketAndItem();
-        // Обновляем firstBucket и firstItem из первого элемента dataMap
-        updateFirstBucketAndItem();
-
-        return inserted;
     }
 
     /**
@@ -233,13 +171,13 @@ public class TimeSeriesBuffer<C> {
 
         if (after != null && before != null) {
             // Оба параметра заданы: используем subMap с исключающими границами
-            subMap = new ConcurrentSkipListMap<>(dataMap.subMap(after, false, before, false));
+            subMap = new ConcurrentSkipListMap<>(dataMap.subMap(after, false, before, true));
         } else if (after != null) {
             // Только after задан: используем tailMap с исключающей нижней границей
             subMap = new ConcurrentSkipListMap<>(dataMap.tailMap(after, false));
         } else if (before != null) {
             // Только before задан: используем headMap с исключающей верхней границей
-            subMap = new ConcurrentSkipListMap<>(dataMap.headMap(before, false));
+            subMap = new ConcurrentSkipListMap<>(dataMap.headMap(before, true));
         } else {
             // Оба параметра null: возвращаем все элементы
             subMap = new ConcurrentSkipListMap<>(dataMap);
@@ -249,15 +187,133 @@ public class TimeSeriesBuffer<C> {
     }
 
     /**
+     * Проверяет непрерывность временных рядов с начала буфера.
+     * При обнаружении первого разрыва (gap больше bucketDuration) удаляет все элементы новее (после) этого разрыва.
+     * Возвращает количество удаленных элементов.
+     * Метод потокобезопасен и синхронизирован с другими операциями модификации буфера.
+     *
+     * @return количество удаленных элементов
+     */
+    public int removeNewerThanFirstGap() {
+        synchronized (modificationLock) {
+            if (dataMap.size() < 2) {
+                return 0; // Нечего проверять
+            }
+
+            // Создаем снимок ключей для безопасной итерации
+            Instant[] buckets = dataMap.keySet().toArray(new Instant[0]);
+
+            Instant prevBucket = null;
+            Instant gapBucket = null;
+
+            // Ищем первый разрыв с начала
+            for (Instant bucket : buckets) {
+                if (prevBucket != null) {
+                    Duration gap = Duration.between(prevBucket, bucket);
+
+                    if (gap.compareTo(bucketDuration) > 0) {
+                        // Найден разрыв - запоминаем bucket после которого произошел разрыв (начало гапа)
+                        gapBucket = bucket;
+                        LOG.debugf("[%s] Найден разрыв с начала: prevBucket=%s, currBucket=%s, gap=%s, expected=%s",
+                                name, prevBucket, bucket, gap, bucketDuration);
+                        break;
+                    }
+                }
+                prevBucket = bucket;
+            }
+
+            // Если найден разрыв, удаляем все элементы после него (новее) включительно
+            int removedCount = 0;
+            if (gapBucket != null) {
+                Map.Entry<Instant, C> entry;
+                while ((entry = dataMap.lastEntry()) != null && !entry.getKey().isBefore(gapBucket)) {
+                    dataMap.pollLastEntry();
+                    removedCount++;
+                }
+
+                if (removedCount > 0) {
+                    updateFirstBucketAndItem();
+                    updateLastBucketAndItem();
+                    incrementVersion();
+                    LOG.debugf("[%s] Удалено %d элементов новее разрыва", name, removedCount);
+                }
+            }
+
+            return removedCount;
+        }
+    }
+
+    /**
+     * Проверяет непрерывность временных рядов с конца буфера.
+     * При обнаружении первого разрыва (gap больше bucketDuration) удаляет все элементы старее (до) этого разрыва.
+     * Возвращает количество удаленных элементов.
+     * Метод потокобезопасен и синхронизирован с другими операциями модификации буфера.
+     *
+     * @return количество удаленных элементов
+     */
+    public int removeOlderThanLastGap() {
+        synchronized (modificationLock) {
+            if (dataMap.size() < 2) {
+                return 0; // Нечего проверять
+            }
+
+            // Создаем снимок ключей в обратном порядке для безопасной итерации
+            Instant[] buckets = dataMap.descendingKeySet().toArray(new Instant[0]);
+
+            Instant nextBucket = null;
+            Instant gapBucket = null;
+
+            // Идем с конца и ищем первый разрыв
+            for (Instant bucket : buckets) {
+                if (nextBucket != null) {
+                    Duration gap = Duration.between(bucket, nextBucket);
+
+                    if (gap.compareTo(bucketDuration) > 0) {
+                        // Найден разрыв - запоминаем bucket перед которым произошел разрыв (конец гапа)
+                        gapBucket = bucket;
+                        LOG.debugf("[%s] Найден разрыв с конца: currBucket=%s, nextBucket=%s, gap=%s, expected=%s",
+                                name, bucket, nextBucket, gap, bucketDuration);
+                        break;
+                    }
+                }
+                nextBucket = bucket;
+            }
+
+            // Если найден разрыв, удаляем все элементы до него (старее) включительно
+            int removedCount = 0;
+            if (gapBucket != null) {
+                Map.Entry<Instant, C> entry;
+                while ((entry = dataMap.firstEntry()) != null && !entry.getKey().isAfter(gapBucket)) {
+                    dataMap.pollFirstEntry();
+                    removedCount++;
+                }
+
+                if (removedCount > 0) {
+                    updateFirstBucketAndItem();
+                    updateLastBucketAndItem();
+                    incrementVersion();
+                    LOG.debugf("[%s] Удалено %d элементов старее разрыва", name, removedCount);
+                }
+            }
+
+            return removedCount;
+        }
+    }
+
+    /**
      * Полностью очищает буфер, удаляя все элементы и сбрасывая кэшированные значения.
      * После вызова этого метода буфер будет пустым, lastBucket и lastItem будут установлены в null.
+     * Метод потокобезопасен и синхронизирован с другими операциями модификации буфера.
      */
     public void clear() {
-        dataMap.clear();
-        lastBucket = null;
-        lastItem = null;
-        firstBucket = null;
-        firstItem = null;
+        synchronized (modificationLock) {
+            dataMap.clear();
+            lastBucket = null;
+            lastItem = null;
+            firstBucket = null;
+            firstItem = null;
+            incrementVersion();
+        }
     }
 
     @Override
