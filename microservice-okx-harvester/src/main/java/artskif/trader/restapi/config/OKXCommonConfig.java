@@ -2,12 +2,14 @@ package artskif.trader.restapi.config;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Общие настройки для всех харвестеров OKX
  */
 @ApplicationScoped
+@Getter
 public class OKXCommonConfig {
 
     @ConfigProperty(name = "okx.history.baseUrl", defaultValue = "https://www.okx.com")
@@ -30,33 +32,5 @@ public class OKXCommonConfig {
 
     @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "1")
     int pagesLimit;
-
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    public String getInstId() {
-        return instId;
-    }
-
-    public int getLimit() {
-        return limit;
-    }
-
-    public long getRequestPauseMs() {
-        return requestPauseMs;
-    }
-
-    public int getMaxRetries() {
-        return maxRetries;
-    }
-
-    public long getRetryBackoffMs() {
-        return retryBackoffMs;
-    }
-
-    public int getPagesLimit() {
-        return pagesLimit;
-    }
 }
 

@@ -30,5 +30,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
     implementation 'io.quarkus:quarkus-jdbc-postgresql'
 
+    // Lombok (для автогенерации геттеров/сеттеров и т.д.)
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
     testImplementation 'io.quarkus:quarkus-junit5'
 }

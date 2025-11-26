@@ -37,11 +37,11 @@ public abstract class AbstractHistoryCandle implements Runnable {
     @PostConstruct
     void onStart() {
         if (!isEnabled()) {
-            LOG.infof("⚙️ Харвестер %s отключен", getTimeframe());
+            LOG.infof("⚙️ Харвестер исторических свечей с таймфреймом %s отключен", getTimeframe());
             return;
         }
 
-        LOG.infof("🚀 Запуск харвестера %s: instId=%s startEpochMs=%s pagesLimit=%d",
+        LOG.infof("🚀 Запуск исторического харвестера для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
                 getTimeframe(), commonConfig.getInstId(),
                 Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
 
@@ -56,7 +56,7 @@ public abstract class AbstractHistoryCandle implements Runnable {
     @Override
     public void run() {
         try {
-            CryptoRestApiClient apiClient = createApiClient();
+            CryptoRestApiClient<CandleRequest> apiClient = createApiClient();
             HarvestConfig config = createHarvestConfig();
 
             long latestTimestamp = getLatestTimestamp();
@@ -65,16 +65,16 @@ public abstract class AbstractHistoryCandle implements Runnable {
 
             harvest(apiClient, latestTimestamp, config);
 
-            LOG.infof("✅ Харвестер %s завершил работу", getTimeframe());
+            LOG.infof("✅ Исторический харвестер %s завершил работу", getTimeframe());
         } catch (Exception e) {
-            LOG.errorf(e, "❌ Критическая ошибка в харвестере %s", getTimeframe());
+            LOG.errorf(e, "❌ Критическая ошибка в историческом харвестере %s", getTimeframe());
         }
     }
 
     /**
      * Основная логика сбора данных
      */
-    protected void harvest(CryptoRestApiClient apiClient, long latestTimestamp, HarvestConfig config) {
+    protected void harvest(CryptoRestApiClient<CandleRequest> apiClient, long latestTimestamp, HarvestConfig config) {
         String timeframe = getTimeframe();
         String topic = buildTopicName(timeframe);
         LOG.infof("📥 Harvest: timeframe=%s -> topic=%s", timeframe, topic);
@@ -83,11 +83,11 @@ public abstract class AbstractHistoryCandle implements Runnable {
         Long from = latestTimestamp;
         int pagesLoaded = 0;
 
-        while (pagesLoaded < config.getPagesLimit()) {
+        while (pagesLoaded < config.pagesLimit()) {
             CandleRequest request = CandleRequest.builder()
-                    .instId(config.getInstId())
+                    .instId(config.instId())
                     .timeframe(timeframe)
-                    .limit(config.getLimit())
+                    .limit(config.limit())
                     .before(from)
                     .after(to)
                     .build();
@@ -108,7 +108,7 @@ public abstract class AbstractHistoryCandle implements Runnable {
             logCandleData(timeframe, data);
 
             boolean isLast = (to == null);
-            String payload = buildPayload(config.getInstId(), isLast, data);
+            String payload = buildPayload(config.instId(), isLast, data);
             kafkaProducer.sendMessage(topic, payload);
 
             if (minTs <= latestTimestamp) {
@@ -122,7 +122,7 @@ public abstract class AbstractHistoryCandle implements Runnable {
                     pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs));
 
             to = minTs - 1;
-            sleep(config.getRequestPauseMs());
+            sleep(config.requestPauseMs());
         }
     }
 

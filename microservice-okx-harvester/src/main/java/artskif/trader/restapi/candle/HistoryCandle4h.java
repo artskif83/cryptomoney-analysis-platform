@@ -17,14 +17,20 @@ public class HistoryCandle4h extends AbstractHistoryCandle {
     @ConfigProperty(name = "okx.history.4h.startEpochMs", defaultValue = "1609459200000")
     long startEpochMs;
 
+    @ConfigProperty(name = "okx.history.4h.timeframe", defaultValue = "4H")
+    String timeframe;
+
+    @ConfigProperty(name = "okx.history.4h.dbTimeframeKey", defaultValue = "CANDLE_4H")
+    String dbTimeframeKey;
+
     @Override
     protected String getTimeframe() {
-        return "4H";
+        return timeframe;
     }
 
     @Override
     protected String getDbTimeframeKey() {
-        return "CANDLE_4H";
+        return dbTimeframeKey;
     }
 
     @Override
