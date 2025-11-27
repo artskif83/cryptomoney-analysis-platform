@@ -1,5 +1,6 @@
 package artskif.trader.restapi.candle;
 
+import artskif.trader.common.CandleTimeframe;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -26,6 +27,11 @@ public class HistoryCandle1w extends AbstractHistoryCandle {
     @Override
     protected String getTimeframe() {
         return timeframe;
+    }
+
+    @Override
+    protected CandleTimeframe getTimeframeType() {
+        return CandleTimeframe.CANDLE_1W;
     }
 
     @Override

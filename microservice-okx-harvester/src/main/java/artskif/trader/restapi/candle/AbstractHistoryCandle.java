@@ -1,5 +1,6 @@
 package artskif.trader.restapi.candle;
 
+import artskif.trader.common.CandleTimeframe;
 import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.repository.CandleRepository;
 import artskif.trader.restapi.config.OKXCommonConfig;
@@ -59,9 +60,23 @@ public abstract class AbstractHistoryCandle implements Runnable {
             CryptoRestApiClient<CandleRequest> apiClient = createApiClient();
             HarvestConfig config = createHarvestConfig();
 
-            long latestTimestamp = getLatestTimestamp();
-            LOG.infof("📍 Граница: timeframe=%s stopAt=%d (%s)",
-                    getTimeframe(), latestTimestamp, Instant.ofEpochMilli(latestTimestamp));
+            // Ищем ближайший гап в последовательности свечей
+            Optional<CandleRepository.TimeGap> gapOpt = findNearestGap();
+
+            long latestTimestamp;
+            if (gapOpt.isPresent()) {
+                CandleRepository.TimeGap gap = gapOpt.get();
+                latestTimestamp = gap.getStartEpochMs();
+                LOG.infof("📍 Найден гап: timeframe=%s начало=%s (%d) конец=%s (%d)",
+                        getTimeframe(),
+                        gap.getStart(), latestTimestamp,
+                        gap.getEnd(), gap.getEndEpochMs());
+            } else {
+                // Если гапов нет, используем последнюю свечу
+                latestTimestamp = getLatestTimestamp();
+                LOG.infof("📍 Гапы не найдены. Граница: timeframe=%s stopAt=%d (%s)",
+                        getTimeframe(), latestTimestamp, Instant.ofEpochMilli(latestTimestamp));
+            }
 
             harvest(apiClient, latestTimestamp, config);
 
@@ -152,6 +167,19 @@ public abstract class AbstractHistoryCandle implements Runnable {
         );
     }
 
+    /**
+     * Находит ближайший к текущему времени временной разрыв (гап) в последовательности свечей.
+     * Если гап не найден, возвращает Optional.empty()
+     */
+    private Optional<CandleRepository.TimeGap> findNearestGap() {
+        return candleRepository.findNearestGap(
+                commonConfig.getInstId(),
+                getDbTimeframeKey(),
+                getTimeframeType().getDuration(),
+                getStartEpochMs()
+        );
+    }
+
     private String buildTopicName(String timeframe) {
         return "okx-candle-" + normalizeTimeframe(timeframe) + "-history";
     }
@@ -204,6 +232,11 @@ public abstract class AbstractHistoryCandle implements Runnable {
      * Получить таймфрейм для API запроса (например "1m", "4H", "1W")
      */
     protected abstract String getTimeframe();
+
+    /**
+     * Получить тип таймфрейма
+     */
+    protected abstract CandleTimeframe getTimeframeType();
 
     /**
      * Получить ключ таймфрейма для БД (например "CANDLE_1M", "CANDLE_4H")
