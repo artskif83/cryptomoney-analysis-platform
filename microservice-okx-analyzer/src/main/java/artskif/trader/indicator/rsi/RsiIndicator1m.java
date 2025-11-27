@@ -4,7 +4,6 @@ import artskif.trader.candle.Candle1M;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.common.Stage;
-import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;

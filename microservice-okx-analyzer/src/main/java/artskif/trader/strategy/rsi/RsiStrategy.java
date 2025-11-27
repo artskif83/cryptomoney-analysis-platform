@@ -15,10 +15,8 @@ import jakarta.inject.Inject;
 import my.signals.v1.*;
 import org.jboss.logging.Logger;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Startup
 @ApplicationScoped

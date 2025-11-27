@@ -4,6 +4,6 @@ include(
         ":microservice-okx-analyzer",
         ":microservice-okx-harvester",
         ":microservice-okx-executor",
-        ":common-avro"
+        ":common"
 )
 

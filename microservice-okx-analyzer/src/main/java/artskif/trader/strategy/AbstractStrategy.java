@@ -7,11 +7,7 @@ import artskif.trader.events.CandleEventListener;
 import artskif.trader.indicator.IndicatorPoint;
 import my.signals.v1.StrategyKind;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 public abstract class AbstractStrategy implements CandleEventListener {

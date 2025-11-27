@@ -35,7 +35,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
-    implementation project(':common-avro') // общий модуль с .proto (если монорепо)
+    implementation project(':common') // общий модуль с .proto (если монорепо)
 
     // Telegram Bots Starter (9.0.0)
     implementation 'org.telegram:telegrambots-springboot-longpolling-starter:9.0.0'
