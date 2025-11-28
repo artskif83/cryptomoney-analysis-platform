@@ -3,6 +3,7 @@ package artskif.trader.restapi.candle;
 import artskif.trader.common.CandleTimeframe;
 import artskif.trader.kafka.KafkaProducer;
 import artskif.trader.repository.CandleRepository;
+import artskif.trader.repository.TimeGap;
 import artskif.trader.restapi.config.OKXCommonConfig;
 import artskif.trader.restapi.core.CandleRequest;
 import artskif.trader.restapi.core.CryptoRestApiClient;
@@ -14,6 +15,7 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -60,25 +62,16 @@ public abstract class AbstractHistoryCandle implements Runnable {
             CryptoRestApiClient<CandleRequest> apiClient = createApiClient();
             HarvestConfig config = createHarvestConfig();
 
-            // Ищем ближайший гап в последовательности свечей
-            Optional<CandleRepository.TimeGap> gapOpt = findNearestGap();
+            // Ищем все гапы в последовательности свечей
+            List<TimeGap> allGaps = findAllGaps();
 
-            long latestTimestamp;
-            if (gapOpt.isPresent()) {
-                CandleRepository.TimeGap gap = gapOpt.get();
-                latestTimestamp = gap.getStartEpochMs();
-                LOG.infof("📍 Найден гап: timeframe=%s начало=%s (%d) конец=%s (%d)",
-                        getTimeframe(),
-                        gap.getStart(), latestTimestamp,
-                        gap.getEnd(), gap.getEndEpochMs());
-            } else {
-                // Если гапов нет, используем последнюю свечу
-                latestTimestamp = getLatestTimestamp();
-                LOG.infof("📍 Гапы не найдены. Граница: timeframe=%s stopAt=%d (%s)",
-                        getTimeframe(), latestTimestamp, Instant.ofEpochMilli(latestTimestamp));
+            if (allGaps.isEmpty()) {
+                LOG.infof("✅ Гапы не найдены для %s, данные полные", getTimeframe());
+                return;
             }
 
-            harvest(apiClient, latestTimestamp, config);
+            LOG.infof("📋 Найдено %d гапов для заполнения, таймфрейм: %s", allGaps.size(), getTimeframe());
+            harvest(apiClient, allGaps, config);
 
             LOG.infof("✅ Исторический харвестер %s завершил работу", getTimeframe());
         } catch (Exception e) {
@@ -87,58 +80,122 @@ public abstract class AbstractHistoryCandle implements Runnable {
     }
 
     /**
-     * Основная логика сбора данных
+     * Основная логика сбора данных для всех гапов
      */
-    protected void harvest(CryptoRestApiClient<CandleRequest> apiClient, long latestTimestamp, HarvestConfig config) {
+    protected void harvest(CryptoRestApiClient<CandleRequest> apiClient, List<TimeGap> timeGaps, HarvestConfig config) {
         String timeframe = getTimeframe();
         String topic = buildTopicName(timeframe);
-        LOG.infof("📥 Harvest: timeframe=%s -> topic=%s", timeframe, topic);
 
-        Long to = null;
-        Long from = latestTimestamp;
+        LOG.infof("📥 Harvest: timeframe=%s -> topic=%s, гапов для обработки: %d", timeframe, topic, timeGaps.size());
+
+        int totalPagesLoaded = 0;
+        int gapNumber = 0;
+
+        // Обрабатываем каждый гап
+        for (TimeGap gap : timeGaps) {
+            gapNumber++;
+            Long gapStartMs = gap.getStartEpochMs();
+            Long gapEndMs = gap.getEndEpochMs();
+
+            LOG.infof("🔧 Обработка гапа #%d/%d: %s", gapNumber, timeGaps.size(), gap);
+
+            // Для каждого гапа запрашиваем данные с постраничным разбиением
+            int gapPagesLoaded = harvestGap(apiClient, config, timeframe, topic, gapStartMs, gapEndMs, gapNumber, timeGaps.size());
+            totalPagesLoaded += gapPagesLoaded;
+
+            LOG.infof("✅ Гап #%d обработан, загружено страниц: %d", gapNumber, gapPagesLoaded);
+
+            // Проверяем общий лимит страниц
+            if (totalPagesLoaded >= config.pagesLimit()) {
+                LOG.warnf("⚠️ Достигнут общий лимит страниц: %d, остановка харвестера", config.pagesLimit());
+                break;
+            }
+        }
+
+        LOG.infof("📊 Итого загружено страниц для всех гапов: %d", totalPagesLoaded);
+    }
+
+    /**
+     * Обрабатывает один гап с постраничным разбиением
+     *
+     * @param apiClient клиент для запросов
+     * @param config конфигурация харвестера
+     * @param timeframe таймфрейм свечей
+     * @param topic топик Kafka для отправки
+     * @param gapStartMs начало гапа в миллисекундах
+     * @param gapEndMs конец гапа в миллисекундах
+     * @param gapNumber номер текущего гапа
+     * @param totalGaps общее количество гапов
+     * @return количество загруженных страниц
+     */
+    private int harvestGap(CryptoRestApiClient<CandleRequest> apiClient, HarvestConfig config,
+                          String timeframe, String topic, Long gapStartMs, Long gapEndMs,
+                          int gapNumber, int totalGaps) {
+
+        // OKX API: before - верхняя граница (более поздние свечи), after - нижняя граница (более ранние свечи)
+        // Запрашиваем от конца гапа (gapEndMs) к началу (gapStartMs)
+        Long before = gapEndMs;  // Начинаем с конца гапа
+        Long after = gapStartMs;  // Не выходим за начало гапа
+
         int pagesLoaded = 0;
+        int remainingPages = config.pagesLimit();
 
-        while (pagesLoaded < config.pagesLimit()) {
+        while (pagesLoaded < remainingPages) {
             CandleRequest request = CandleRequest.builder()
                     .instId(config.instId())
                     .timeframe(timeframe)
                     .limit(config.limit())
-                    .before(from)
-                    .after(to)
+                    .before(before)
+                    .after(after)
                     .build();
 
             Optional<JsonNode> rootOpt = apiClient.fetchCandles(request);
             if (rootOpt.isEmpty()) {
-                LOG.warnf("⚠️ Пропуск страницы для timeframe=%s", timeframe);
+                LOG.warnf("⚠️ Пропуск страницы для timeframe=%s в гапе [%d - %d]",
+                         timeframe, gapStartMs, gapEndMs);
                 break;
             }
 
             JsonNode data = rootOpt.get().path("data");
             if (!data.isArray() || data.isEmpty()) {
-                LOG.infof("🏁 Данных больше нет: timeframe=%s", timeframe);
+                LOG.infof("🏁 Данных больше нет в гапе [%d - %d] для timeframe=%s",
+                         gapStartMs, gapEndMs, timeframe);
                 break;
             }
 
             long minTs = extractMinTimestamp(data);
-            logCandleData(timeframe, data);
+            boolean isLast = (before == null);
 
-            boolean isLast = (to == null);
+            // Детальное логирование с информацией о гапе и конфигурации
+            logCandleData(timeframe, data, gapNumber, totalGaps, gapStartMs, gapEndMs, minTs, isLast, config);
+
             String payload = buildPayload(config.instId(), isLast, data);
             kafkaProducer.sendMessage(topic, payload);
 
-            if (minTs <= latestTimestamp) {
-                LOG.infof("⛳ Граница достигнута: minTs=%d <= %d для timeframe=%s",
-                        minTs, latestTimestamp, timeframe);
+            pagesLoaded++;
+            LOG.infof("📦 Страница #%d (%d записей) для timeframe=%s в гапе; minTs=%d (%s)",
+                    pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs));
+
+            // Проверяем, достигли ли мы начала гапа
+            if (minTs <= gapStartMs) {
+                LOG.infof("⛳ Граница гапа достигнута: minTs=%d <= gapStart=%d для timeframe=%s",
+                        minTs, gapStartMs, timeframe);
                 break;
             }
 
-            pagesLoaded++;
-            LOG.infof("📦 Страница #%d (%d записей) для timeframe=%s; minTs=%d (%s)",
-                    pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs));
+            // Двигаемся дальше в прошлое
+            before = minTs - 1;
 
-            to = minTs - 1;
+            // Убеждаемся, что не вышли за границу гапа
+            if (before < gapStartMs) {
+                LOG.infof("⛳ before=%d вышел за начало гапа=%d, останавливаемся", before, gapStartMs);
+                break;
+            }
+
             sleep(config.requestPauseMs());
         }
+
+        return pagesLoaded;
     }
 
     private CryptoRestApiClient<CandleRequest> createApiClient() {
@@ -159,20 +216,12 @@ public abstract class AbstractHistoryCandle implements Runnable {
                 .build();
     }
 
-    private long getLatestTimestamp() {
-        return candleRepository.getLatestCandleTimestamp(
-                commonConfig.getInstId(),
-                getDbTimeframeKey(),
-                getStartEpochMs()
-        );
-    }
-
     /**
      * Находит ближайший к текущему времени временной разрыв (гап) в последовательности свечей.
      * Если гап не найден, возвращает Optional.empty()
      */
-    private Optional<CandleRepository.TimeGap> findNearestGap() {
-        return candleRepository.findNearestGap(
+    private List<TimeGap> findAllGaps() {
+        return candleRepository.findAllGaps(
                 commonConfig.getInstId(),
                 getDbTimeframeKey(),
                 getTimeframeType().getDuration(),
@@ -193,18 +242,43 @@ public abstract class AbstractHistoryCandle implements Runnable {
         return minTs;
     }
 
-    private void logCandleData(String timeframe, JsonNode data) {
-        if (!LOG.isDebugEnabled()) return;
+    private void logCandleData(String timeframe, JsonNode data, int gapNumber, int totalGaps,
+                              Long gapStartMs, Long gapEndMs, long minTs, boolean isLast, HarvestConfig config) {
+        if (!LOG.isDebugEnabled() || !data.isArray() || data.isEmpty()) return;
 
-        LOG.debugf("📊 Данные для timeframe=%s:", timeframe);
-        for (JsonNode arr : data) {
-            if (arr.isArray() && arr.size() >= 6) {
-                LOG.debugf("  🕐 %s | O:%.2f H:%.2f L:%.2f C:%.2f V:%.2f",
-                        Instant.ofEpochMilli(arr.get(0).asLong()),
-                        arr.get(1).asDouble(), arr.get(2).asDouble(),
-                        arr.get(3).asDouble(), arr.get(4).asDouble(),
-                        arr.get(5).asDouble());
-            }
+        // Получаем первую и последнюю свечу
+        JsonNode firstCandle = data.get(0);
+        JsonNode lastCandle = data.get(data.size() - 1);
+
+        if (firstCandle.isArray() && !firstCandle.isEmpty() &&
+            lastCandle.isArray() && !lastCandle.isEmpty()) {
+
+            Instant firstTs = Instant.ofEpochMilli(firstCandle.get(0).asLong());
+            Instant lastTs = Instant.ofEpochMilli(lastCandle.get(0).asLong());
+
+            // Обработка null значений для gapStartMs и gapEndMs
+            String gapStartStr = gapStartMs != null ? Instant.ofEpochMilli(gapStartMs).toString() : "null";
+            String gapEndStr = gapEndMs != null ? Instant.ofEpochMilli(gapEndMs).toString() : "null";
+            String gapStartMsStr = gapStartMs != null ? gapStartMs.toString() : "null";
+            String gapEndMsStr = gapEndMs != null ? gapEndMs.toString() : "null";
+            Instant minTsTime = Instant.ofEpochMilli(minTs);
+
+            LOG.debugf("""
+                    📊 ══════════════════════════════════════════════════════════════════════════════════
+                    📊 HARVEST DATA | Timeframe: %s | Gap: #%d/%d | isLast: %s
+                    📊 ──────────────────────────────────────────────────────────────────────────────────
+                    📊 Гап:      %s (%s) ➜ %s (%s)
+                    📊 Свечи:    %s ➜ %s (всего: %d)
+                    📊 Мин. время выборки:    %s (%d)
+                    📊 ──────────────────────────────────────────────────────────────────────────────────
+                    📊 Config:   instId=%s | limit=%d | startEpochMs=%s (%d) | pause=%dms | pages=%d
+                    📊 ══════════════════════════════════════════════════════════════════════════════════""",
+                    timeframe, gapNumber, totalGaps, isLast,
+                    gapStartStr, gapStartMsStr, gapEndStr, gapEndMsStr,
+                    lastTs, firstTs, data.size(),
+                    minTsTime, minTs,
+                    config.instId(), config.limit(), Instant.ofEpochMilli(config.startEpochMs()),
+                    config.startEpochMs(), config.requestPauseMs(), config.pagesLimit());
         }
     }
 

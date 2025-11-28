@@ -43,11 +43,12 @@ public class OKXHistoryRestApiClient implements CryptoRestApiClient<CandleReques
                 .append("&bar=").append(urlEncode(request.getTimeframe()))
                 .append("&limit=").append(request.getLimit());
 
+        // before и after в OKX API перепутаны местами!!!
         if (request.getAfter() != null) {
-            uri.append("&after=").append(request.getAfter());
+            uri.append("&before=").append(request.getAfter());
         }
         if (request.getBefore() != null) {
-            uri.append("&before=").append(request.getBefore());
+            uri.append("&after=").append(request.getBefore());
         }
 
         return uri.toString();
