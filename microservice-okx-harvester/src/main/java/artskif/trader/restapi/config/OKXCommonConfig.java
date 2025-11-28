@@ -30,7 +30,7 @@ public class OKXCommonConfig {
     @ConfigProperty(name = "okx.history.retryBackoffMs", defaultValue = "1000")
     long retryBackoffMs;
 
-    @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "1")
+    @ConfigProperty(name = "okx.history.pagesLimit", defaultValue = "0")
     int pagesLimit;
 }
 

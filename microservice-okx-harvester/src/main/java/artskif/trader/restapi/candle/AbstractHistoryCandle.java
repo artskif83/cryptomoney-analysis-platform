@@ -106,7 +106,7 @@ public abstract class AbstractHistoryCandle implements Runnable {
             LOG.infof("✅ Гап #%d обработан, загружено страниц: %d", gapNumber, gapPagesLoaded);
 
             // Проверяем общий лимит страниц
-            if (totalPagesLoaded >= config.pagesLimit()) {
+            if (config.pagesLimit() > 0 && totalPagesLoaded >= config.pagesLimit()) {
                 LOG.warnf("⚠️ Достигнут общий лимит страниц: %d, остановка харвестера", config.pagesLimit());
                 break;
             }
@@ -138,9 +138,8 @@ public abstract class AbstractHistoryCandle implements Runnable {
         Long after = gapStartMs;  // Не выходим за начало гапа
 
         int pagesLoaded = 0;
-        int remainingPages = config.pagesLimit();
 
-        while (pagesLoaded < remainingPages) {
+        while (config.pagesLimit() == 0 || pagesLoaded < config.pagesLimit()) {
             CandleRequest request = CandleRequest.builder()
                     .instId(config.instId())
                     .timeframe(timeframe)
