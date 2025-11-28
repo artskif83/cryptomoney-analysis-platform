@@ -57,33 +57,25 @@ public abstract class AbstractHistoryCandle {
             return;
         }
 
-
         // Проверяем, не выполняется ли уже синхронизация
         if (!isRunning.compareAndSet(false, true)) {
             LOG.warnf("⏳ Синхронизация %s уже выполняется, пропускаем текущий запуск", getTimeframe());
             return;
         }
 
-        // Запускаем синхронизацию асинхронно в отдельном потоке
-        CompletableFuture.runAsync(() -> {
-            try {
-                LOG.infof("🚀 Запуск асинхронной синхронизации для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
-                        getTimeframe(), commonConfig.getInstId(),
-                        Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
+        try {
+            LOG.infof("🚀 Запуск синхронизации для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
+                    getTimeframe(), commonConfig.getInstId(),
+                    Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
 
-                runSync();
+            runSync();
 
-                LOG.infof("✅ Синхронизация %s завершена успешно", getTimeframe());
-            } catch (Exception e) {
-                LOG.errorf(e, "❌ Ошибка в синхронизации %s", getTimeframe());
-            } finally {
-                isRunning.set(false);
-            }
-        }).exceptionally(throwable -> {
-            LOG.errorf(throwable, "❌ Критическая ошибка в асинхронной синхронизации %s", getTimeframe());
+            LOG.infof("✅ Синхронизация %s завершена успешно", getTimeframe());
+        } catch (Exception e) {
+            LOG.errorf(e, "❌ Ошибка в синхронизации %s", getTimeframe());
+        } finally {
             isRunning.set(false);
-            return null;
-        });
+        }
     }
 
     /**
