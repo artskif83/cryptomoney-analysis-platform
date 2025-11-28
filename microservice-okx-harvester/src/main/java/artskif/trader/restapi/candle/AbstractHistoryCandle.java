@@ -18,11 +18,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Базовый класс для сбора исторических данных по свечам
  */
-public abstract class AbstractHistoryCandle implements Runnable {
+public abstract class AbstractHistoryCandle {
     private static final Logger LOG = Logger.getLogger(AbstractHistoryCandle.class);
 
     @Inject
@@ -35,48 +36,73 @@ public abstract class AbstractHistoryCandle implements Runnable {
     protected OKXCommonConfig commonConfig;
 
     /**
-     * Запустить харвестер асинхронно
+     * Флаг для предотвращения одновременного выполнения нескольких синхронизаций
      */
+    private final AtomicBoolean isRunning = new AtomicBoolean(false);
+
     @PostConstruct
     void onStart() {
         if (!isEnabled()) {
             LOG.infof("⚙️ Харвестер исторических свечей с таймфреймом %s отключен", getTimeframe());
+        }
+    }
+    /**
+     * Запуск синхронизации по расписанию.
+     * Метод должен вызываться из @Scheduled методов в конкретных классах-наследниках.
+     * Реализует защиту от повторного запуска через AtomicBoolean флаг.
+     * Выполняется асинхронно в отдельном потоке.
+     */
+    protected void syncScheduled() {
+        if (!isEnabled()) {
             return;
         }
 
-        LOG.infof("🚀 Запуск исторического харвестера для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
-                getTimeframe(), commonConfig.getInstId(),
-                Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
 
-        // Запускаем в отдельном потоке
-        CompletableFuture.runAsync(this)
-                .exceptionally(throwable -> {
-                    LOG.errorf(throwable, "❌ Ошибка в харвестере %s", getTimeframe());
-                    return null;
-                });
+        // Проверяем, не выполняется ли уже синхронизация
+        if (!isRunning.compareAndSet(false, true)) {
+            LOG.warnf("⏳ Синхронизация %s уже выполняется, пропускаем текущий запуск", getTimeframe());
+            return;
+        }
+
+        // Запускаем синхронизацию асинхронно в отдельном потоке
+        CompletableFuture.runAsync(() -> {
+            try {
+                LOG.infof("🚀 Запуск асинхронной синхронизации для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
+                        getTimeframe(), commonConfig.getInstId(),
+                        Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
+
+                runSync();
+
+                LOG.infof("✅ Синхронизация %s завершена успешно", getTimeframe());
+            } catch (Exception e) {
+                LOG.errorf(e, "❌ Ошибка в синхронизации %s", getTimeframe());
+            } finally {
+                isRunning.set(false);
+            }
+        }).exceptionally(throwable -> {
+            LOG.errorf(throwable, "❌ Критическая ошибка в асинхронной синхронизации %s", getTimeframe());
+            isRunning.set(false);
+            return null;
+        });
     }
 
-    @Override
-    public void run() {
-        try {
-            CryptoRestApiClient<CandleRequest> apiClient = createApiClient();
-            HarvestConfig config = createHarvestConfig();
+    /**
+     * Основной метод синхронизации данных
+     */
+    protected void runSync() {
+        CryptoRestApiClient<CandleRequest> apiClient = createApiClient();
+        HarvestConfig config = createHarvestConfig();
 
-            // Ищем все гапы в последовательности свечей
-            List<TimeGap> allGaps = findAllGaps();
+        // Ищем все гапы в последовательности свечей
+        List<TimeGap> allGaps = findAllGaps();
 
-            if (allGaps.isEmpty()) {
-                LOG.infof("✅ Гапы не найдены для %s, данные полные", getTimeframe());
-                return;
-            }
-
-            LOG.infof("📋 Найдено %d гапов для заполнения, таймфрейм: %s", allGaps.size(), getTimeframe());
-            harvest(apiClient, allGaps, config);
-
-            LOG.infof("✅ Исторический харвестер %s завершил работу", getTimeframe());
-        } catch (Exception e) {
-            LOG.errorf(e, "❌ Критическая ошибка в историческом харвестере %s", getTimeframe());
+        if (allGaps.isEmpty()) {
+            LOG.infof("✅ Гапы не найдены для %s, данные полные", getTimeframe());
+            return;
         }
+
+        LOG.infof("📋 Найдено %d гапов для заполнения, таймфрейм: %s", allGaps.size(), getTimeframe());
+        harvest(apiClient, allGaps, config);
     }
 
     /**

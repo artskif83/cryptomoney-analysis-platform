@@ -2,8 +2,11 @@ package artskif.trader.restapi.candle;
 
 import artskif.trader.common.CandleTimeframe;
 import io.quarkus.runtime.Startup;
+import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Харвестер для таймфрейма 1 минута
@@ -23,6 +26,15 @@ public class HistoryCandle1m extends AbstractHistoryCandle {
 
     @ConfigProperty(name = "okx.history.1m.dbTimeframeKey", defaultValue = "CANDLE_1M")
     String dbTimeframeKey;
+
+    /**
+     * Метод запускается по расписанию каждые syncIntervalSeconds секунд.
+     * Вызывает асинхронную синхронизацию данных.
+     */
+    @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "${okx.history.1m.syncIntervalSeconds}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void scheduledSync() {
+        syncScheduled();
+    }
 
     @Override
     protected String getTimeframe() {

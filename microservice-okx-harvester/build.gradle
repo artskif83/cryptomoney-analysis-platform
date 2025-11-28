@@ -25,6 +25,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-kubernetes'
     implementation 'io.quarkus:quarkus-arc'
     implementation "io.quarkus:quarkus-websockets-client"
+    implementation 'io.quarkus:quarkus-scheduler'
 
     // Database dependencies
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
