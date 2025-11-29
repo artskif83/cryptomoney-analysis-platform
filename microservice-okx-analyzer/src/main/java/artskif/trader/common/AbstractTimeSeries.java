@@ -9,7 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged {
 
-    private final AtomicBoolean saveEnabled = new AtomicBoolean(false);
+    private final AtomicBoolean saveLiveEnabled = new AtomicBoolean(false);
+    private final AtomicBoolean saveHistoricalEnabled = new AtomicBoolean(false);
 
     protected abstract BufferRepository<C> getBufferRepository();
 
@@ -29,22 +30,51 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
         getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
     }
 
-    protected void initSaveBuffer() {
-        if (!isSaveEnabled()) {
-            log().infof("📥 [%s] Активировано сохранение по расписанию", getName());
+    protected void initSaveLiveBuffer() {
+        if (!isSaveLiveEnabled()) {
+            log().infof("📥 [%s] Активировано сохранение активного буфера по расписанию", getName());
         }
-        saveEnabled.set(true);
+        saveLiveEnabled.set(true);
     }
 
-    public boolean isSaveEnabled() {
-        return saveEnabled.get();
+
+    protected void initSaveHistoricalBuffer() {
+        if (!isSaveHistoricalEnabled()) {
+            log().infof("📥 [%s] Активировано сохранение исторического буфера по расписанию", getName());
+        }
+        saveHistoricalEnabled.set(true);
+    }
+
+    public boolean isSaveLiveEnabled() {
+        return saveLiveEnabled.get();
+    }
+
+    public boolean isSaveHistoricalEnabled() {
+        return saveHistoricalEnabled.get();
     }
 
     @ActivateRequestContext
     public void saveBuffer() {
         log().infof("💾 [%s] Сохраняем информационные свечи в хранилище", getName());
-        getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
-        getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
-        saveEnabled.set(false);
+        saveLiveBuffer();
+        saveHistoricalBuffer();
+    }
+
+    @ActivateRequestContext
+    protected void saveLiveBuffer() {
+        if (isSaveLiveEnabled()) {
+            log().debugf("💾 [%s] Сохраняем актуальный буфер", getName());
+            getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
+            saveLiveEnabled.set(false);
+        }
+    }
+
+    @ActivateRequestContext
+    protected void saveHistoricalBuffer() {
+        if (isSaveHistoricalEnabled()) {
+            log().debugf("💾 [%s] Сохраняем исторический буфер", getName());
+            getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
+            saveHistoricalEnabled.set(false);
+        }
     }
 }

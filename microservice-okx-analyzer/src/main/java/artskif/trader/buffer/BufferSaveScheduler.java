@@ -4,7 +4,6 @@ import artskif.trader.common.AbstractTimeSeries;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
@@ -23,7 +22,7 @@ public class BufferSaveScheduler {
     @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "30s")
     void saveAllBuffersPeriodically() {
         timeSeriesInstances.stream()
-                .filter(AbstractTimeSeries::isSaveEnabled)
+                .filter(ts -> ts.isSaveLiveEnabled() || ts.isSaveHistoricalEnabled())
                 .forEach(timeSeries -> {
                     try {
                         //timeSeries.saveBuffer();

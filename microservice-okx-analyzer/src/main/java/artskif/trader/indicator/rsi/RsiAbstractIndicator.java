@@ -58,7 +58,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         RsiPipelineContext context = recalculateIndicator(rsiHistoricalBuffer, candleHistoricalBuffer, "Исторический буфер", rsiHistoricalState, rsiHistoricalVersion);
         if (context != null) {
             rsiHistoricalState = context.state();
-            initSaveBuffer();
+            initSaveHistoricalBuffer();
         }
         if (rsiHistoricalVersion.get() != candleHistoricalBuffer.getVersion().get()) {
             rsiHistoricalVersion.set(candleHistoricalBuffer.getVersion().get());
@@ -75,7 +75,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         RsiPipelineContext context = recalculateIndicator(rsiLiveBuffer, candleLiveBuffer, "Актуальный буфер", rsiLiveState, rsiLiveVersion);
         if (context != null) {
             rsiLiveState = context.state();
-            initSaveBuffer();
+            initSaveLiveBuffer();
         }
         if (rsiLiveVersion.get() != candleLiveBuffer.getVersion().get()) {
             rsiLiveVersion.set(candleLiveBuffer.getVersion().get());
@@ -91,7 +91,6 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         }
         if (rsiBuffer.size() == rsiBuffer.getMaxSize()) {
             log().debugf("📥 [%s] %s RSI индикатора переполнен. Максимальное количество элементов %s", getName(), bufferDescription, rsiBuffer.getMaxSize());
-            return null;
         }
 
         log().debugf("📥 [%s] %s пересчитывается. RSI буфер: [%s - %s], Candle буфер: [%s - %s]",

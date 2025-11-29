@@ -52,8 +52,8 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         return candle;
     }
 
-    @ActivateRequestContext
     @Override
+    @Transactional
     public boolean saveFromMap(Map<Instant, CandlestickDto> buffer) {
         if (buffer == null || buffer.isEmpty()) return true;
         Map<Instant, CandlestickDto> unsavedBuffer = buffer.entrySet().stream()
@@ -65,7 +65,6 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         return performSave(unsavedBuffer);
     }
 
-    @Transactional
     protected boolean performSave(Map<Instant, CandlestickDto> buffer) {
         String csv = buildCsv(buffer);
 
