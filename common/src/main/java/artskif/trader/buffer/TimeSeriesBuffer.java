@@ -1,7 +1,6 @@
 package artskif.trader.buffer;
 
 import lombok.Getter;
-import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -203,3 +202,4 @@ public class TimeSeriesBuffer<C> {
                 ", lastItem=" + lastItem + '}';
     }
 }
+
