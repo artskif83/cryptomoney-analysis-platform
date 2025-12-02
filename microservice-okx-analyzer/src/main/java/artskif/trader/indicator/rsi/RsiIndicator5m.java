@@ -1,8 +1,9 @@
 package artskif.trader.indicator.rsi;
 
-import artskif.trader.candle.Candle1M;
-import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
+import artskif.trader.candle.Candle1M;
+import artskif.trader.candle.Candle5M;
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.Stage;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
@@ -19,24 +20,24 @@ import java.time.Instant;
 
 @Startup
 @ApplicationScoped
-public class RsiIndicator1m extends RsiAbstractIndicator {
+public class RsiIndicator5m extends RsiAbstractIndicator {
 
-    private final static String NAME = "RSI-1m";
-    private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
+    private final static String NAME = "RSI-5m";
+    private final static Logger LOG = Logger.getLogger(RsiIndicator5m.class);
     private final static Integer PERIOD = 14; // Период индикатора RSI
-    private final static Integer BUFFER_LIVE_SIZE = 30; // Размер буфера для хранения точек индикатора
-    private final static Integer BUFFER_HISTORICAL_SIZE = 1000; // Размер буфера для хранения исторических точек индикатора
+    private final static Integer BUFFER_LIVE_SIZE = 100; // Размер буфера для хранения точек индикатора
+    private final static Integer BUFFER_HISTORICAL_SIZE = 1000000; // Размер буфера для хранения исторических точек индикатора
 
-    @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
+    @ConfigProperty(name = "analysis.candle5m.enabled", defaultValue = "true")
     boolean enabled;
 
-    protected RsiIndicator1m() {
+    protected RsiIndicator5m() {
         super(null, null, null, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Inject
-    public RsiIndicator1m(Candle1M candle1m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
-        super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
+    public RsiIndicator5m(Candle5M candle5m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
+        super(candle5m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Override
@@ -46,7 +47,7 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
 
     @Override
     public CandleTimeframe getCandleTimeframe() {
-        return CandleTimeframe.CANDLE_1M;
+        return CandleTimeframe.CANDLE_5M;
     }
 
     @Override

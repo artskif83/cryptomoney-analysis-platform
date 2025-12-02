@@ -24,10 +24,16 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
 
     public abstract Integer getMaxHistoryBufferSize();
 
+    public abstract boolean getEnabled();
+
     @ActivateRequestContext
     protected void initRestoreBuffer() {
-        log().infof("📥 [%s] Восстанавливаем информационные свечи из хранилища", getName());
-        getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
+        if (getEnabled()) {
+            log().infof("📥 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
+            getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
+            log().infof("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
+            getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol()));
+        }
     }
 
     protected void initSaveLiveBuffer() {

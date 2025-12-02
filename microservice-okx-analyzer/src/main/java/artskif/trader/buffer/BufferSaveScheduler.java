@@ -25,7 +25,7 @@ public class BufferSaveScheduler {
                 .filter(ts -> ts.isSaveLiveEnabled() || ts.isSaveHistoricalEnabled())
                 .forEach(timeSeries -> {
                     try {
-                        //timeSeries.saveBuffer();
+                        timeSeries.saveBuffer();
                     } catch (Exception e) {
                         log.severe("Ошибка при сохранении данных для " + timeSeries.getName() + ": " + e.getMessage());
                     }

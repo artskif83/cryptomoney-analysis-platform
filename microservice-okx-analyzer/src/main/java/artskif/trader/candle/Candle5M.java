@@ -8,6 +8,7 @@ import artskif.trader.repository.CandleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -23,14 +24,16 @@ public class Candle5M extends AbstractCandle {
     protected final TimeSeriesBuffer<CandlestickDto> liveBuffer;
     protected final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
 
+    @ConfigProperty(name = "analysis.candle5m.enabled", defaultValue = "true")
+    boolean enabled;
+
     @Inject
     public Candle5M(ObjectMapper objectMapper, CandleEventBus bus) {
         this.bus = bus;
-        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE, CandleTimeframe.CANDLE_5M.getDuration(), NAME + "-live");
-        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE, CandleTimeframe.CANDLE_5M.getDuration(), NAME + "-historical");
+        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE);
+        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE);
         this.candleBufferRepository = new CandleRepository();
     }
-
 
     @Override
     protected BufferRepository<CandlestickDto> getBufferRepository() {
@@ -65,6 +68,11 @@ public class Candle5M extends AbstractCandle {
     @Override
     public Integer getMaxHistoryBufferSize() {
         return MAX_HISTORICAL_BUFFER_SIZE;
+    }
+
+    @Override
+    public boolean getEnabled() {
+        return enabled;
     }
 
     @Override

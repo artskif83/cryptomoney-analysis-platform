@@ -3,7 +3,6 @@ package artskif.trader.buffer;
 import lombok.Getter;
 import org.jboss.logging.Logger;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
@@ -11,13 +10,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TimeSeriesBuffer<C> {
-
-    private final static Logger LOG = Logger.getLogger(TimeSeriesBuffer.class);
-    private static final int EXTRA_CHECK_COUNT = 300; // Дополнительные элементы для проверки
-    private final Duration bucketDuration;
-
-    @Getter
-    private final String name;
     @Getter
     private final int maxSize;
     @Getter
@@ -37,11 +29,9 @@ public class TimeSeriesBuffer<C> {
     // Объект для синхронизации операций модификации буфера
     private final Object modificationLock = new Object();
 
-    public TimeSeriesBuffer(int maxSize, Duration bucketDuration, String name) {
+    public TimeSeriesBuffer(int maxSize) {
         this.maxSize = maxSize;
         this.dataMap = new ConcurrentSkipListMap<>();
-        this.bucketDuration = bucketDuration;
-        this.name = name;
         this.version = new AtomicInteger(0);
     }
 
