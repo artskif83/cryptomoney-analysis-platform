@@ -7,7 +7,7 @@
         </map>
       </option>
       <option name="executionName" />
-      <option name="externalProjectPath" value="$PROJECT_DIR$/microservice-okx-harvester" />
+      <option name="externalProjectPath" value="$PROJECT_DIR$/microservice-trading-harvester" />
       <option name="externalSystemIdString" value="GRADLE" />
       <option name="scriptParameters" value="-Dquarkus.native.enabled=true -Dquarkus.native.container-build=true -Dquarkus.native.native-image-xmx=4g -Dquarkus.package.jar.enabled=false -x test" />
       <option name="taskDescriptions">
@@ -16,7 +16,7 @@
       <option name="taskNames">
         <list>
           <option value="clean" />
-          <option value=":microservice-okx-harvester:quarkusBuild" />
+          <option value=":microservice-trading-harvester:quarkusBuild" />
           <option value="clean" />
         </list>
       </option>

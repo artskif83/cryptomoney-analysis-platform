@@ -1,9 +1,9 @@
 rootProject.name = "cryptomoney-analysis-platform"
 
 include(
-        ":microservice-okx-analyzer",
-        ":microservice-okx-harvester",
-        ":microservice-okx-executor",
+        ":microservice-trading-analyzer",
+        ":microservice-trading-harvester",
+        ":microservice-trading-executor",
         ":common"
 )
 

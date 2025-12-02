@@ -79,9 +79,9 @@ services:
   okx-harvester-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
-      dockerfile: microservice-okx-harvester/Dockerfile
+      dockerfile: microservice-trading-harvester/Dockerfile
       args:
-        MODULE: microservice-okx-harvester
+        MODULE: microservice-trading-harvester
     container_name: okx-harvester-prod
     depends_on:
       - redpanda-prod
@@ -95,9 +95,9 @@ services:
   okx-analyzer-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
-      dockerfile: microservice-okx-analyzer/Dockerfile
+      dockerfile: microservice-trading-analyzer/Dockerfile
       args:
-        MODULE: microservice-okx-analyzer
+        MODULE: microservice-trading-analyzer
     container_name: okx-analyzer-prod
     depends_on:
       - redpanda-prod
@@ -111,9 +111,9 @@ services:
   okx-executor-prod:
     build:
       context: .                       # КОРЕНЬ репозитория!
-      dockerfile: microservice-okx-executor/Dockerfile
+      dockerfile: microservice-trading-executor/Dockerfile
       args:
-        MODULE: microservice-okx-executor
+        MODULE: microservice-trading-executor
     container_name: okx-executor-prod
     environment:
       SPRING_PROFILES_ACTIVE: prod

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 
 # Можно переопределить модуль при сборке: --build-arg MODULE=...
-ARG MODULE=microservice-okx-harvester
+ARG MODULE=microservice-trading-harvester
 
 # --- 1) Builder: собираем native runner
 FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:23.1-java21 AS build

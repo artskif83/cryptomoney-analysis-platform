@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG MODULE=microservice-okx-executor
+ARG MODULE=microservice-trading-executor
 
 ############################
 # 1) Build stage
