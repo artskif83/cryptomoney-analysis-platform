@@ -96,7 +96,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             // Проверяем гап между now и первой свечой
             Instant firstTs = timestamps.getFirst();
             Duration gapFromNow = Duration.between(firstTs, now);
-            if (gapFromNow.compareTo(candleDuration) > 0) {
+            if (gapFromNow.compareTo(candleDuration.multipliedBy(2)) > 0) {
                 TimeGap gap = new TimeGap(firstTs, null);
                 gaps.add(gap);
                 LOG.infof("✅ Найден гап между first и now: %s", gap);

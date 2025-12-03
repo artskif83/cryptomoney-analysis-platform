@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle1M;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.common.Stage;
+import artskif.trader.dto.RsiPointDto;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.IndicatorType;
 import artskif.trader.repository.BufferRepository;
@@ -24,7 +25,7 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     private final static String NAME = "RSI-1m";
     private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
     private final static Integer PERIOD = 14; // Период индикатора RSI
-    private final static Integer BUFFER_LIVE_SIZE = 30; // Размер буфера для хранения точек индикатора
+    private final static Integer BUFFER_LIVE_SIZE = 50; // Размер буфера для хранения точек индикатора
     private final static Integer BUFFER_HISTORICAL_SIZE = 1000; // Размер буфера для хранения исторических точек индикатора
 
     @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
@@ -40,7 +41,7 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Override
-    protected BufferRepository<RsiPoint> getBufferRepository() {
+    protected BufferRepository<RsiPointDto> getBufferRepository() {
         return rsiBufferRepository;
     }
 
@@ -85,22 +86,17 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Override
-    public RsiPoint getLastPoint() {
-        return lastPoint;
-    }
-
-    @Override
     public IndicatorType getType() {
         return IndicatorType.RSI;
     }
 
     @Override
-    public TimeSeriesBuffer<RsiPoint> getLiveBuffer() {
+    public TimeSeriesBuffer<RsiPointDto> getLiveBuffer() {
         return rsiLiveBuffer;
     }
 
     @Override
-    public TimeSeriesBuffer<RsiPoint> getHistoricalBuffer() {
+    public TimeSeriesBuffer<RsiPointDto> getHistoricalBuffer() {
         return rsiHistoricalBuffer;
     }
 

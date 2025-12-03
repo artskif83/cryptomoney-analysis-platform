@@ -64,7 +64,7 @@ public class CandlestickMapper {
         try {
             JsonNode root = mapper.readTree(json);
 
-            // 1) Служебные сообщения OKX
+            // 1) Служебные сообщения
             if (root.hasNonNull("event")) {
                 LOG.warnf("Пропущено служебное сообщение (event=%s).", root.get("event").asText());
                 return Optional.empty();
@@ -111,7 +111,7 @@ public class CandlestickMapper {
         }
     }
 
-    /** Преобразование одной строки OKX в доменную свечу */
+    /** Преобразование одной строки в свечу */
     private static CandlestickDto getCandlestickDto(JsonNode node, CandleTimeframe period, String instrument) {
         CandlestickDto candle = new CandlestickDto();
         candle.setTimestamp(Instant.ofEpochMilli(node.get(0).asLong()));

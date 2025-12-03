@@ -27,11 +27,14 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
 
     @PostConstruct
     void init() {
+        if (!getEnabled()) {
+            return;
+        }
         initRestoreBuffer();
     }
 
     /**
-     * Восстанавливает буфер из пачки истории (JSON-массив OKX /history-*-candles).
+     * Восстанавливает буфер из пачки истории (JSON-массив /history-*-candles).
      * message: строка массива data, например:
      * [[1698796800000,"34300","34500","34000","34210",...], [...], ...]
      */
@@ -84,10 +87,12 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
             if (Boolean.TRUE.equals(candle.getConfirmed())) {
                 log().debugf("🕯️ [%s] Получена подтвержденная свеча: bucket=%s, o=%s, h=%s, l=%s, c=%s, v=%s",
                         getName(), bucket, candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume());
-                if (getLiveBuffer().putItem(bucket, candle)) {
-                    initSaveLiveBuffer();
-                    getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
-                }
+                getLiveBuffer().putItem(bucket, candle);
+                getHistoricalBuffer().putItem(bucket, candle);
+                initSaveLiveBuffer();
+                getLiveBuffer().incrementVersion();
+                getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
+
             }
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());

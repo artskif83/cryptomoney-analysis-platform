@@ -38,38 +38,23 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     private static final int DEFAULT_RESTORE_LIMIT = 300; // Максимальное количество свечей для восстановления
 
-    @Inject
-    DataSource dataSource;
-
-    public Candle saveFromDto(CandlestickDto dto) {
-        if (dto == null) return null;
-
-        // делегируем мапинг
-        Candle candle = CandlestickMapper.mapDtoToEntity(dto);
-
-        // Сохраняем сущность через Panache
-        persist(candle);
-        return candle;
-    }
-
     @Override
     @Transactional
-    public boolean saveFromMap(Map<Instant, CandlestickDto> buffer) {
-        if (buffer == null || buffer.isEmpty()) return true;
+    public int saveFromMap(Map<Instant, CandlestickDto> buffer) {
+        if (buffer == null || buffer.isEmpty()) return 0;
         Map<Instant, CandlestickDto> unsavedBuffer = buffer.entrySet().stream()
                 .filter(e -> !Boolean.TRUE.equals(e.getValue().getSaved()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
-        if (unsavedBuffer.isEmpty()) return true;
+        if (unsavedBuffer.isEmpty()) {
+            LOG.warn("RSI нет данных для сохранения");
+            return 0;
+        }
 
-        return performSave(unsavedBuffer);
-    }
+        String csv = buildCsv(unsavedBuffer);
 
-    protected boolean performSave(Map<Instant, CandlestickDto> buffer) {
-        String csv = buildCsv(buffer);
-
-        if (csv.isEmpty()) return true;
-
+        if (csv.isEmpty()) return 0;
+        final int[] affected = new int[1];
         Session session = getEntityManager().unwrap(Session.class);
         try {
             session.doWork(conn -> {
@@ -81,7 +66,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     String copySql = "COPY stage_candles(symbol, tf, ts, open, high, low, close, volume, confirmed) " +
                             "FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '', HEADER false)";
                     long copied = cm.copyIn(copySql, new StringReader(csv));
-                    LOG.infof("В staging загружено строк: %d", copied);
+                    LOG.debugf("В staging загружено строк: %d", copied);
 
                     String upsert = """
                             INSERT INTO candles(symbol, tf, ts, open, high, low, close, volume, confirmed)
@@ -95,26 +80,25 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                                 close = EXCLUDED.close,
                                 confirmed = EXCLUDED.confirmed;
                             """;
-                    int affected = stmt.executeUpdate(upsert);
-                    LOG.debugf("Upsert затронул строк: %d", affected);
+                    affected[0] = stmt.executeUpdate(upsert);
+                    LOG.debugf("Upsert затронул строк: %d", affected[0]);
 
                     stmt.execute("TRUNCATE TABLE stage_candles");
+                    unsavedBuffer.values().forEach(dto -> dto.setSaved(true));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             });
-            buffer.values().forEach(dto -> dto.setSaved(true));
-            return true;
+            return affected[0];
         } catch (RuntimeException ex) {
             LOG.error("Ошибка при сохранении свечей через COPY -> stage_candles", ex);
-            throw ex;
+            return 0;
         }
     }
 
     private String buildCsv(Map<Instant, CandlestickDto> buffer) {
         return buffer.entrySet().stream()
                 .filter(e -> e.getValue() != null)
-                .sorted(Map.Entry.comparingByKey())
                 .map(e -> dtoToCsvLine(e.getValue()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining("\n"));
@@ -181,7 +165,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
             ).page(0, limit).list();
 
-            LOG.infof("Восстанавливаем последние %d свечей из базы данных для таймфрейма %s и символа %s",
+            LOG.infof("Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s",
                     candles.size(), timeframe, symbol);
 
             if (candles.isEmpty()) {

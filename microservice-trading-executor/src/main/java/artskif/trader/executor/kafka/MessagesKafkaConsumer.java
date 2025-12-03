@@ -1,6 +1,6 @@
-package artskif.trader.microserviceokxexecutor.kafka;
+package artskif.trader.executor.kafka;
 
-import artskif.trader.microserviceokxexecutor.bot.CryptoTelegramBot;
+import artskif.trader.executor.bot.CryptoTelegramBot;
 import my.signals.v1.Signal;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;

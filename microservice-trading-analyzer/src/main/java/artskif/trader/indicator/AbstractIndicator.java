@@ -26,10 +26,14 @@ public abstract class AbstractIndicator<C> extends AbstractTimeSeries<C> impleme
     }
 
     protected abstract void handleTickEvent(CandleEvent ev);
+
     protected abstract void handleHistoryEvent(CandleEvent take);
 
     @PostConstruct
     public void init() {
+        if (!getEnabled()) {
+            return;
+        }
         log().infof("🔌 [%s] Запуск процесса подсчета индикатора", getName());
 
         initRestoreBuffer();

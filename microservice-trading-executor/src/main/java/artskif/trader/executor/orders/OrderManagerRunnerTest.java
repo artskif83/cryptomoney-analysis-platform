@@ -1,10 +1,8 @@
-package artskif.trader.microserviceokxexecutor.orders;
+package artskif.trader.executor.orders;
 
-import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.strategy.list.Symbol;
 import my.signals.v1.SignalLevel;
 import my.signals.v1.StrategyKind;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component

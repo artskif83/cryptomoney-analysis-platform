@@ -28,12 +28,11 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
 
     @ActivateRequestContext
     protected void initRestoreBuffer() {
-        if (getEnabled()) {
-            log().infof("📥 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
-            getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
-            log().infof("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
-            getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol()));
-        }
+        log().infof("📥 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
+        getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
+        getLiveBuffer().incrementVersion();
+        log().infof("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
+        getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol()));
     }
 
     protected void initSaveLiveBuffer() {
@@ -69,8 +68,10 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     @ActivateRequestContext
     protected void saveLiveBuffer() {
         if (isSaveLiveEnabled()) {
-            log().debugf("💾 [%s] Сохраняем актуальный буфер", getName());
-            getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
+            log().debugf("💾 [%s] Сохраняем в бд актуальный буфер", getName());
+            int count = getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
+            log().debugf("💾 [%s] Сохранен в бд актуальный буфер: %s записей", getName(), count);
+
             saveLiveEnabled.set(false);
         }
     }
@@ -79,7 +80,8 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     protected void saveHistoricalBuffer() {
         if (isSaveHistoricalEnabled()) {
             log().debugf("💾 [%s] Сохраняем исторический буфер", getName());
-            getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
+            int count = getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
+            log().debugf("💾 [%s] Сохранен в бд исторический буфер: %s записей", getName(), count);
             saveHistoricalEnabled.set(false);
         }
     }

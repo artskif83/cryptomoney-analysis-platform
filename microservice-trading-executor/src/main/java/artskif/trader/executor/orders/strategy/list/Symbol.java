@@ -1,4 +1,4 @@
-package artskif.trader.microserviceokxexecutor.orders.strategy.list;
+package artskif.trader.executor.orders.strategy.list;
 
 public record Symbol(String base, String quote) {
     public String asPair() { return base + "/" + quote; }

@@ -4,6 +4,7 @@ import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.candle.AbstractCandle;
 import artskif.trader.common.Stage;
 import artskif.trader.dto.CandlestickDto;
+import artskif.trader.dto.RsiPointDto;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.indicator.AbstractIndicator;
@@ -16,23 +17,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
+public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPointDto> {
 
-    protected final TimeSeriesBuffer<RsiPoint> rsiLiveBuffer; // Буфер для хранения актуальных точек RSI
-    protected final TimeSeriesBuffer<RsiPoint> rsiHistoricalBuffer; // Буфер для хранения исторических точек RSI
+    protected final TimeSeriesBuffer<RsiPointDto> rsiLiveBuffer; // Буфер для хранения актуальных точек RSI
+    protected final TimeSeriesBuffer<RsiPointDto> rsiHistoricalBuffer; // Буфер для хранения исторических точек RSI
 
     protected AtomicInteger rsiLiveVersion; // версия буфера текущего RSI
     protected AtomicInteger rsiHistoricalVersion; // версия буфера исторического RSI
     protected RsiState rsiLiveState; // состояние RSI
-    protected RsiPoint lastPoint; // состояние RSI
     protected Integer period; // Период индикатора
-    protected BufferRepository<RsiPoint> rsiBufferRepository;
+    protected BufferRepository<RsiPointDto> rsiBufferRepository;
     protected AbstractCandle candle;
     protected Instant bucket;
     protected Instant lastProcessingTime;
     protected List<Stage<RsiPipelineContext>> metrics;
 
-    public RsiAbstractIndicator(AbstractCandle candle, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics, Integer period, BufferRepository<RsiPoint> rsiBufferRepository,
+    public RsiAbstractIndicator(AbstractCandle candle, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics, Integer period, BufferRepository<RsiPointDto> rsiBufferRepository,
                                 int bufferSize, int bufferHistoricalSize) {
         super(bus);
         this.period = period;
@@ -54,10 +54,9 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         TimeSeriesBuffer<CandlestickDto> candleHistoricalBuffer = candle.getHistoricalBuffer();
 
         if (rsiHistoricalVersion.get() != candleHistoricalBuffer.getVersion().get()) {
-            RsiPipelineContext context = recalculateForBuffer("Исторический буфер", rsiHistoricalBuffer, candleHistoricalBuffer);
-            if (context != null) {
-                initSaveHistoricalBuffer();
-            }
+            recalculateForBuffer("Исторический буфер", rsiHistoricalBuffer, candleHistoricalBuffer);
+            initSaveHistoricalBuffer();
+
             rsiHistoricalVersion.set(candleHistoricalBuffer.getVersion().get());
             log().infof("📥 [%s] Исторический буфер пересчитан. RSI буфер: [%s - %s], Candle буфер: [%s - %s]",
                     getName(),
@@ -76,7 +75,7 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
         RsiPipelineContext context;
 
         if (rsiLiveVersion.get() != candleLiveBuffer.getVersion().get()) {
-            context = recalculateForBuffer("Актуальный буфер", rsiLiveBuffer, candleLiveBuffer);
+            recalculateForBuffer("Актуальный буфер", rsiLiveBuffer, candleLiveBuffer);
             rsiLiveVersion.set(candleLiveBuffer.getVersion().get());
             log().infof("📥 [%s] Актуальный буфер пересчитан. RSI буфер: [%s - %s], Candle буфер: [%s - %s]",
                     getName(),
@@ -84,30 +83,24 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
                     candleLiveBuffer.getFirstBucket(), candleLiveBuffer.getLastBucket());
         } else {
             context = recalculateForCandle(rsiLiveState, ev.bucket(), ev.candle());
-        }
-
-        if (context != null) {
             if (context.point() != null) {
-                rsiLiveBuffer.putItem(context.point().bucket(), context.point());
-                rsiHistoricalBuffer.putItem(context.point().bucket(), context.point());
+                rsiLiveBuffer.putItem(context.point().getBucket(), context.point());
+                rsiHistoricalBuffer.putItem(context.point().getBucket(), context.point());
             }
             rsiLiveState = context.state();
-            initSaveLiveBuffer();
         }
-        lastPoint = rsiLiveBuffer.getLastItem();
+
+        initSaveLiveBuffer();
     }
 
     private RsiPipelineContext recalculateForBuffer(
             String bufferDescription,
-            TimeSeriesBuffer<RsiPoint> rsiBuffer,
+            TimeSeriesBuffer<RsiPointDto> rsiBuffer,
             TimeSeriesBuffer<CandlestickDto> candleBuffer) {
 
         if (candleBuffer.isEmpty() || candleBuffer.getLastBucket() == null) {
             log().infof("📥 [%s] %s свечей пустой, пропускаем пересчет исторического RSI индикатора", getName(), bufferDescription);
             return null;
-        }
-        if (rsiBuffer.size() == rsiBuffer.getMaxSize()) {
-            log().infof("📥 [%s] %s RSI индикатора переполнен. Максимальное количество элементов %s", getName(), bufferDescription, rsiBuffer.getMaxSize());
         }
 
         log().infof("📥 [%s] %s пересчитывается. RSI буфер: [%s - %s], Candle буфер: [%s - %s]",
@@ -124,8 +117,8 @@ public abstract class RsiAbstractIndicator extends AbstractIndicator<RsiPoint> {
             context = recalculateForCandle(rsiState, entry.getKey(), entry.getValue());
             rsiState = context.state();
 
-            if (context.point() != null) {
-                rsiBuffer.putItem(context.point().bucket(), context.point());
+            if (context.point() != null && !rsiBuffer.containsKey(context.point().getBucket())) {
+                rsiBuffer.putItem(context.point().getBucket(), context.point());
             }
         }
 

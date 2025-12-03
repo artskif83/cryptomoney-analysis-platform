@@ -1,8 +1,8 @@
-package artskif.trader.microserviceokxexecutor.okx;
+package artskif.trader.executor.okx;
 
-import artskif.trader.microserviceokxexecutor.orders.positions.ExchangeClient;
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
-import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.positions.ExchangeClient;
+import artskif.trader.executor.orders.positions.OrderExecutionResult;
+import artskif.trader.executor.orders.strategy.list.Symbol;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import okhttp3.*;

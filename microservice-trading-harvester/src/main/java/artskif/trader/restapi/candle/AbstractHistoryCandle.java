@@ -46,6 +46,7 @@ public abstract class AbstractHistoryCandle {
             LOG.infof("⚙️ Харвестер исторических свечей с таймфреймом %s отключен", getTimeframe());
         }
     }
+
     /**
      * Запуск синхронизации по расписанию.
      * Метод должен вызываться из @Scheduled методов в конкретных классах-наследниках.
@@ -64,13 +65,15 @@ public abstract class AbstractHistoryCandle {
         }
 
         try {
+            LOG.info("🚀 // -------------------------------------------------------------------------------");
+
             LOG.infof("🚀 Запуск синхронизации для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
                     getTimeframe(), commonConfig.getInstId(),
                     Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
 
             runSync();
 
-            LOG.infof("✅ Синхронизация %s завершена успешно", getTimeframe());
+            LOG.infof("✅ Синхронизация %s завершена", getTimeframe());
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка в синхронизации %s", getTimeframe());
         } finally {
@@ -136,19 +139,19 @@ public abstract class AbstractHistoryCandle {
     /**
      * Обрабатывает один гап с постраничным разбиением
      *
-     * @param apiClient клиент для запросов
-     * @param config конфигурация харвестера
-     * @param timeframe таймфрейм свечей
-     * @param topic топик Kafka для отправки
+     * @param apiClient  клиент для запросов
+     * @param config     конфигурация харвестера
+     * @param timeframe  таймфрейм свечей
+     * @param topic      топик Kafka для отправки
      * @param gapStartMs начало гапа в миллисекундах
-     * @param gapEndMs конец гапа в миллисекундах
-     * @param gapNumber номер текущего гапа
-     * @param totalGaps общее количество гапов
+     * @param gapEndMs   конец гапа в миллисекундах
+     * @param gapNumber  номер текущего гапа
+     * @param totalGaps  общее количество гапов
      * @return количество загруженных страниц
      */
     private int harvestGap(CryptoRestApiClient<CandleRequest> apiClient, HarvestConfig config,
-                          String timeframe, String topic, Long gapStartMs, Long gapEndMs,
-                          int gapNumber, int totalGaps) {
+                           String timeframe, String topic, Long gapStartMs, Long gapEndMs,
+                           int gapNumber, int totalGaps) {
 
         // OKX API: before - верхняя граница (более поздние свечи), after - нижняя граница (более ранние свечи)
         // Запрашиваем от конца гапа (gapEndMs) к началу (gapStartMs)
@@ -169,14 +172,14 @@ public abstract class AbstractHistoryCandle {
             Optional<JsonNode> rootOpt = apiClient.fetchCandles(request);
             if (rootOpt.isEmpty()) {
                 LOG.warnf("⚠️ Пропуск страницы для timeframe=%s в гапе [%d - %d]",
-                         timeframe, gapStartMs, gapEndMs);
+                        timeframe, gapStartMs, gapEndMs);
                 break;
             }
 
             JsonNode data = rootOpt.get().path("data");
             if (!data.isArray() || data.isEmpty()) {
                 LOG.infof("🏁 Данных больше нет в гапе [%d - %d] для timeframe=%s",
-                         gapStartMs, gapEndMs, timeframe);
+                        gapStartMs, gapEndMs, timeframe);
                 break;
             }
 
@@ -260,7 +263,7 @@ public abstract class AbstractHistoryCandle {
     }
 
     private void logCandleData(String timeframe, JsonNode data, int gapNumber, int totalGaps,
-                              Long gapStartMs, Long gapEndMs, long minTs, boolean isLast, HarvestConfig config) {
+                               Long gapStartMs, Long gapEndMs, long minTs, boolean isLast, HarvestConfig config) {
         if (!LOG.isDebugEnabled() || !data.isArray() || data.isEmpty()) return;
 
         // Получаем первую и последнюю свечу
@@ -268,7 +271,7 @@ public abstract class AbstractHistoryCandle {
         JsonNode lastCandle = data.get(data.size() - 1);
 
         if (firstCandle.isArray() && !firstCandle.isEmpty() &&
-            lastCandle.isArray() && !lastCandle.isEmpty()) {
+                lastCandle.isArray() && !lastCandle.isEmpty()) {
 
             Instant firstTs = Instant.ofEpochMilli(firstCandle.get(0).asLong());
             Instant lastTs = Instant.ofEpochMilli(lastCandle.get(0).asLong());
@@ -281,15 +284,15 @@ public abstract class AbstractHistoryCandle {
             Instant minTsTime = Instant.ofEpochMilli(minTs);
 
             LOG.debugf("""
-                    📊 ══════════════════════════════════════════════════════════════════════════════════
-                    📊 HARVEST DATA | Timeframe: %s | Gap: #%d/%d | isLast: %s
-                    📊 ──────────────────────────────────────────────────────────────────────────────────
-                    📊 Гап:      %s (%s) ➜ %s (%s)
-                    📊 Свечи:    %s ➜ %s (всего: %d)
-                    📊 Мин. время выборки:    %s (%d)
-                    📊 ──────────────────────────────────────────────────────────────────────────────────
-                    📊 Config:   instId=%s | limit=%d | startEpochMs=%s (%d) | pause=%dms | pages=%d
-                    📊 ══════════════════════════════════════════════════════════════════════════════════""",
+                            📊 ══════════════════════════════════════════════════════════════════════════════════
+                            📊 HARVEST DATA | Timeframe: %s | Gap: #%d/%d | isLast: %s
+                            📊 ──────────────────────────────────────────────────────────────────────────────────
+                            📊 Гап:      %s (%s) ➜ %s (%s)
+                            📊 Свечи:    %s ➜ %s (всего: %d)
+                            📊 Мин. время выборки:    %s (%d)
+                            📊 ──────────────────────────────────────────────────────────────────────────────────
+                            📊 Config:   instId=%s | limit=%d | startEpochMs=%s (%d) | pause=%dms | pages=%d
+                            📊 ══════════════════════════════════════════════════════════════════════════════════""",
                     timeframe, gapNumber, totalGaps, isLast,
                     gapStartStr, gapStartMsStr, gapEndStr, gapEndMsStr,
                     lastTs, firstTs, data.size(),

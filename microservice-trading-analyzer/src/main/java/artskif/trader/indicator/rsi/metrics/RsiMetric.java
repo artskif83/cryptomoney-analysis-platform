@@ -2,10 +2,9 @@ package artskif.trader.indicator.rsi.metrics;
 
 import artskif.trader.common.Stage;
 import artskif.trader.indicator.rsi.RsiPipelineContext;
-import artskif.trader.indicator.rsi.RsiPoint;
+import artskif.trader.dto.RsiPointDto;
 import artskif.trader.indicator.rsi.RsiState;
 import jakarta.enterprise.context.ApplicationScoped;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -64,7 +63,7 @@ public class RsiMetric implements Stage<RsiPipelineContext> {
                         avgGain, avgLoss, true);
 
                 Optional<BigDecimal> rsi = computeRsi(avgGain, avgLoss);
-                var point = rsi.map(v -> new RsiPoint(bucket, v, s.getTimeframe())).orElse(null);
+                var point = rsi.map(v -> new RsiPointDto(bucket, v, s.getTimeframe(), context.candle().getInstrument())).orElse(null);
                 return new RsiPipelineContext(next, point, bucket, context.candle());
             }
         }
@@ -80,7 +79,7 @@ public class RsiMetric implements Stage<RsiPipelineContext> {
                 newAvgGain, newAvgLoss, true);
 
         Optional<BigDecimal> rsi = computeRsi(newAvgGain, newAvgLoss);
-        var point = rsi.map(v -> new RsiPoint(bucket, v, s.getTimeframe())).orElse(null);
+        var point = rsi.map(v -> new RsiPointDto(bucket, v, s.getTimeframe(), context.candle().getInstrument())).orElse(null);
         return new RsiPipelineContext(next, point, bucket, context.candle());
     }
 

@@ -1,4 +1,4 @@
-package artskif.trader.microserviceokxexecutor.bot;
+package artskif.trader.executor.bot;
 
 import lombok.Getter;
 import org.springframework.stereotype.Component;

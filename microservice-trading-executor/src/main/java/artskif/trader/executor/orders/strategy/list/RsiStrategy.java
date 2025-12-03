@@ -1,9 +1,9 @@
-package artskif.trader.microserviceokxexecutor.orders.strategy.list;
+package artskif.trader.executor.orders.strategy.list;
 
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderInstruction;
-import artskif.trader.microserviceokxexecutor.orders.positions.UnitPositionStore;
-import artskif.trader.microserviceokxexecutor.orders.strategy.Strategy;
+import artskif.trader.executor.orders.positions.OrderExecutionResult;
+import artskif.trader.executor.orders.positions.OrderInstruction;
+import artskif.trader.executor.orders.positions.UnitPositionStore;
+import artskif.trader.executor.orders.strategy.Strategy;
 import my.signals.v1.OperationType;
 import my.signals.v1.Signal;
 import my.signals.v1.SignalLevel;

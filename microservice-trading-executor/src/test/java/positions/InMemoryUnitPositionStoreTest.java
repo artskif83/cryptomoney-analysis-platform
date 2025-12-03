@@ -1,13 +1,11 @@
 package positions;
 
-import artskif.trader.microserviceokxexecutor.orders.positions.InMemoryUnitPositionStore;
-import artskif.trader.microserviceokxexecutor.orders.positions.UnitPositionStore;
-import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.positions.InMemoryUnitPositionStore;
+import artskif.trader.executor.orders.positions.UnitPositionStore;
+import artskif.trader.executor.orders.strategy.list.Symbol;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;

@@ -14,7 +14,7 @@ import org.jboss.logging.Logger;
 
 /**
  * Читает HISTORY-топики и передаёт пачки в тикеры через restoreFromHistory(...).
- * Сообщение — это JSON-массив "data" от OKX (как прислал харвестер).
+ * Сообщение — это JSON-массив "data" от харвестера (как прислал харвестер).
  */
 @Startup
 @ApplicationScoped

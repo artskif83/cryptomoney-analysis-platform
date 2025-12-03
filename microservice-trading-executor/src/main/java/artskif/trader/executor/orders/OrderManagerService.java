@@ -1,12 +1,12 @@
-package artskif.trader.microserviceokxexecutor.orders;
+package artskif.trader.executor.orders;
 
 
-import artskif.trader.microserviceokxexecutor.orders.positions.ExchangeClient;
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderInstruction;
-import artskif.trader.microserviceokxexecutor.orders.strategy.Strategy;
-import artskif.trader.microserviceokxexecutor.orders.strategy.StrategyRegistry;
-import artskif.trader.microserviceokxexecutor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.positions.ExchangeClient;
+import artskif.trader.executor.orders.positions.OrderExecutionResult;
+import artskif.trader.executor.orders.positions.OrderInstruction;
+import artskif.trader.executor.orders.strategy.Strategy;
+import artskif.trader.executor.orders.strategy.StrategyRegistry;
+import artskif.trader.executor.orders.strategy.list.Symbol;
 import my.signals.v1.OperationType;
 import my.signals.v1.Signal;
 import org.springframework.stereotype.Service;

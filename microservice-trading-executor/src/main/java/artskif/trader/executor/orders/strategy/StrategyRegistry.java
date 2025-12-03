@@ -1,4 +1,4 @@
-package artskif.trader.microserviceokxexecutor.orders.strategy;
+package artskif.trader.executor.orders.strategy;
 
 import my.signals.v1.StrategyKind;
 import org.springframework.stereotype.Component;

@@ -1,7 +1,7 @@
-package artskif.trader.microserviceokxexecutor.orders.strategy;
+package artskif.trader.executor.orders.strategy;
 
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderExecutionResult;
-import artskif.trader.microserviceokxexecutor.orders.positions.OrderInstruction;
+import artskif.trader.executor.orders.positions.OrderExecutionResult;
+import artskif.trader.executor.orders.positions.OrderInstruction;
 import my.signals.v1.Signal;
 import my.signals.v1.StrategyKind;
 

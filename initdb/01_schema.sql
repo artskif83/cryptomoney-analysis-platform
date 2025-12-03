@@ -47,3 +47,11 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
     volume numeric(30, 8),
     confirmed      boolean DEFAULT false
 );
+
+CREATE UNLOGGED TABLE IF NOT EXISTS stage_indicators_rsi
+(
+    symbol varchar(32),
+    tf     varchar(10),
+    ts     timestamp,
+    rsi_14 numeric(5, 2)
+);

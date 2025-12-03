@@ -4,6 +4,7 @@ import artskif.trader.buffer.LimitedLinkedHashMap;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.common.PointState;
 import artskif.trader.dto.CandlestickDto;
+import artskif.trader.dto.RsiPointDto;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,7 +37,7 @@ public class RsiState implements PointState {
 
     // предыдущий подтверждённый close
     private BigDecimal lastClose;
-    private LimitedLinkedHashMap<Instant, RsiPoint> lastNRsi;
+    private LimitedLinkedHashMap<Instant, RsiPointDto> lastNRsi;
     private LimitedLinkedHashMap<Instant, CandlestickDto> lastNCandles;
 
 

@@ -2,7 +2,7 @@ package artskif.trader.indicator.rsi.metrics;
 
 import artskif.trader.common.Stage;
 import artskif.trader.indicator.rsi.RsiPipelineContext;
-import artskif.trader.indicator.rsi.RsiPoint;
+import artskif.trader.dto.RsiPointDto;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.math.BigDecimal;
@@ -22,38 +22,40 @@ public class PumpAndDumpMetric implements Stage<RsiPipelineContext> {
 
     @Override
     public RsiPipelineContext process(RsiPipelineContext input) {
-        RsiPoint currentPoint = input.point();
+        RsiPointDto currentPoint = input.point();
 
-        if (currentPoint == null || currentPoint.rsi() == null) {
+        if (currentPoint == null || currentPoint.getRsi() == null) {
             return input;
         }
 
-        Map<Instant, RsiPoint> lastNRsi = input.state().getLastNRsi();
+        Map<Instant, RsiPointDto> lastNRsi = input.state().getLastNRsi();
 
         if (lastNRsi == null || lastNRsi.isEmpty()) {
             return input;
         }
 
         // Получаем последний элемент из списка
-        RsiPoint previousPoint = lastNRsi.values().stream()
+        RsiPointDto previousPoint = lastNRsi.values().stream()
                 .reduce((first, second) -> second)
                 .orElse(null);
 
-        if (previousPoint == null || previousPoint.rsi() == null) {
+        if (previousPoint == null || previousPoint.getRsi() == null) {
             return input;
         }
 
-        boolean isPump = detectPump(previousPoint.rsi(), currentPoint.rsi());
-        boolean isDump = detectDump(previousPoint.rsi(), currentPoint.rsi());
+        boolean isPump = detectPump(previousPoint.getRsi(), currentPoint.getRsi());
+        boolean isDump = detectDump(previousPoint.getRsi(), currentPoint.getRsi());
 
         // Создаем новую точку с обновленными метриками, если обнаружены изменения
         if (isPump || isDump) {
-            RsiPoint updatedPoint = new RsiPoint(
-                    currentPoint.bucket(),
-                    currentPoint.rsi(),
-                    currentPoint.timeframe(),
+            RsiPointDto updatedPoint = new RsiPointDto(
+                    currentPoint.getBucket(),
+                    currentPoint.getRsi(),
+                    currentPoint.getTimeframe(),
                     isPump ? true : null,
-                    isDump ? true : null
+                    isDump ? true : null,
+                    currentPoint.getInstrument(),
+                    currentPoint.getSaved()
             );
 
             return new RsiPipelineContext(

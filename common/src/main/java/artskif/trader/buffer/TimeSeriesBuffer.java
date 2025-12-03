@@ -146,6 +146,16 @@ public class TimeSeriesBuffer<C> {
     }
 
     /**
+     * Проверяет существование элемента с указанной временной меткой в буфере.
+     *
+     * @param bucket временная метка для проверки
+     * @return true если элемент с указанной временной меткой существует в буфере, false иначе
+     */
+    public boolean containsKey(Instant bucket) {
+        return dataMap.containsKey(bucket);
+    }
+
+    /**
      * Возвращает элементы из буфера между указанными временными метками.
      * Использует эффективные методы ConcurrentSkipListMap (subMap, tailMap, headMap) для получения подмножества за O(log n).
      * Границы интервала не включаются в результат.
