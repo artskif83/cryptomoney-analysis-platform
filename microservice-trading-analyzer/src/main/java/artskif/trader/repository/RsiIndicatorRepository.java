@@ -62,8 +62,8 @@ public class RsiIndicatorRepository implements PanacheRepositoryBase<RsiIndicato
                     CopyManager cm = pgConn.getCopyAPI();
                     String copySql = "COPY stage_indicators_rsi(symbol, tf, ts, rsi_14) " +
                             "FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '', HEADER false)";
-                    long copied = cm.copyIn(copySql, new StringReader(csv));
-                    LOG.infof("В staging загружено строк RSI: %d", copied);
+                    Long copied = cm.copyIn(copySql, new StringReader(csv));
+                    LOG.infof("В staging RSI загружено: %s строк", copied);
 
                     String upsert = """
                             INSERT INTO indicators_rsi(symbol, tf, ts, rsi_14)
@@ -73,7 +73,7 @@ public class RsiIndicatorRepository implements PanacheRepositoryBase<RsiIndicato
                                 rsi_14 = EXCLUDED.rsi_14;
                             """;
                     affected[0] = stmt.executeUpdate(upsert);
-                    LOG.debugf("Upsert RSI затронул строк: %d", affected);
+                    LOG.debugf("Upsert RSI затронул: %d строк", affected[0]);
 
                     stmt.execute("TRUNCATE TABLE stage_indicators_rsi");
                     unsavedBuffer.values().forEach(dto -> dto.setSaved(true));

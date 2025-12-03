@@ -69,7 +69,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     protected void saveLiveBuffer() {
         if (isSaveLiveEnabled()) {
             log().debugf("💾 [%s] Сохраняем в бд актуальный буфер", getName());
-            int count = getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
+            Integer count = getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
             log().debugf("💾 [%s] Сохранен в бд актуальный буфер: %s записей", getName(), count);
 
             saveLiveEnabled.set(false);
@@ -80,7 +80,7 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     protected void saveHistoricalBuffer() {
         if (isSaveHistoricalEnabled()) {
             log().debugf("💾 [%s] Сохраняем исторический буфер", getName());
-            int count = getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
+            Integer count = getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
             log().debugf("💾 [%s] Сохранен в бд исторический буфер: %s записей", getName(), count);
             saveHistoricalEnabled.set(false);
         }
