@@ -22,7 +22,7 @@ import java.time.Instant;
 @ApplicationScoped
 public class RsiIndicator1m extends RsiAbstractIndicator {
 
-    private final static String NAME = "RSI-1m";
+    private final static String NAME = "RSI-1m-test";
     private final static Logger LOG = Logger.getLogger(RsiIndicator1m.class);
     private final static Integer PERIOD = 14; // Период индикатора RSI
     private final static Integer BUFFER_LIVE_SIZE = 50; // Размер буфера для хранения точек индикатора

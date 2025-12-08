@@ -1,4 +1,4 @@
-package artskif.trader.strategy;
+package artskif.trader.ai;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
@@ -10,19 +10,10 @@ import my.signals.v1.StrategyKind;
 import java.util.List;
 
 
-public abstract class AbstractStrategy implements CandleEventListener {
+public abstract class AbstractAI {
 
     protected abstract String getName();
-    protected abstract CandleEventBus getEventBus();
     protected abstract List<IndicatorPoint> getIndicators();
-    protected abstract CandleTimeframe getCandleType();
-    protected abstract StrategyKind getStrategyKind();
-
-    @Override
-    public void onCandle(CandleEvent event) {
-        if (event.period() != getCandleType()) return;
-
-    }
 
 //    /** Собираем полный срез по всем индикаторам */
 //    private IndicatorFrame assembleFrame(Instant bucket, CandleTimeframe period) {
