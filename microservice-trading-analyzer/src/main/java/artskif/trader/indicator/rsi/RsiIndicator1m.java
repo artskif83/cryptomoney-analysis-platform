@@ -1,6 +1,6 @@
 package artskif.trader.indicator.rsi;
 
-import artskif.trader.candle.Candle1M;
+import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.common.Stage;
@@ -36,8 +36,8 @@ public class RsiIndicator1m extends RsiAbstractIndicator {
     }
 
     @Inject
-    public RsiIndicator1m(Candle1M candle1m, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
-        super(candle1m, bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
+    public RsiIndicator1m(Candle candle, CandleEventBus bus, Instance<Stage<RsiPipelineContext>> metrics) {
+        super(candle.getInstance(CandleTimeframe.CANDLE_1M), bus, metrics, PERIOD, new RsiIndicatorRepository(), BUFFER_LIVE_SIZE, BUFFER_HISTORICAL_SIZE);
     }
 
     @Override
