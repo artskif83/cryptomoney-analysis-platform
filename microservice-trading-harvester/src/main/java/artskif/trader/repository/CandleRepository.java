@@ -84,14 +84,17 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     .setParameter("end", now)
                     .getResultList();
 
-            if (timestamps.isEmpty()) {
-                LOG.infof("⚠️ Свечи не найдены в указанном диапазоне");
-                return List.of();
-            }
-
             LOG.infof("📊 Найдено %d свечей для анализа", timestamps.size());
 
             List<TimeGap> gaps = new java.util.ArrayList<>();
+
+            if (timestamps.isEmpty()) {
+                LOG.infof("✅ Свечи не найдены. Берем весь диапазон как гап: от %s до now", startBoundary);
+                TimeGap gap = new TimeGap(startBoundary, null);
+                gaps.add(gap);
+                return List.of();
+            }
+
 
             // Проверяем гап между now и первой свечой
             Instant firstTs = timestamps.getFirst();

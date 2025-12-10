@@ -51,7 +51,7 @@ services:
       - tsdb_dev:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d market"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d market_dev"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -68,7 +68,7 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       # (опционально) автоустановка плагинов, если хотим Plotly:
-      # GF_INSTALL_PLUGINS: grafana-polystat-panel,marcusolsson-plotly-panel
+      GF_INSTALL_PLUGINS: volkovlabs-echarts-panel
     ports:
       - "3001:3000"
     volumes:
