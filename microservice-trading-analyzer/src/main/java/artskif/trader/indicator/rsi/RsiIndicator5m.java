@@ -82,7 +82,7 @@ public class RsiIndicator5m extends RsiAbstractIndicator {
 
     @Override
     public boolean getEnabled() {
-        return enabled;
+        return false; // временно отключаем все кастомные индикаторы
     }
 
     @Override

@@ -27,14 +27,18 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:3.10.0'
     implementation 'io.quarkus:quarkus-arc'
 
+    // REST
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-resteasy-jackson'
+
     // Database
     implementation "io.quarkus:quarkus-hibernate-orm"
     implementation "io.quarkus:quarkus-hibernate-orm-panache"
     implementation "io.quarkus:quarkus-jdbc-postgresql"
 
-    // Confluent serde (версию подбери совместимую с native)
+    // Confluent serde
     implementation("io.confluent:kafka-avro-serializer:7.2.0") {
-        exclude group: "jakarta.ws.rs", module: "jakarta.ws.rs-api"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
     // Jackson (для парсинга JSON)

@@ -16,4 +16,16 @@ public enum CandleTimeframe {
     CandleTimeframe(Duration duration) {
         this.duration = duration;
     }
+
+    public static CandleTimeframe fromString(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("CandleTimeframe value cannot be null");
+        }
+        try {
+            return CandleTimeframe.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown CandleTimeframe: " + value +
+                    ". Valid values are: CANDLE_1M, CANDLE_5M, CANDLE_4H, CANDLE_1W", e);
+        }
+    }
 }
