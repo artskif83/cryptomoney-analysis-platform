@@ -47,5 +47,8 @@ dependencies {
     // XGBoost
     implementation 'ml.dmlc:xgboost4j_2.13:3.1.1'
 
+    // TA4J - Technical Analysis Library
+    implementation 'org.ta4j:ta4j-core:0.21.0'
+
     testImplementation 'io.quarkus:quarkus-junit5'
 }
