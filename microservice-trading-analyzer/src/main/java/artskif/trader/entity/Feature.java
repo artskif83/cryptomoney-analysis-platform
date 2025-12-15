@@ -1,4 +1,4 @@
-package artskif.trader.contract;
+package artskif.trader.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
@@ -12,11 +12,11 @@ import java.util.Map;
  * Содержит базовые поля из candles и динамически добавляемые фичи из индикаторов
  */
 @Entity
-@Table(name = "contracts")
-public class Contract extends PanacheEntityBase {
+@Table(name = "features")
+public class Feature extends PanacheEntityBase {
 
     @EmbeddedId
-    public ContractId id;
+    public CandleId id;
 
     @Column(nullable = false, precision = 18, scale = 8)
     public BigDecimal open;
@@ -44,10 +44,10 @@ public class Contract extends PanacheEntityBase {
     @Transient
     private Map<String, Object> features = new HashMap<>();
 
-    public Contract() {
+    public Feature() {
     }
 
-    public Contract(ContractId id, BigDecimal open, BigDecimal high,
+    public Feature(CandleId id, BigDecimal open, BigDecimal high,
                     BigDecimal low, BigDecimal close, BigDecimal volume, boolean confirmed) {
         this.id = id;
         this.open = open;

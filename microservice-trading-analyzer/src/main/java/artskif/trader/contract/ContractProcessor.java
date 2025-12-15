@@ -2,6 +2,8 @@ package artskif.trader.contract;
 
 import artskif.trader.contract.features.RsiFeatureContext;
 import artskif.trader.entity.Candle;
+import artskif.trader.entity.CandleId;
+import artskif.trader.entity.Feature;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -30,7 +32,7 @@ public class ContractProcessor {
     public void processCandle(Candle candle) {
         try {
             // 1. Создаем или обновляем базовый контракт из свечи
-            Contract contract = contractService.createOrUpdateFromCandle(candle);
+            Feature contract = contractService.createOrUpdateFromCandle(candle);
 
             // 2. Получаем исторические данные для расчета индикаторов
             List<Candle> historicalCandles = getHistoricalCandles(
@@ -61,8 +63,8 @@ public class ContractProcessor {
      * Обработать отдельную фичу
      */
     @Transactional
-    public void processFeature(ContractId contractId, FeatureCreator creator,
-                                List<Candle> historicalCandles, Candle currentCandle) {
+    public void processFeature(CandleId contractId, FeatureCreator creator,
+                               List<Candle> historicalCandles, Candle currentCandle) {
 
         String featureName = creator.getFeatureName();
 

@@ -1,7 +1,7 @@
 package artskif.trader.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.ContractFeatureMetadata;
+import artskif.trader.entity.ContractFeatureMetadata;
 import artskif.trader.contract.FeatureCreator;
 import artskif.trader.entity.Candle;
 import io.quarkus.logging.Log;
@@ -16,9 +16,6 @@ import org.ta4j.core.num.DecimalNum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 
 @ApplicationScoped

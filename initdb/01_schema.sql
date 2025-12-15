@@ -57,7 +57,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_indicators_rsi
 );
 
 -- 3) Таблица контрактов (Wide Table для ML)
-CREATE TABLE IF NOT EXISTS contracts
+CREATE TABLE IF NOT EXISTS features
 (
     symbol         varchar(32)    NOT NULL,
     tf             varchar(10)    NOT NULL,
@@ -71,17 +71,30 @@ CREATE TABLE IF NOT EXISTS contracts
     PRIMARY KEY (symbol, tf, ts)
 );
 
-SELECT create_hypertable('contracts', 'ts', if_not_exists => TRUE);
-CREATE INDEX contracts_symbol_tf_ts_idx ON contracts (symbol, tf, ts DESC);
+SELECT create_hypertable('features', 'ts', if_not_exists => TRUE);
+CREATE INDEX features_symbol_tf_ts_idx ON features (symbol, tf, ts DESC);
 
--- 4) Таблица метаданных для фич (параметров ML)
+-- 4) Таблица контрактов (набор фич для ML)
+CREATE TABLE IF NOT EXISTS contracts
+(
+    id             bigserial      PRIMARY KEY,
+    name           varchar(255)   NOT NULL,
+    description    text           NOT NULL,
+    feature_set_id varchar(50)    NOT NULL,
+    created_at     timestamp      NOT NULL DEFAULT NOW(),
+    updated_at     timestamp      NOT NULL DEFAULT NOW()
+);
+
+-- 5) Таблица метаданных для фич (параметров ML)
 CREATE TABLE IF NOT EXISTS contract_features_metadata
 (
     feature_name   varchar(255)   NOT NULL PRIMARY KEY,
     description    text           NOT NULL,
     sequence_order integer        NOT NULL UNIQUE,
     data_type      varchar(50)    NOT NULL,
+    contract_id    bigint         NOT NULL,
     created_at     timestamp      NOT NULL DEFAULT NOW(),
-    updated_at     timestamp      NOT NULL DEFAULT NOW()
+    updated_at     timestamp      NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 

@@ -1,6 +1,6 @@
 package artskif.trader.contract;
 
-import artskif.trader.entity.Candle;
+import artskif.trader.entity.*;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -26,16 +26,16 @@ public class ContractService {
      * Создать или обновить контракт из свечи
      */
     @Transactional
-    public Contract createOrUpdateFromCandle(Candle candle) {
-        ContractId contractId = new ContractId(
+    public Feature createOrUpdateFromCandle(Candle candle) {
+        CandleId contractId = new CandleId(
                 candle.id.symbol,
                 candle.id.tf,
                 candle.id.ts
         );
 
-        Contract contract = entityManager.find(Contract.class, contractId);
+        Feature contract = entityManager.find(Feature.class, contractId);
         if (contract == null) {
-            contract = new Contract(
+            contract = new Feature(
                     contractId,
                     candle.open,
                     candle.high,
@@ -62,13 +62,13 @@ public class ContractService {
      * Добавить фичу в контракт
      */
     @Transactional
-    public void addFeatureToContract(ContractId contractId, String featureName, Object value) {
+    public void addFeatureToContract(CandleId contractId, String featureName, Object value) {
         // Проверяем, существует ли колонка для этой фичи
         ensureColumnExists(featureName);
 
         // Обновляем значение фичи в БД
         String sql = String.format(
-                "UPDATE contracts SET %s = :value WHERE symbol = :symbol AND tf = :tf AND ts = :ts",
+                "UPDATE features SET %s = :value WHERE symbol = :symbol AND tf = :tf AND ts = :ts",
                 featureName
         );
 
@@ -111,11 +111,11 @@ public class ContractService {
     }
 
     /**
-     * Проверить существование колонки в таблице contracts
+     * Проверить существование колонки в таблице features
      */
     private boolean columnExists(String columnName) {
         String sql = "SELECT column_name FROM information_schema.columns " +
-                "WHERE table_name = 'contracts' AND column_name = :columnName";
+                "WHERE table_name = 'features' AND column_name = :columnName";
 
         List<?> result = entityManager.createNativeQuery(sql)
                 .setParameter("columnName", columnName)
@@ -125,15 +125,15 @@ public class ContractService {
     }
 
     /**
-     * Создать новую колонку в таблице contracts
+     * Создать новую колонку в таблице features
      */
     @Transactional
     public void createColumn(String columnName, String dataType) {
-        String sql = String.format("ALTER TABLE contracts ADD COLUMN IF NOT EXISTS %s %s", columnName, dataType);
+        String sql = String.format("ALTER TABLE features ADD COLUMN IF NOT EXISTS %s %s", columnName, dataType);
 
         try {
             entityManager.createNativeQuery(sql).executeUpdate();
-            Log.infof("✅ Колонка %s добавлена в таблицу contracts", columnName);
+            Log.infof("✅ Колонка %s добавлена в таблицу features", columnName);
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при создании колонки %s", columnName);
             throw new RuntimeException("Не удалось создать колонку " + columnName, e);

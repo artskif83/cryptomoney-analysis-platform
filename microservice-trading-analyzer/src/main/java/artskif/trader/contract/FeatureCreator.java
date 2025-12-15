@@ -1,5 +1,7 @@
 package artskif.trader.contract;
 
+import artskif.trader.entity.ContractFeatureMetadata;
+
 /**
  * Интерфейс для создателей фич (features)
  * Каждый индикатор должен реализовывать этот интерфейс для добавления фич в контракт

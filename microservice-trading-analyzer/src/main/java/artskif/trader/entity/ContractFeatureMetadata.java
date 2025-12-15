@@ -1,4 +1,4 @@
-package artskif.trader.contract;
+package artskif.trader.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
@@ -31,6 +31,10 @@ public class ContractFeatureMetadata extends PanacheEntityBase {
 
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     public Instant updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contract_id", nullable = false)
+    public Contract contract;
 
     public ContractFeatureMetadata() {
     }
