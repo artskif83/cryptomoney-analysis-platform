@@ -33,9 +33,9 @@ public class ContractService {
                 candle.id.ts
         );
 
-        Feature contract = entityManager.find(Feature.class, contractId);
-        if (contract == null) {
-            contract = new Feature(
+        Feature feature = entityManager.find(Feature.class, contractId);
+        if (feature == null) {
+            feature = new Feature(
                     contractId,
                     candle.open,
                     candle.high,
@@ -44,18 +44,18 @@ public class ContractService {
                     candle.volume,
                     candle.confirmed
             );
-            entityManager.persist(contract);
+            entityManager.persist(feature);
         } else {
-            contract.open = candle.open;
-            contract.high = candle.high;
-            contract.low = candle.low;
-            contract.close = candle.close;
-            contract.volume = candle.volume;
-            contract.confirmed = candle.confirmed;
-            entityManager.merge(contract);
+            feature.open = candle.open;
+            feature.high = candle.high;
+            feature.low = candle.low;
+            feature.close = candle.close;
+            feature.volume = candle.volume;
+            feature.confirmed = candle.confirmed;
+            entityManager.merge(feature);
         }
 
-        return contract;
+        return feature;
     }
 
     /**
@@ -85,7 +85,6 @@ public class ContractService {
     /**
      * Проверить и создать колонку для фичи, если её нет
      */
-    @Transactional
     public void ensureColumnExists(String featureName) {
         Optional<FeatureCreator> creatorOpt = featureRegistry.getFeatureCreator(featureName);
         if (creatorOpt.isEmpty()) {
@@ -101,7 +100,15 @@ public class ContractService {
             Log.infof("Создана новая колонка %s с типом %s", featureName, creator.getDataType());
         }
 
-        // Регистрируем метаданные фичи, если их нет
+        // Регистрируем метаданные фичи, если их нет (в отдельной транзакции)
+        registerFeatureMetadata(featureName, creator);
+    }
+
+    /**
+     * Регистрация метаданных фичи в отдельной транзакции
+     */
+    @Transactional
+    public void registerFeatureMetadata(String featureName, FeatureCreator creator) {
         ContractFeatureMetadata metadata = ContractFeatureMetadata.findById(featureName);
         if (metadata == null) {
             metadata = creator.getFeatureMetadata();
@@ -114,14 +121,14 @@ public class ContractService {
      * Проверить существование колонки в таблице features
      */
     private boolean columnExists(String columnName) {
-        String sql = "SELECT column_name FROM information_schema.columns " +
-                "WHERE table_name = 'features' AND column_name = :columnName";
+        String sql = "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_name = 'features' AND column_name = ?";
 
-        List<?> result = entityManager.createNativeQuery(sql)
-                .setParameter("columnName", columnName)
-                .getResultList();
+        Number count = (Number) entityManager.createNativeQuery(sql)
+                .setParameter(1, columnName)
+                .getSingleResult();
 
-        return !result.isEmpty();
+        return count.intValue() > 0;
     }
 
     /**

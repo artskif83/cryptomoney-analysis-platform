@@ -36,12 +36,12 @@ public class ContractResource {
     @Path("/process")
     public Response processCandles(
             @QueryParam("symbol") @DefaultValue("BTC-USDT") String symbol,
-            @QueryParam("tf") @DefaultValue("5m") String tf,
+            @QueryParam("tf") @DefaultValue("CANDLE_5M") String tf,
             @QueryParam("from") String fromStr,
             @QueryParam("to") String toStr) {
 
         try {
-            Instant from = fromStr != null ? Instant.parse(fromStr) : Instant.now().minusSeconds(3600);
+            Instant from = fromStr != null ? Instant.parse(fromStr) : Instant.now().minusSeconds(1000000);
             Instant to = toStr != null ? Instant.parse(toStr) : Instant.now();
 
             Log.infof("Начинаем обработку свечей %s %s с %s по %s", symbol, tf, from, to);
