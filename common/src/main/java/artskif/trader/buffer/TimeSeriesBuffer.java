@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -183,6 +184,25 @@ public class TimeSeriesBuffer<C> {
         }
 
         return Collections.unmodifiableMap(subMap);
+    }
+
+    /**
+     * Возвращает все элементы из буфера.
+     *
+     * @return неизменяемая map со всеми элементами в хронологическом порядке, пустая map если буфер пуст
+     */
+    public Map<Instant, C> getAll() {
+        return getItemsBetween(null, null);
+    }
+
+    /**
+     * Возвращает все значения из буфера в виде списка в хронологическом порядке.
+     * Элементы возвращаются в том порядке, в котором они хранятся в ConcurrentSkipListMap (отсортированы по временной метке).
+     *
+     * @return неизменяемый список всех значений в хронологическом порядке, пустой список если буфер пуст
+     */
+    public List<C> getList() {
+        return Collections.unmodifiableList(new java.util.ArrayList<>(dataMap.values()));
     }
 
 

@@ -1,15 +1,11 @@
 package artskif.trader.contract;
 
-import artskif.trader.entity.ContractFeatureMetadata;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,43 +16,30 @@ import java.util.Map;
 @Consumes(MediaType.APPLICATION_JSON)
 public class ContractResource {
 
-    @Inject
-    ContractProcessor contractProcessor;
 
     @Inject
     ContractService contractService;
 
-    @Inject
-    ContractFeatureRegistry featureRegistry;
-
     /**
-     * Обработать свечи и создать контракты
+     * Сгенерировать исторические фичи для всех контрактов
      */
     @POST
-    @Path("/process")
-    public Response processCandles(
-            @QueryParam("symbol") @DefaultValue("BTC-USDT") String symbol,
-            @QueryParam("tf") @DefaultValue("CANDLE_5M") String tf,
-            @QueryParam("from") String fromStr,
-            @QueryParam("to") String toStr) {
-
+    @Path("/generate-historical")
+    public Response generateHistoricalFeatures() {
         try {
-            Instant from = fromStr != null ? Instant.parse(fromStr) : Instant.now().minusSeconds(1000000);
-            Instant to = toStr != null ? Instant.parse(toStr) : Instant.now();
+            Log.info("🚀 Запуск генерации исторических фич");
 
-            Log.infof("Начинаем обработку свечей %s %s с %s по %s", symbol, tf, from, to);
-
-            contractProcessor.processConfirmedCandles(symbol, tf, from, to);
+            // Генерируем исторические данные
+            contractService.generateHistoricalFeaturesForAll();
 
             return Response.ok()
                     .entity(Map.of(
                             "status", "success",
-                            "message", "Свечи обработаны"
+                            "message", "Исторические фичи сгенерированы"
                     ))
                     .build();
-
         } catch (Exception e) {
-            Log.errorf(e, "Ошибка при обработке свечей");
+            Log.errorf(e, "Ошибка при генерации исторических фич");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",
@@ -67,78 +50,22 @@ public class ContractResource {
     }
 
     /**
-     * Получить метаданные всех зарегистрированных фич
-     */
-    @GET
-    @Path("/features")
-    public Response getFeatures() {
-        try {
-            List<ContractFeatureMetadata> metadata = contractService.getAllFeatureMetadata();
-
-            return Response.ok(metadata).build();
-
-        } catch (Exception e) {
-            Log.errorf(e, "Ошибка при получении метаданных фич");
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of(
-                            "status", "error",
-                            "message", e.getMessage()
-                    ))
-                    .build();
-        }
-    }
-
-    /**
-     * Получить информацию о зарегистрированных создателях фич
-     */
-    @GET
-    @Path("/features/creators")
-    public Response getFeatureCreators() {
-        try {
-            List<Map<String, Object>> creators = featureRegistry.getAllCreators().stream()
-                    .map(creator -> {
-                        Map<String, Object> info = new HashMap<>();
-                        info.put("featureName", creator.getFeatureName());
-                        info.put("dataType", creator.getDataType());
-                        ContractFeatureMetadata metadata = creator.getFeatureMetadata();
-                        info.put("description", metadata.description);
-                        info.put("sequenceOrder", metadata.sequenceOrder);
-                        return info;
-                    })
-                    .toList();
-
-            return Response.ok(creators).build();
-
-        } catch (Exception e) {
-            Log.errorf(e, "Ошибка при получении создателей фич");
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of(
-                            "status", "error",
-                            "message", e.getMessage()
-                    ))
-                    .build();
-        }
-    }
-
-    /**
-     * Создать колонку для новой фичи
+     * Сгенерировать live фичи для всех контрактов
      */
     @POST
-    @Path("/features/{featureName}/column")
-    public Response createFeatureColumn(@PathParam("featureName") String featureName) {
+    @Path("/current-predict")
+    public Response generatePredict() {
         try {
-            contractService.ensureColumnExists(featureName);
+            contractService.generatePredict();
 
             return Response.ok()
                     .entity(Map.of(
                             "status", "success",
-                            "message", "Колонка создана или уже существует",
-                            "featureName", featureName
+                            "message", "Live фичи сгенерированы"
                     ))
                     .build();
-
         } catch (Exception e) {
-            Log.errorf(e, "Ошибка при создании колонки для фичи %s", featureName);
+            Log.errorf(e, "Ошибка при генерации live фич");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",

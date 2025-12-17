@@ -1,27 +1,32 @@
-package artskif.trader.contract;
+package artskif.trader.contract.features;
 
-import artskif.trader.entity.ContractFeatureMetadata;
+import artskif.trader.dto.CandlestickDto;
+import org.ta4j.core.BarSeries;
+import org.ta4j.core.indicators.AbstractIndicator;
+import org.ta4j.core.num.Num;
+
+import java.util.List;
 
 /**
  * Интерфейс для создателей фич (features)
  * Каждый индикатор должен реализовывать этот интерфейс для добавления фич в контракт
  */
-public interface FeatureCreator {
+public interface Feature {
+
 
     /**
-     * Получить метаданные фичи
+     * Получить список свечей для расчета фичи
      *
-     * @return метаданные фичи
+     * @return список свечей
      */
-    ContractFeatureMetadata getFeatureMetadata();
+    public List<CandlestickDto> getCandlestickDtos();
 
     /**
-     * Вычислить значение фичи
+     * Получить индикатор TA4J для расчета фичи
      *
-     * @param context контекст для вычисления (может содержать свечи, индикаторы и т.д.)
-     * @return вычисленное значение фичи
+     * @return индикатор TA4J
      */
-    Object calculateFeature(Object context);
+    AbstractIndicator<Num> getIndicator();
 
     /**
      * Получить имя фичи

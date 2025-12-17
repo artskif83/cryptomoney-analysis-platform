@@ -39,11 +39,12 @@ public class ContractFeatureMetadata extends PanacheEntityBase {
     public ContractFeatureMetadata() {
     }
 
-    public ContractFeatureMetadata(String featureName, String description, Integer sequenceOrder, String dataType) {
+    public ContractFeatureMetadata(String featureName, String description, Integer sequenceOrder, String dataType, Contract contract) {
         this.featureName = featureName;
         this.description = description;
         this.sequenceOrder = sequenceOrder;
         this.dataType = dataType;
+        this.contract = contract;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }

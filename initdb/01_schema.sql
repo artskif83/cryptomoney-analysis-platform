@@ -22,17 +22,6 @@ CREATE TABLE IF NOT EXISTS candles
 SELECT create_hypertable('candles', 'ts', if_not_exists => TRUE);
 CREATE INDEX candles_symbol_tf_ts_idx ON candles (symbol, tf, ts DESC);
 
-CREATE TABLE IF NOT EXISTS indicators_rsi
-(
-    symbol varchar(32) NOT NULL,
-    tf     varchar(10) NOT NULL,
-    ts     timestamp   NOT NULL,
-    rsi_14 numeric(5, 2),
-    PRIMARY KEY (symbol, tf, ts)
-);
-
-SELECT create_hypertable('indicators_rsi', 'ts', if_not_exists => TRUE);
-CREATE INDEX indicators_rsi_symbol_tf_ts_idx ON indicators_rsi (symbol, tf, ts DESC);
 
 -- 2) Staging для COPY (можно UNLOGGED для скорости)
 CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
@@ -48,14 +37,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
     confirmed      boolean DEFAULT false
 );
 
-CREATE UNLOGGED TABLE IF NOT EXISTS stage_indicators_rsi
-(
-    symbol varchar(32),
-    tf     varchar(10),
-    ts     timestamp,
-    rsi_14 numeric(5, 2)
-);
-
 -- 3) Таблица контрактов (Wide Table для ML)
 CREATE TABLE IF NOT EXISTS features
 (
@@ -67,6 +48,7 @@ CREATE TABLE IF NOT EXISTS features
     low            numeric(18, 8) NOT NULL,
     close          numeric(18, 8) NOT NULL,
     volume         numeric(30, 8),
+    contract_hash         varchar(64),
     confirmed      boolean        NOT NULL DEFAULT false,
     PRIMARY KEY (symbol, tf, ts)
 );

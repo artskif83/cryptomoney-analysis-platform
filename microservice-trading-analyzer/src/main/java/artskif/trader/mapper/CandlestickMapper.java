@@ -19,6 +19,11 @@ import java.util.stream.StreamSupport;
 import artskif.trader.entity.Candle;
 import artskif.trader.entity.CandleId;
 
+// Импорты для маппинга в ta4j Bar
+import org.ta4j.core.Bar;
+import org.ta4j.core.BaseBar;
+import org.ta4j.core.num.DecimalNum;
+
 public class CandlestickMapper {
 
     private static final Logger LOG = Logger.getLogger(CandlestickMapper.class);
@@ -177,6 +182,40 @@ public class CandlestickMapper {
             return dto;
         } catch (Exception ex) {
             LOG.warnf(ex, "Не удалось сконвертировать свечу в DTO: %s", candle);
+            return null;
+        }
+    }
+
+    /**
+     * Преобразует CandlestickDto в ta4j Bar для технического анализа
+     *
+     * @param dto CandlestickDto для преобразования
+     * @return Bar объект для использования в ta4j индикаторах, или null если dto некорректен
+     */
+    public static Bar mapDtoToBar(CandlestickDto dto) {
+        if (dto == null || dto.getTimestamp() == null || dto.getPeriod() == null) {
+            return null;
+        }
+
+        try {
+            CandleTimeframe timeframe = dto.getPeriod();
+            Instant beginTime = dto.getTimestamp();
+            Instant endTime = beginTime.plus(timeframe.getDuration());
+
+            return new BaseBar(
+                    timeframe.getDuration(),
+                    beginTime,
+                    endTime,
+                    DecimalNum.valueOf(dto.getOpen()),
+                    DecimalNum.valueOf(dto.getHigh()),
+                    DecimalNum.valueOf(dto.getLow()),
+                    DecimalNum.valueOf(dto.getClose()),
+                    DecimalNum.valueOf(dto.getVolume() != null ? dto.getVolume() : BigDecimal.ZERO),
+                    DecimalNum.valueOf(0),
+                    0L
+            );
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Не удалось сконвертировать CandlestickDto в Bar: %s", dto);
             return null;
         }
     }
