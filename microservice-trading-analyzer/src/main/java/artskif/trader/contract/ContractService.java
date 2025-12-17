@@ -28,7 +28,7 @@ public class ContractService {
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
             contractMap.put(contractName, contract);
-            Log.infof("📝 Зарегистрирована контракт: %s", contractName);
+            Log.infof("📝 Зарегистрирован контракт: %s", contractName);
         });
     }
 

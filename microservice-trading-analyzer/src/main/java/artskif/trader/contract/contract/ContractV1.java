@@ -12,7 +12,6 @@ import artskif.trader.entity.ContractFeatureMetadata;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.ta4j.core.num.Num;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,31 +28,35 @@ public class ContractV1 extends AbstractContract {
 
     private static final String NAME = "Contract V1.0 ";
 
-    private final Contract contract;
-    private final String contractHash;
+    private Contract contract;
+    private String contractHash;
 
     // Конструктор без параметров для CDI proxy
     public ContractV1() {
         super(null, null);
-        this.contract = null;
-        this.contractHash = null;
     }
 
     @Inject
     public ContractV1(ContractDataService dataService, ContractFeatureRegistry featureRegistry) {
         super(dataService, featureRegistry);
+    }
 
+    /**
+     * Создать и инициализировать контракт с метаданными
+     * @return инициализированный контракт с сохраненным хешем
+     */
+    private Contract initializeContract() {
         // Создаем контракт с метаданными
-        Contract tempContract = new Contract(NAME, "Dummy Contract", "V1");
+        Contract newContract = new Contract(NAME, "Dummy Contract", "V1");
 
         // Добавляем фичи к контракту
-        tempContract.addFeature(RsiFeature.getFeatureMetadata(2, tempContract));
+        newContract.addFeature(RsiFeature.getFeatureMetadata(2, newContract));
 
-        // Сохраняем контракт в БД (или получаем существующий)
-        this.contract = dataService.saveContract(tempContract);
+        // Генерируем и сохраняем hash
+        newContract.contractHash = generateContractHash(newContract);
+        dataService.saveContract(newContract);
 
-        this.contractHash = generateContractHash(contract);
-        Log.infof("📋 Contract: %s (id: %d, hash: %s)", contract.name, contract.id, contractHash);
+        return newContract;
     }
 
     @Override
@@ -67,8 +70,20 @@ public class ContractV1 extends AbstractContract {
      */
     @Override
     public void generateHistoricalFeatures() {
-        Log.infof("📊 Начало генерации исторических фич для контракта: %s", contract.name);
+        // Инициализируем контракт
+        Contract initializedContract = initializeContract();
+        this.contract = initializedContract;
+        this.contractHash = initializedContract.contractHash;
 
+        Log.infof("📋 Contract: %s (id: %d, hash: %s)", contract.name, contract.id, contractHash);
+
+        // Убеждаемся что контракт инициализирован перед генерацией фич
+        if (contract == null) {
+            Log.error("❌ Контракт не инициализирован. Контракт должен быть инициализирован в конструкторе перед генерацией фич.");
+            return;
+        }
+
+        Log.infof("📊 Начало генерации исторических фич для контракта: %s", contract.name);
 
         // Проверка что колонки существуют
         for (ContractFeatureMetadata featureMetadata : contract.features) {

@@ -28,6 +28,9 @@ public class Contract extends PanacheEntityBase {
     @Column(name = "feature_set_id", nullable = false, length = 50)
     public String featureSetId;
 
+    @Column(name = "contract_hash", length = 64)
+    public String contractHash;
+
     @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP")
     public Instant createdAt;
 
