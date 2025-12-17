@@ -26,9 +26,9 @@ public class ContractService {
     public ContractService(ContractFeatureRegistry featureRegistry, Instance<AbstractContract> contractInstances) {
         this.featureRegistry = featureRegistry;
         contractInstances.forEach(contract -> {
-            String featureName = contract.getName();
-            contractMap.put(featureName, contract);
-            Log.infof("📝 Зарегистрирована Feature: %s", featureName);
+            String contractName = contract.getName();
+            contractMap.put(contractName, contract);
+            Log.infof("📝 Зарегистрирована контракт: %s", contractName);
         });
     }
 

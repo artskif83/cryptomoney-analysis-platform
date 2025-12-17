@@ -25,35 +25,6 @@ public class ContractDataService {
     ContractFeatureRegistry featureRegistry;
 
     /**
-     * Сохранить строку фич в БД
-     */
-    @Transactional
-    public void saveFeatureRow(FeatureRow row) {
-        try {
-            // Проверяем, существует ли запись
-            String checkSql = "SELECT COUNT(*) FROM features WHERE symbol = :symbol AND tf = :tf AND ts = :ts AND contract_hash = :contract_hash";
-            Long count = (Long) entityManager.createNativeQuery(checkSql)
-                    .setParameter("symbol", row.getSymbol())
-                    .setParameter("tf", row.getTimeframe().name())
-                    .setParameter("ts", row.getTimestamp())
-                    .setParameter("contract_hash", row.getContractHash())
-                    .getSingleResult();
-
-            if (count > 0) {
-                // Обновляем существующую запись
-                Log.errorf("❌ Данные для FeatureRow контракта уже существуют. Сначала удалите контракт. Дублирующая строка %s", row);
-            } else {
-                // Вставляем новую запись
-                insertFeatureRow(row);
-            }
-
-        } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при сохранении FeatureRow: %s", row);
-            throw new RuntimeException("Не удалось сохранить FeatureRow", e);
-        }
-    }
-
-    /**
      * Вставить новую строку фич
      */
     @Transactional
@@ -95,8 +66,36 @@ public class ContractDataService {
         int batchSize = 100;
         int count = 0;
 
-        for (FeatureRow row : rows) {
-            saveFeatureRow(row);
+        // Получаем первую строку для проверки
+        var iterator = rows.iterator();
+        if (!iterator.hasNext()) {
+            Log.warn("⚠️ Пустой список строк для сохранения");
+            return;
+        }
+
+        FeatureRow firstRow = iterator.next();
+
+        // Проверяем, существует ли запись для этого контракта
+        String checkSql = "SELECT COUNT(*) FROM features WHERE symbol = :symbol AND tf = :tf AND contract_hash = :contract_hash";
+        Long existingCount = (Long) entityManager.createNativeQuery(checkSql)
+                .setParameter("symbol", firstRow.getSymbol())
+                .setParameter("tf", firstRow.getTimeframe().name())
+                .setParameter("contract_hash", firstRow.getContractHash())
+                .getSingleResult();
+
+        if (existingCount > 0) {
+            Log.error("❌ Данные для FeatureRow контракта уже существуют. Сначала удалите контракт.");
+            return;
+        }
+
+        // Сохраняем первую строку
+        insertFeatureRow(firstRow);
+        count++;
+
+        // Сохраняем остальные строки
+        while (iterator.hasNext()) {
+            FeatureRow row = iterator.next();
+            insertFeatureRow(row);
             count++;
 
             if (count % batchSize == 0) {
