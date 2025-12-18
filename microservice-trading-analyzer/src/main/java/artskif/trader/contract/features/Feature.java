@@ -19,7 +19,7 @@ public interface Feature {
      *
      * @return список свечей
      */
-    public List<CandlestickDto> getCandlestickDtos();
+    List<CandlestickDto> getCandlestickDtos();
 
     /**
      * Получить индикатор TA4J для расчета фичи

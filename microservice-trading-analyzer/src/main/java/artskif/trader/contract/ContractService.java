@@ -1,17 +1,14 @@
 package artskif.trader.contract;
 
 import artskif.trader.contract.contract.AbstractContract;
-import artskif.trader.contract.features.Feature;
+import artskif.trader.contract.features.ContractFeatureRegistry;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Сервис для управления контрактами и их фичами

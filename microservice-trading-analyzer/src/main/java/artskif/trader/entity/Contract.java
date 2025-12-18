@@ -38,7 +38,7 @@ public class Contract extends PanacheEntityBase {
     public Instant updatedAt;
 
     @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<ContractFeatureMetadata> features = new ArrayList<>();
+    public List<ContractMetadata> metadata = new ArrayList<>();
 
     public Contract() {
     }
@@ -63,18 +63,18 @@ public class Contract extends PanacheEntityBase {
     }
 
     /**
-     * Добавить фичу к контракту
+     * Добавить метаданные к контракту
      */
-    public void addFeature(ContractFeatureMetadata feature) {
-        features.add(feature);
+    public void addMetadata(ContractMetadata feature) {
+        metadata.add(feature);
         feature.contract = this;
     }
 
     /**
-     * Удалить фичу из контракта
+     * Удалить метаданные из контракта
      */
-    public void removeFeature(ContractFeatureMetadata feature) {
-        features.remove(feature);
+    public void removeMetadata(ContractMetadata feature) {
+        metadata.remove(feature);
         feature.contract = null;
     }
 }

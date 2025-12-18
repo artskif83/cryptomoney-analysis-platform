@@ -2,7 +2,8 @@ package artskif.trader.contract.features;
 
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractFeatureMetadata;
+import artskif.trader.entity.ContractMetadata;
+import artskif.trader.entity.MetadataType;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.indicators.RSIIndicator;
@@ -25,8 +26,8 @@ public class RsiFeature implements Feature {
         this.rsiIndicator = new RSIIndicator(baseFeature.getIndicator(), RSI_PERIOD);
     }
 
-    public static ContractFeatureMetadata getFeatureMetadata(Integer sequenceOrder, Contract contract) {
-        return new ContractFeatureMetadata(FEATURE_NAME, DESCRIPTION, sequenceOrder, DATA_TYPE, contract);
+    public static ContractMetadata getFeatureMetadata(Integer sequenceOrder, Contract contract) {
+        return new ContractMetadata(FEATURE_NAME, DESCRIPTION, sequenceOrder, DATA_TYPE, MetadataType.FEATURE, contract);
     }
 
     @Override

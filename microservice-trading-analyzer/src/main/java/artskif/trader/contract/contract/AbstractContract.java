@@ -1,9 +1,10 @@
 package artskif.trader.contract.contract;
 
 import artskif.trader.contract.ContractDataService;
-import artskif.trader.contract.ContractFeatureRegistry;
+import artskif.trader.contract.features.ContractFeatureRegistry;
+import artskif.trader.contract.labels.ContractLabelRegistry;
 import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractFeatureMetadata;
+import artskif.trader.entity.ContractMetadata;
 import io.quarkus.logging.Log;
 
 import java.nio.charset.StandardCharsets;
@@ -20,10 +21,12 @@ public abstract class AbstractContract {
 
     protected final ContractDataService dataService;
     protected final ContractFeatureRegistry featureRegistry;
+    protected final ContractLabelRegistry labelRegistry;
 
-    public AbstractContract(ContractDataService dataService, ContractFeatureRegistry featureRegistry) {
+    public AbstractContract(ContractDataService dataService, ContractFeatureRegistry featureRegistry, ContractLabelRegistry labelRegistry) {
         this.dataService = dataService;
         this.featureRegistry = featureRegistry;
+        this.labelRegistry = labelRegistry;
     }
 
     public abstract String getName();
@@ -42,15 +45,16 @@ public abstract class AbstractContract {
             sb.append(contract.name).append("|");
             sb.append(contract.featureSetId).append("|");
 
-            // Добавляем все фичи в порядке sequence_order
-            List<ContractFeatureMetadata> sortedFeatures = contract.features.stream()
+            // Добавляем все метаданные в порядке sequence_order
+            List<ContractMetadata> sortedMetadata = contract.metadata.stream()
                     .sorted(Comparator.comparing(f -> f.sequenceOrder))
                     .toList();
 
-            for (ContractFeatureMetadata feature : sortedFeatures) {
-                sb.append(feature.featureName).append(":")
-                  .append(feature.dataType).append(":")
-                  .append(feature.sequenceOrder).append("|");
+            for (ContractMetadata metadata : sortedMetadata) {
+                sb.append(metadata.name).append(":")
+                  .append(metadata.dataType).append(":")
+                  .append(metadata.metadataType).append(":")
+                  .append(metadata.sequenceOrder).append("|");
             }
 
             byte[] hashBytes = digest.digest(sb.toString().getBytes(StandardCharsets.UTF_8));

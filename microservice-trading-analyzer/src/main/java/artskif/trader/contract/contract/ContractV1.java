@@ -1,14 +1,18 @@
 package artskif.trader.contract.contract;
 
 import artskif.trader.contract.ContractDataService;
-import artskif.trader.contract.ContractFeatureRegistry;
+import artskif.trader.contract.features.ContractFeatureRegistry;
 import artskif.trader.contract.FeatureRow;
 import artskif.trader.contract.features.BaseFeature;
 import artskif.trader.contract.features.Feature;
 import artskif.trader.contract.features.RsiFeature;
+import artskif.trader.contract.labels.ContractLabelRegistry;
+import artskif.trader.contract.labels.FutureReturnLabel;
+import artskif.trader.contract.labels.Label;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractFeatureMetadata;
+import artskif.trader.entity.ContractMetadata;
+import artskif.trader.entity.MetadataType;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -33,12 +37,12 @@ public class ContractV1 extends AbstractContract {
 
     // Конструктор без параметров для CDI proxy
     public ContractV1() {
-        super(null, null);
+        super(null, null, null);
     }
 
     @Inject
-    public ContractV1(ContractDataService dataService, ContractFeatureRegistry featureRegistry) {
-        super(dataService, featureRegistry);
+    public ContractV1(ContractDataService dataService, ContractFeatureRegistry featureRegistry, ContractLabelRegistry labelRegistry) {
+        super(dataService, featureRegistry, labelRegistry);
     }
 
     /**
@@ -50,7 +54,9 @@ public class ContractV1 extends AbstractContract {
         Contract newContract = new Contract(NAME, "Dummy Contract", "V1");
 
         // Добавляем фичи к контракту
-        newContract.addFeature(RsiFeature.getFeatureMetadata(2, newContract));
+        newContract.addMetadata(RsiFeature.getFeatureMetadata(1, newContract));
+        // Добавляем лейблы к контракту
+        newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
 
         // Генерируем и сохраняем hash
         newContract.contractHash = generateContractHash(newContract);
@@ -86,8 +92,8 @@ public class ContractV1 extends AbstractContract {
         Log.infof("📊 Начало генерации исторических фич для контракта: %s", contract.name);
 
         // Проверка что колонки существуют
-        for (ContractFeatureMetadata featureMetadata : contract.features) {
-            dataService.ensureColumnExist(featureMetadata.featureName);
+        for (ContractMetadata metadata : contract.metadata) {
+            dataService.ensureColumnExist(metadata.name, metadata.metadataType);
         }
 
         Feature baseFeature = featureRegistry.getFeature(BaseFeature.FEATURE_NAME).orElse(null);
@@ -102,7 +108,7 @@ public class ContractV1 extends AbstractContract {
         List<CandlestickDto> candlestickDtos = baseFeature.getCandlestickDtos();
 
         for (int i = 0; i < candlestickDtos.size(); i++) {
-            FeatureRow featureRow = generateFeatureRow(candlestickDtos.get(i), contract.features, i);
+            FeatureRow featureRow = generateFeatureRow(candlestickDtos.get(i), contract.metadata, i);
 
             futureRows.add(featureRow);
             processedCount++;
@@ -116,7 +122,7 @@ public class ContractV1 extends AbstractContract {
 
     }
 
-    private FeatureRow generateFeatureRow(CandlestickDto currentCandle, List<ContractFeatureMetadata> featureMetadatas, int index) {
+    private FeatureRow generateFeatureRow(CandlestickDto currentCandle, List<ContractMetadata> metadatas, int index) {
         FeatureRow row = new FeatureRow(
                 currentCandle.getInstrument(),
                 currentCandle.getPeriod(),
@@ -131,23 +137,36 @@ public class ContractV1 extends AbstractContract {
         row.addFeature("close", currentCandle.getClose());
         row.addFeature("volume", currentCandle.getVolume());
 
-        for (ContractFeatureMetadata featureMetadata : featureMetadatas) {
+        for (ContractMetadata metadata : metadatas) {
             try {
 
 
                 // Вычисляем значение фичи
-                Feature feature = featureRegistry.getFeature(featureMetadata.featureName).orElse(null);
+                if (metadata.metadataType == MetadataType.FEATURE) {
+                    Feature feature = featureRegistry.getFeature(metadata.name).orElse(null);
 
-                if (feature != null) {
-                    row.addFeature(featureMetadata.featureName, feature.getIndicator().getValue(index).bigDecimalValue());
-                } else {
-                    Log.debugf("⚠️ Фича %s не существует в реестре для фич",
-                            featureMetadata.featureName);
+                    if (feature != null) {
+                        row.addFeature(metadata.name, feature.getIndicator().getValue(index).bigDecimalValue());
+                    } else {
+                        Log.debugf("⚠️ Фича %s не существует в реестре для фич",
+                                metadata.name);
+                    }
+
+                    continue;
+                } else if (metadata.metadataType == MetadataType.LABEL) {
+                    Label label = labelRegistry.getLabel(metadata.name).orElse(null);
+
+                    if (label != null) {
+                        row.addFeature(metadata.name, label.getValue(index).intValue());
+                    } else {
+                        Log.debugf("⚠️ Лейбл %s не существует в реестре для лейблов",
+                                metadata.name);
+                    }
                 }
 
             } catch (Exception e) {
                 Log.errorf(e, "❌ Ошибка при вычислении фичи %s для свечи %s",
-                        featureMetadata.featureName, currentCandle.getTimestamp());
+                        metadata.name, currentCandle.getTimestamp());
             }
         }
 

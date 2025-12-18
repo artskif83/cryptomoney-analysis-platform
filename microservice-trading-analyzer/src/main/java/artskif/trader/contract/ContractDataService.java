@@ -1,7 +1,11 @@
 package artskif.trader.contract;
 
+import artskif.trader.contract.features.ContractFeatureRegistry;
 import artskif.trader.contract.features.Feature;
+import artskif.trader.contract.labels.ContractLabelRegistry;
+import artskif.trader.contract.labels.Label;
 import artskif.trader.entity.Contract;
+import artskif.trader.entity.MetadataType;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,6 +28,8 @@ public class ContractDataService {
     @Inject
     ContractFeatureRegistry featureRegistry;
 
+    @Inject
+    ContractLabelRegistry labelRegistry;
     /**
      * Вставить новую строку фич
      */
@@ -113,19 +119,35 @@ public class ContractDataService {
      * Убедиться, что все необходимые колонки существуют
      */
     @Transactional
-    public void ensureColumnExist(String featureName) {
+    public void ensureColumnExist(String metadataName, MetadataType metadataType) {
         Log.info("🔧 Проверка и создание колонок для всех фич");
 
-        Optional<Feature> feature = featureRegistry.getFeature(featureName);
+        if (metadataType == MetadataType.FEATURE) {
+            Optional<Feature> feature = featureRegistry.getFeature(metadataName);
 
-        if (feature.isPresent()) {
-            if (!columnExists(featureName)) {
-                createColumn(featureName, feature.get().getDataType());
-                Log.infof("✅ Создана колонка: %s (%s)", featureName, feature.get().getDataType());
+            if (feature.isPresent()) {
+                if (!columnExists(metadataName)) {
+                    createColumn(metadataName, feature.get().getDataType());
+                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, feature.get().getDataType());
+                }
+            } else {
+                Log.warnf("❌ Фича не найдена в реестре: %s", metadataName);
+            }
+        } else if (metadataType == MetadataType.LABEL) {
+            Optional<Label> label = labelRegistry.getLabel(metadataName);
+
+            if (label.isPresent()) {
+                if (!columnExists(metadataName)) {
+                    createColumn(metadataName, label.get().getDataType());
+                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, label.get().getDataType());
+                }
+            } else {
+                Log.warnf("❌ Лейбл не найден в реестре: %s", metadataName);
             }
         } else {
-            Log.warnf("❌ Фича не найдена в реестре: %s", featureName);
+            Log.warnf("❌ Неизвестный тип метаданных: %s для фичи: %s", metadataType, metadataName);
         }
+
 
     }
 
@@ -172,7 +194,7 @@ public class ContractDataService {
         try {
             // Проверяем, существует ли контракт с таким именем
             // Используем JOIN FETCH для eager загрузки коллекции features
-            String query = "SELECT c FROM Contract c LEFT JOIN FETCH c.features WHERE c.name = :name";
+            String query = "SELECT c FROM Contract c LEFT JOIN FETCH c.metadata WHERE c.name = :name";
             Optional<Contract> existingContract = entityManager.createQuery(query, Contract.class)
                     .setParameter("name", contract.name)
                     .getResultStream()
@@ -191,23 +213,6 @@ public class ContractDataService {
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при сохранении контракта: %s", contract.name);
             throw new RuntimeException("Не удалось сохранить контракт", e);
-        }
-    }
-
-    /**
-     * Получить контракт по имени с eager загрузкой features
-     */
-    @Transactional
-    public Optional<Contract> getContractByName(String name) {
-        try {
-            String query = "SELECT c FROM Contract c LEFT JOIN FETCH c.features WHERE c.name = :name";
-            return entityManager.createQuery(query, Contract.class)
-                    .setParameter("name", name)
-                    .getResultStream()
-                    .findFirst();
-        } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при получении контракта: %s", name);
-            return Optional.empty();
         }
     }
 }

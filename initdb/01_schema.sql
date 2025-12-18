@@ -60,6 +60,7 @@ CREATE INDEX features_symbol_tf_ts_idx ON features (symbol, tf, ts DESC);
 CREATE TABLE IF NOT EXISTS contracts
 (
     id             bigserial      PRIMARY KEY,
+    contract_hash  varchar(64)    NOT NULL,
     name           varchar(255)   NOT NULL,
     description    text           NOT NULL,
     feature_set_id varchar(50)    NOT NULL,
@@ -67,13 +68,17 @@ CREATE TABLE IF NOT EXISTS contracts
     updated_at     timestamp      NOT NULL DEFAULT NOW()
 );
 
+-- Создаем индекс для быстрого поиска по хешу контракта
+CREATE INDEX IF NOT EXISTS contracts_contract_hash_idx ON contracts(contract_hash);
+
 -- 5) Таблица метаданных для фич (параметров ML)
-CREATE TABLE IF NOT EXISTS contract_features_metadata
+CREATE TABLE IF NOT EXISTS contract_metadata
 (
-    feature_name   varchar(255)   NOT NULL PRIMARY KEY,
+    name           varchar(255)   NOT NULL PRIMARY KEY,
     description    text           NOT NULL,
     sequence_order integer        NOT NULL UNIQUE,
     data_type      varchar(50)    NOT NULL,
+    metadata_type  varchar(20)    NOT NULL CHECK (metadata_type IN ('FEATURE', 'LABEL')),
     contract_id    bigint         NOT NULL,
     created_at     timestamp      NOT NULL DEFAULT NOW(),
     updated_at     timestamp      NOT NULL DEFAULT NOW(),

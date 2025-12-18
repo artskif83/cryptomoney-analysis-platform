@@ -6,16 +6,16 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 /**
- * Метаданные для фич (параметров ML)
- * Содержит информацию о каждой фиче, используемой в контракте
+ * Метаданные для контракта (фичи и лейблы)
+ * Содержит информацию о каждой фиче или лейбле, используемой в контракте
  */
 @Entity
-@Table(name = "contract_features_metadata")
-public class ContractFeatureMetadata extends PanacheEntityBase {
+@Table(name = "contract_metadata")
+public class ContractMetadata extends PanacheEntityBase {
 
     @Id
-    @Column(name = "feature_name", nullable = false, length = 255)
-    public String featureName;
+    @Column(name = "name", nullable = false, length = 255)
+    public String name;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     public String description;
@@ -25,6 +25,10 @@ public class ContractFeatureMetadata extends PanacheEntityBase {
 
     @Column(name = "data_type", nullable = false, length = 50)
     public String dataType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metadata_type", nullable = false, length = 20)
+    public MetadataType metadataType;
 
     @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMP")
     public Instant createdAt;
@@ -36,14 +40,15 @@ public class ContractFeatureMetadata extends PanacheEntityBase {
     @JoinColumn(name = "contract_id", nullable = false)
     public Contract contract;
 
-    public ContractFeatureMetadata() {
+    public ContractMetadata() {
     }
 
-    public ContractFeatureMetadata(String featureName, String description, Integer sequenceOrder, String dataType, Contract contract) {
-        this.featureName = featureName;
+    public ContractMetadata(String name, String description, Integer sequenceOrder, String dataType, MetadataType metadataType, Contract contract) {
+        this.name = name;
         this.description = description;
         this.sequenceOrder = sequenceOrder;
         this.dataType = dataType;
+        this.metadataType = metadataType;
         this.contract = contract;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
