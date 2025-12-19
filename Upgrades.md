@@ -25,4 +25,17 @@ Prometheus + Grafana
 Дашборды и оповещения.
 Используются для latency, error-rates, throughput, custom ML-метрик.
 
-## 
+## для Python
+
+### scikit-learn
+
+Используется не как модель, а как инфраструктура:
+train/test split;
+метрики (precision, recall, ROC, PR);
+пайплайны;
+cross-validation.
+
+### Optuna
+
+подбор гиперпараметров;
+значительно лучше ручного тюнинга.
