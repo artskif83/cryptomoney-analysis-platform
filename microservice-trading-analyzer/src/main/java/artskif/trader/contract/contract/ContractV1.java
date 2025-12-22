@@ -1,11 +1,8 @@
 package artskif.trader.contract.contract;
 
 import artskif.trader.contract.ContractDataService;
-import artskif.trader.contract.features.ContractFeatureRegistry;
+import artskif.trader.contract.features.*;
 import artskif.trader.contract.FeatureRow;
-import artskif.trader.contract.features.BaseFeature;
-import artskif.trader.contract.features.Feature;
-import artskif.trader.contract.features.RsiFeature;
 import artskif.trader.contract.labels.ContractLabelRegistry;
 import artskif.trader.contract.labels.FutureReturnLabel;
 import artskif.trader.contract.labels.Label;
@@ -55,6 +52,7 @@ public class ContractV1 extends AbstractContract {
 
         // Добавляем фичи к контракту
         newContract.addMetadata(RsiFeature.getFeatureMetadata(1, newContract));
+        newContract.addMetadata(ADXFeature.getFeatureMetadata(2, newContract));
         // Добавляем лейблы к контракту
         newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
 

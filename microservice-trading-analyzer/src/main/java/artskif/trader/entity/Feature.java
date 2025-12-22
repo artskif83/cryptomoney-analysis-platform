@@ -33,7 +33,7 @@ public class Feature extends PanacheEntityBase {
     @Column(nullable = true, precision = 30, scale = 8)
     public BigDecimal volume;
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Column(nullable = false, columnDefinition = "boolean default true")
     public boolean confirmed;
 
     /**

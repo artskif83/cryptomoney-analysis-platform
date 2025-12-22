@@ -215,5 +215,64 @@ public class ContractDataService {
             throw new RuntimeException("Не удалось сохранить контракт", e);
         }
     }
+
+    /**
+     * Удалить контракт со всеми его метаданными и зависимыми фичами по ID
+     * @param contractId ID контракта для удаления
+     * @return true если контракт был удален, false если контракт не найден
+     */
+    @Transactional
+    public boolean deleteContractById(Long contractId) {
+        try {
+            Log.infof("🗑️ Начало удаления контракта с ID: %d", contractId);
+
+            // Находим контракт по ID
+            String findQuery = "SELECT c FROM Contract c LEFT JOIN FETCH c.metadata WHERE c.id = :contractId";
+            Optional<Contract> contractOpt = entityManager.createQuery(findQuery, Contract.class)
+                    .setParameter("contractId", contractId)
+                    .getResultStream()
+                    .findFirst();
+
+            if (contractOpt.isEmpty()) {
+                Log.warnf("⚠️ Контракт с ID '%d' не найден", contractId);
+                return false;
+            }
+
+            Contract contract = contractOpt.get();
+            String contractName = contract.name;
+            String contractHash = contract.contractHash;
+
+            // 1. Удаляем все строки фич из таблицы features
+            String deleteFeaturesSql = "DELETE FROM features WHERE contract_hash = :contractHash";
+            int deletedFeatures = entityManager.createNativeQuery(deleteFeaturesSql)
+                    .setParameter("contractHash", contractHash)
+                    .executeUpdate();
+            Log.infof("🗑️ Удалено %d строк фич для контракта '%s'", deletedFeatures, contractName);
+
+            // 2. Удаляем все метаданные контракта (cascade = ALL, orphanRemoval = true делает это автоматически)
+            // Но для явности можем удалить вручную
+            String deleteMetadataSql = "DELETE FROM contract_metadata WHERE contract_id = :contractId";
+            int deletedMetadata = entityManager.createNativeQuery(deleteMetadataSql)
+                    .setParameter("contractId", contractId)
+                    .executeUpdate();
+            Log.infof("🗑️ Удалено %d записей метаданных для контракта '%s'", deletedMetadata, contractName);
+
+            // 3. Удаляем сам контракт
+            String deleteContractSql = "DELETE FROM contracts WHERE id = :contractId";
+            entityManager.createNativeQuery(deleteContractSql)
+                    .setParameter("contractId", contractId)
+                    .executeUpdate();
+
+            entityManager.flush();
+            Log.infof("✅ Контракт '%s' (id: %d, hash: %s) успешно удален со всеми зависимыми данными",
+                    contractName, contractId, contractHash);
+
+            return true;
+
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при удалении контракта с ID: %d", contractId);
+            throw new RuntimeException("Не удалось удалить контракт с ID: " + contractId, e);
+        }
+    }
 }
 

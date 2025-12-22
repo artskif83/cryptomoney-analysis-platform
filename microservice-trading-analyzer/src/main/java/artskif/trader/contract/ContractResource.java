@@ -20,6 +20,9 @@ public class ContractResource {
     @Inject
     ContractService contractService;
 
+    @Inject
+    ContractDataService contractDataService;
+
     /**
      * Сгенерировать исторические фичи для всех контрактов
      */
@@ -70,6 +73,48 @@ public class ContractResource {
                     .entity(Map.of(
                             "status", "error",
                             "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Удалить контракт со всеми его метаданными и зависимыми фичами по ID
+     * @param contractId ID контракта для удаления
+     * @return ответ с результатом удаления
+     */
+    @DELETE
+    @Path("/{contractId}")
+    public Response deleteContractById(@PathParam("contractId") Long contractId) {
+        try {
+            Log.infof("🗑️ Получен запрос на удаление контракта с ID: %d", contractId);
+
+            boolean deleted = contractDataService.deleteContractById(contractId);
+
+            if (deleted) {
+                return Response.ok()
+                        .entity(Map.of(
+                                "status", "success",
+                                "message", "Контракт успешно удален",
+                                "contractId", contractId
+                        ))
+                        .build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Контракт с указанным ID не найден",
+                                "contractId", contractId
+                        ))
+                        .build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при удалении контракта с ID: %d", contractId);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "contractId", contractId
                     ))
                     .build();
         }

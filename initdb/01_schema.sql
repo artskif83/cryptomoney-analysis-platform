@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS features
     close          numeric(18, 8) NOT NULL,
     volume         numeric(30, 8),
     contract_hash         varchar(64),
-    confirmed      boolean        NOT NULL DEFAULT false,
+    confirmed      boolean        NOT NULL DEFAULT true,
     PRIMARY KEY (symbol, tf, ts)
 );
 
