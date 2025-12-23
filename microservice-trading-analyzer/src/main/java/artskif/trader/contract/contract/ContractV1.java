@@ -52,7 +52,7 @@ public class ContractV1 extends AbstractContract {
         Contract newContract = new Contract(NAME, "Dummy Contract", "V1");
 
         // Добавляем фичи к контракту
-        newContract.addMetadata(RsiFeature.getFeatureMetadata(1, newContract));
+        newContract.addMetadata(RSIFeature.getFeatureMetadata(1, newContract));
         newContract.addMetadata(ADXFeature.getFeatureMetadata(2, newContract));
         // Добавляем лейблы к контракту
         newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
@@ -145,7 +145,7 @@ public class ContractV1 extends AbstractContract {
                     Feature feature = featureRegistry.getFeature(metadata.name).orElse(null);
 
                     if (feature != null) {
-                        row.addFeature(metadata.name, feature.getIndicator(CandleTimeframe.CANDLE_5M).getValue(index).bigDecimalValue());
+                        row.addFeature(metadata.name+CandleTimeframe.CANDLE_5M, feature.getIndicator(CandleTimeframe.CANDLE_5M).getValue(index).bigDecimalValue());
                     } else {
                         Log.debugf("⚠️ Фича %s не существует в реестре для фич",
                                 metadata.name);

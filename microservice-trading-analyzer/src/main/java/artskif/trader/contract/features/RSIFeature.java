@@ -8,14 +8,13 @@ import artskif.trader.entity.MetadataType;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.indicators.RSIIndicator;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class RsiFeature implements Feature {
+public class RSIFeature implements Feature {
 
     public static final String FEATURE_NAME = "feature_rsi_14";
     public static final String DESCRIPTION = "RSI индикатор с периодом 14";
@@ -24,7 +23,7 @@ public class RsiFeature implements Feature {
     private final Map<CandleTimeframe, RSIIndicator> rsiIndicator = Map.of();
     private final BaseFeature baseFeature;
 
-    public RsiFeature(BaseFeature baseFeature) {
+    public RSIFeature(BaseFeature baseFeature) {
         this.baseFeature = baseFeature;
         this.rsiIndicator.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
         this.rsiIndicator.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
