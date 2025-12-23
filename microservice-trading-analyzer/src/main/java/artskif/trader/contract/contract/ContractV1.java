@@ -1,5 +1,6 @@
 package artskif.trader.contract.contract;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
 import artskif.trader.contract.features.*;
 import artskif.trader.contract.FeatureRow;
@@ -144,7 +145,7 @@ public class ContractV1 extends AbstractContract {
                     Feature feature = featureRegistry.getFeature(metadata.name).orElse(null);
 
                     if (feature != null) {
-                        row.addFeature(metadata.name, feature.getIndicator().getValue(index).bigDecimalValue());
+                        row.addFeature(metadata.name, feature.getIndicator(CandleTimeframe.CANDLE_5M).getValue(index).bigDecimalValue());
                     } else {
                         Log.debugf("⚠️ Фича %s не существует в реестре для фич",
                                 metadata.name);

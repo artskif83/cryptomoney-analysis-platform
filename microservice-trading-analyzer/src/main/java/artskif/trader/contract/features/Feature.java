@@ -1,7 +1,8 @@
 package artskif.trader.contract.features;
 
+import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.contract.util.FeaturesUtils;
 import artskif.trader.dto.CandlestickDto;
-import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.num.Num;
 
@@ -15,6 +16,19 @@ public interface Feature {
 
 
     /**
+     * Получить значение фичи на старшем таймфрейме
+     * Реализация по умолчанию использует FeaturesUtils для маппинга индексов
+     *
+     * @return значение фичи
+     */
+    default Num getHigherTimeframeValue(int index, CandleTimeframe lowerTimeframe, CandleTimeframe higherTimeframe) {
+        AbstractIndicator<Num> lowerTfIndicator = getIndicator(lowerTimeframe);
+        AbstractIndicator<Num> higherTfIndicator = getIndicator(higherTimeframe);
+        int higherTfIndex = FeaturesUtils.mapToHigherTfIndex(lowerTfIndicator.getBarSeries().getBar(index), higherTfIndicator.getBarSeries());
+        return higherTfIndicator.getValue(higherTfIndex);
+    }
+
+    /**
      * Получить список свечей для расчета фичи
      *
      * @return список свечей
@@ -26,7 +40,7 @@ public interface Feature {
      *
      * @return индикатор TA4J
      */
-    AbstractIndicator<Num> getIndicator();
+    AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe);
 
     /**
      * Получить имя фичи

@@ -15,8 +15,10 @@ import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.DecimalNumFactory;
 import org.ta4j.core.num.Num;
+import org.ta4j.core.utils.BarSeriesUtils;
 
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class BaseFeature implements Feature{
@@ -25,8 +27,8 @@ public class BaseFeature implements Feature{
     public static final String DATA_TYPE = "numeric(18, 2)";
     private final Candle candle;
     private List<CandlestickDto> candlestickDtos;
-    private BaseBarSeries series;
-    private ClosePriceIndicator closePrice;
+    private Map<CandleTimeframe, BaseBarSeries> series;
+    private Map<CandleTimeframe, ClosePriceIndicator> closePrice;
 
     @Inject
     public BaseFeature(Candle candle) {
@@ -35,11 +37,9 @@ public class BaseFeature implements Feature{
 
     @PostConstruct
     private void init(){
-        // TODO: временно берем только 5 минутный таймфрейм
         Candle.CandleInstance instance = candle.getInstance(CandleTimeframe.CANDLE_5M);
         candlestickDtos = instance.getHistoricalBuffer().getList();
-
-        series = new BaseBarSeriesBuilder()
+        BaseBarSeries baseBarSeries = new BaseBarSeriesBuilder()
                 .withName(FEATURE_NAME)
                 .withNumFactory(DecimalNumFactory.getInstance(2))
                 .build();
@@ -47,16 +47,20 @@ public class BaseFeature implements Feature{
         for (CandlestickDto candleDto : candlestickDtos) {
             Bar bar = CandlestickMapper.mapDtoToBar(candleDto);
             if (bar != null) {
-                series.addBar(bar);
+                baseBarSeries.addBar(bar);
             }
         }
+        series.put(CandleTimeframe.CANDLE_5M, baseBarSeries);
+        series.put(CandleTimeframe.CANDLE_4H,
+                (BaseBarSeries) BarSeriesUtils.aggregateBars(baseBarSeries, CandleTimeframe.CANDLE_4H.getDuration(),"baseBarSeries4H"));
 
-        closePrice = new ClosePriceIndicator(series);
+        closePrice.put(CandleTimeframe.CANDLE_5M, new ClosePriceIndicator(series.get(CandleTimeframe.CANDLE_5M)));
+        closePrice.put(CandleTimeframe.CANDLE_4H, new ClosePriceIndicator(series.get(CandleTimeframe.CANDLE_4H)));
     }
 
     @Override
-    public AbstractIndicator<Num> getIndicator() {
-        return closePrice;
+    public AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe) {
+        return closePrice.get(timeframe);
     }
 
     @Override
