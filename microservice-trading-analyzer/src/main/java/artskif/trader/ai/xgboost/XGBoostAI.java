@@ -1,7 +1,6 @@
 package artskif.trader.ai.xgboost;
 
 import artskif.trader.ai.AbstractAI;
-import artskif.trader.indicator.IndicatorPoint;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -23,9 +22,6 @@ import java.util.List;
 public class XGBoostAI extends AbstractAI {
 
     private final static Logger LOG = Logger.getLogger(XGBoostAI.class);
-
-    @Inject
-    Instance<IndicatorPoint> indicators;
 
     @PostConstruct
     void start() throws XGBoostError {
@@ -105,10 +101,5 @@ public class XGBoostAI extends AbstractAI {
     @Override
     protected String getName() {
         return "XGBoost AI";
-    }
-
-    @Override
-    protected List<IndicatorPoint> getIndicators() {
-        return indicators.stream().toList();
     }
 }

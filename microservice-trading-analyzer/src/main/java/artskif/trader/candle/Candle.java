@@ -45,19 +45,27 @@ public class Candle {
     void init() {
         LOG.info("🕯️ Инициализация единого класса Candle для всех таймфреймов");
 
-        // Инициализируем экземпляры для каждого таймфрейма
-        instances.put(CandleTimeframe.CANDLE_1M, new CandleInstance(
-                CandleTimeframe.CANDLE_1M, "CANDLE-1m", candle1mEnabled, bus
-        ));
-        instances.put(CandleTimeframe.CANDLE_5M, new CandleInstance(
-                CandleTimeframe.CANDLE_5M, "CANDLE-5m", candle5mEnabled, bus
-        ));
-        instances.put(CandleTimeframe.CANDLE_4H, new CandleInstance(
-                CandleTimeframe.CANDLE_4H, "CANDLE-4H", candle4hEnabled, bus
-        ));
-        instances.put(CandleTimeframe.CANDLE_1W, new CandleInstance(
-                CandleTimeframe.CANDLE_1W, "CANDLE-1W", candle1wEnabled, bus
-        ));
+        // Инициализируем экземпляры для каждого таймфрейма, только если enabled
+        if (candle1mEnabled) {
+            instances.put(CandleTimeframe.CANDLE_1M, new CandleInstance(
+                    CandleTimeframe.CANDLE_1M, "CANDLE-1m", candle1mEnabled, bus
+            ));
+        }
+        if (candle5mEnabled) {
+            instances.put(CandleTimeframe.CANDLE_5M, new CandleInstance(
+                    CandleTimeframe.CANDLE_5M, "CANDLE-5m", candle5mEnabled, bus
+            ));
+        }
+        if (candle4hEnabled) {
+            instances.put(CandleTimeframe.CANDLE_4H, new CandleInstance(
+                    CandleTimeframe.CANDLE_4H, "CANDLE-4H", candle4hEnabled, bus
+            ));
+        }
+        if (candle1wEnabled) {
+            instances.put(CandleTimeframe.CANDLE_1W, new CandleInstance(
+                    CandleTimeframe.CANDLE_1W, "CANDLE-1W", candle1wEnabled, bus
+            ));
+        }
 
         // Инициализируем каждый экземпляр
         instances.values().forEach(CandleInstance::init);
@@ -68,6 +76,13 @@ public class Candle {
      */
     public CandleInstance getInstance(CandleTimeframe timeframe) {
         return instances.get(timeframe);
+    }
+
+    /**
+     * Получить все экземпляры свечей
+     */
+    public Map<CandleTimeframe, CandleInstance> getAllInstances() {
+        return instances;
     }
 
     /**

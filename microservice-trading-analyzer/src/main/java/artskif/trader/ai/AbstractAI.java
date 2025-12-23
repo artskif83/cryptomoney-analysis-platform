@@ -4,7 +4,6 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventListener;
-import artskif.trader.indicator.IndicatorPoint;
 import my.signals.v1.StrategyKind;
 
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.List;
 public abstract class AbstractAI {
 
     protected abstract String getName();
-    protected abstract List<IndicatorPoint> getIndicators();
 
 //    /** Собираем полный срез по всем индикаторам */
 //    private IndicatorFrame assembleFrame(Instant bucket, CandleTimeframe period) {

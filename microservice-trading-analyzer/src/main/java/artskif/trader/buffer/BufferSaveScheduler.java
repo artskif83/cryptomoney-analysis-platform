@@ -1,10 +1,9 @@
 package artskif.trader.buffer;
 
-import artskif.trader.common.AbstractTimeSeries;
+import artskif.trader.candle.Candle;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.util.concurrent.TimeUnit;
@@ -17,17 +16,17 @@ public class BufferSaveScheduler {
     private static final Logger log = Logger.getLogger(BufferSaveScheduler.class.getName());
 
     @Inject
-    Instance<AbstractTimeSeries<?>> timeSeriesInstances;
+    Candle candle;
 
     @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "30s")
     void saveAllBuffersPeriodically() {
-        timeSeriesInstances.stream()
-                .filter(ts -> ts.isSaveLiveEnabled() || ts.isSaveHistoricalEnabled())
-                .forEach(timeSeries -> {
+        candle.getAllInstances().values().stream()
+                .filter(instance -> instance.isSaveLiveEnabled() || instance.isSaveHistoricalEnabled())
+                .forEach(candleInstance -> {
                     try {
-                        timeSeries.saveBuffer();
+                        candleInstance.saveBuffer();
                     } catch (Exception e) {
-                        log.severe("Ошибка при сохранении данных для " + timeSeries.getName() + ": " + e.getMessage());
+                        log.severe("Ошибка при сохранении данных для " + candleInstance.getName() + ": " + e.getMessage());
                     }
                 });
     }
