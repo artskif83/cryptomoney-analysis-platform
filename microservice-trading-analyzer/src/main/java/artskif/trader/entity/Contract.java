@@ -71,6 +71,16 @@ public class Contract extends PanacheEntityBase {
     }
 
     /**
+     * Добавить несколько метаданных к контракту
+     */
+    public void addMetadata(List<ContractMetadata> features) {
+        for (ContractMetadata feature : features) {
+            metadata.add(feature);
+            feature.contract = this;
+        }
+    }
+
+    /**
      * Удалить метаданные из контракта
      */
     public void removeMetadata(ContractMetadata feature) {

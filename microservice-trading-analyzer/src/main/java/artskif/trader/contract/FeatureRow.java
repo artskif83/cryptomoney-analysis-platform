@@ -3,6 +3,7 @@ package artskif.trader.contract;
 import artskif.trader.candle.CandleTimeframe;
 import lombok.Getter;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,18 +15,15 @@ import java.util.Map;
 public class FeatureRow {
 
     @Getter
-    private final String symbol;
-    @Getter
-    private final CandleTimeframe timeframe;
+    private final Duration timeframe;
     @Getter
     private final Instant timestamp;
     @Getter
     private final String contractHash;
     private final Map<String, Object> features;
 
-    public FeatureRow(String symbol, CandleTimeframe timeframe, Instant timestamp,
-                     String contractHash) {
-        this.symbol = symbol;
+    public FeatureRow(Duration timeframe, Instant timestamp,
+                      String contractHash) {
         this.timeframe = timeframe;
         this.timestamp = timestamp;
         this.contractHash = contractHash;
@@ -55,8 +53,8 @@ public class FeatureRow {
 
     @Override
     public String toString() {
-        return String.format("FeatureRow{symbol='%s', tf=%s, ts=%s, hash='%s', features=%d}",
-                symbol, timeframe, timestamp, contractHash.substring(0, 8), features.size());
+        return String.format("FeatureRow{tf=%s, ts=%s, hash='%s', features=%d}",
+                timeframe, timestamp, contractHash.substring(0, 8), features.size());
     }
 }
 

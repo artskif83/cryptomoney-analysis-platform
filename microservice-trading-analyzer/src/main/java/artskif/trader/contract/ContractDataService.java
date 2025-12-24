@@ -30,6 +30,7 @@ public class ContractDataService {
 
     @Inject
     ContractLabelRegistry labelRegistry;
+
     /**
      * Вставить новую строку фич
      */
@@ -38,8 +39,8 @@ public class ContractDataService {
         Map<String, Object> features = row.getAllFeatures();
 
         // Формируем SQL для INSERT
-        StringBuilder columns = new StringBuilder("symbol, tf, ts, contract_hash");
-        StringBuilder values = new StringBuilder(":symbol, :tf, :ts, :contractHash");
+        StringBuilder columns = new StringBuilder("tf, ts, contract_hash");
+        StringBuilder values = new StringBuilder(":tf, :ts, :contractHash");
 
         for (String featureName : features.keySet()) {
             columns.append(", ").append(featureName);
@@ -49,8 +50,7 @@ public class ContractDataService {
         String sql = String.format("INSERT INTO features (%s) VALUES (%s)", columns, values);
 
         var query = entityManager.createNativeQuery(sql)
-                .setParameter("symbol", row.getSymbol())
-                .setParameter("tf", row.getTimeframe().name())
+                .setParameter("tf", formatDuration(row.getTimeframe()))
                 .setParameter("ts", row.getTimestamp())
                 .setParameter("contractHash", row.getContractHash());
 
@@ -82,10 +82,8 @@ public class ContractDataService {
         FeatureRow firstRow = iterator.next();
 
         // Проверяем, существует ли запись для этого контракта
-        String checkSql = "SELECT COUNT(*) FROM features WHERE symbol = :symbol AND tf = :tf AND contract_hash = :contract_hash";
+        String checkSql = "SELECT COUNT(*) FROM features WHERE contract_hash = :contract_hash";
         Long existingCount = (Long) entityManager.createNativeQuery(checkSql)
-                .setParameter("symbol", firstRow.getSymbol())
-                .setParameter("tf", firstRow.getTimeframe().name())
                 .setParameter("contract_hash", firstRow.getContractHash())
                 .getSingleResult();
 
@@ -127,8 +125,8 @@ public class ContractDataService {
 
             if (feature.isPresent()) {
                 if (!columnExists(metadataName)) {
-                    createColumn(metadataName, feature.get().getDataType());
-                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, feature.get().getDataType());
+                    createColumn(metadataName, feature.get().getFeatureTypeMetadataByValueName(metadataName).getDataType());
+                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, feature.get().getFeatureTypeMetadataByValueName(metadataName).getDataType());
                 }
             } else {
                 Log.warnf("❌ Фича не найдена в реестре: %s", metadataName);
@@ -218,6 +216,7 @@ public class ContractDataService {
 
     /**
      * Удалить контракт со всеми его метаданными и зависимыми фичами по ID
+     *
      * @param contractId ID контракта для удаления
      * @return true если контракт был удален, false если контракт не найден
      */
@@ -274,5 +273,22 @@ public class ContractDataService {
             throw new RuntimeException("Не удалось удалить контракт с ID: " + contractId, e);
         }
     }
+
+    /**
+     * Преобразует Duration в строку формата "5m", "1h", "1d"
+     */
+    private String formatDuration(java.time.Duration duration) {
+        long minutes = duration.toMinutes();
+        if (minutes < 60) {
+            return minutes + "m";
+        }
+        long hours = duration.toHours();
+        if (hours < 24) {
+            return hours + "h";
+        }
+        long days = duration.toDays();
+        return days + "d";
+    }
 }
+
 

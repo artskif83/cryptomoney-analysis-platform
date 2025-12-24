@@ -1,7 +1,9 @@
 package artskif.trader.contract.contract;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
 import artskif.trader.contract.features.ContractFeatureRegistry;
+import artskif.trader.contract.features.Feature;
 import artskif.trader.contract.labels.ContractLabelRegistry;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
@@ -30,7 +32,8 @@ public abstract class AbstractContract {
     }
 
     public abstract String getName();
-    public abstract void generateHistoricalFeatures();
+    public abstract void generateHistoricalFeatures(CandleTimeframe timeframe);
+    protected abstract Feature getBaseFeature();
 
     /**
      * Сгенерировать хешкод контракта на основе всех его метаданных

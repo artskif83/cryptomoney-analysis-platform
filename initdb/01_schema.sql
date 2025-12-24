@@ -40,7 +40,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
 -- 3) Таблица контрактов (Wide Table для ML)
 CREATE TABLE IF NOT EXISTS features
 (
-    symbol         varchar(32)    NOT NULL,
     tf             varchar(10)    NOT NULL,
     ts             timestamp      NOT NULL,
     open           numeric(18, 8) NOT NULL,
@@ -50,11 +49,11 @@ CREATE TABLE IF NOT EXISTS features
     volume         numeric(30, 8),
     contract_hash         varchar(64),
     confirmed      boolean        NOT NULL DEFAULT true,
-    PRIMARY KEY (symbol, tf, ts)
+    PRIMARY KEY (tf, ts)
 );
 
 SELECT create_hypertable('features', 'ts', if_not_exists => TRUE);
-CREATE INDEX features_symbol_tf_ts_idx ON features (symbol, tf, ts DESC);
+CREATE INDEX features_symbol_tf_ts_idx ON features (tf, ts DESC);
 
 -- 4) Таблица контрактов (набор фич для ML)
 CREATE TABLE IF NOT EXISTS contracts

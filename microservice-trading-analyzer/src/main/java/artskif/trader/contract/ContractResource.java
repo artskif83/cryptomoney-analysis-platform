@@ -1,5 +1,6 @@
 package artskif.trader.contract;
 
+import artskif.trader.candle.CandleTimeframe;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -25,20 +26,37 @@ public class ContractResource {
 
     /**
      * Сгенерировать исторические фичи для всех контрактов
+     * @param timeframeStr таймфрейм для генерации (опционально, по умолчанию CANDLE_5M)
      */
     @POST
     @Path("/generate-historical")
-    public Response generateHistoricalFeatures() {
+    public Response generateHistoricalFeatures(
+            @QueryParam("timeframe") @DefaultValue("CANDLE_5M") String timeframeStr) {
         try {
-            Log.info("🚀 Запуск генерации исторических фич");
+            Log.infof("🚀 Запуск генерации исторических фич для таймфрейма: %s", timeframeStr);
+
+            // Парсим таймфрейм
+            CandleTimeframe timeframe;
+            try {
+                timeframe = CandleTimeframe.valueOf(timeframeStr);
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Неверный таймфрейм. Доступные значения: " +
+                                          String.join(", ", getCandleTimeframeValues())
+                        ))
+                        .build();
+            }
 
             // Генерируем исторические данные
-            contractService.generateHistoricalFeaturesForAll();
+            contractService.generateHistoricalFeaturesForAll(timeframe);
 
             return Response.ok()
                     .entity(Map.of(
                             "status", "success",
-                            "message", "Исторические фичи сгенерированы"
+                            "message", "Исторические фичи сгенерированы",
+                            "timeframe", timeframeStr
                     ))
                     .build();
         } catch (Exception e) {
@@ -50,6 +68,94 @@ public class ContractResource {
                     ))
                     .build();
         }
+    }
+
+    /**
+     * Сгенерировать исторические фичи для одного контракта по его ID
+     * @param contractId ID контракта
+     * @param timeframeStr таймфрейм для генерации (опционально, по умолчанию CANDLE_5M)
+     */
+    @POST
+    @Path("/{contractId}/generate-historical")
+    public Response generateHistoricalFeaturesForContract(
+            @PathParam("contractId") Long contractId,
+            @QueryParam("timeframe") @DefaultValue("CANDLE_5M") String timeframeStr) {
+        try {
+            Log.infof("🚀 Запуск генерации исторических фич для контракта ID=%d, таймфрейм: %s",
+                      contractId, timeframeStr);
+
+            // Парсим таймфрейм
+            CandleTimeframe timeframe;
+            try {
+                timeframe = CandleTimeframe.valueOf(timeframeStr);
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Неверный таймфрейм. Доступные значения: " +
+                                          String.join(", ", getCandleTimeframeValues()),
+                                "contractId", contractId
+                        ))
+                        .build();
+            }
+
+            // Получаем имя контракта по ID
+            String contractName = contractService.getContractNameById(contractId);
+            if (contractName == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Контракт с указанным ID не найден",
+                                "contractId", contractId
+                        ))
+                        .build();
+            }
+
+            // Генерируем исторические данные для контракта
+            boolean success = contractService.generateHistoricalFeaturesForContract(contractName, timeframe);
+
+            if (!success) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Контракт не найден в реестре",
+                                "contractId", contractId,
+                                "contractName", contractName
+                        ))
+                        .build();
+            }
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Исторические фичи сгенерированы для контракта",
+                            "contractId", contractId,
+                            "contractName", contractName,
+                            "timeframe", timeframeStr
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "Ошибка при генерации исторических фич для контракта ID=%d", contractId);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "contractId", contractId
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Вспомогательный метод для получения доступных значений таймфреймов
+     */
+    private String[] getCandleTimeframeValues() {
+        CandleTimeframe[] values = CandleTimeframe.values();
+        String[] result = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = values[i].name();
+        }
+        return result;
     }
 
     /**

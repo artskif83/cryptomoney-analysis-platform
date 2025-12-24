@@ -19,9 +19,9 @@ public class ContractFeatureRegistry {
     @Inject
     public ContractFeatureRegistry(Instance<Feature> features) {
         features.forEach(creator -> {
-            String featureName = creator.getFeatureName();
-            featureMap.put(featureName, creator);
-            Log.infof("📝 Зарегистрирована Feature: %s", featureName);
+            List<String> valueNames = creator.getFeatureValueNames();
+            valueNames.forEach(name -> featureMap.put(name, creator));
+            Log.infof("📝 Зарегистрирована фича %s со значениями: %s", creator.getClass().getSimpleName(), valueNames);
         });
     }
 

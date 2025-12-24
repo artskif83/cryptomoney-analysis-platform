@@ -1,5 +1,6 @@
 package artskif.trader.contract.labels;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 
 import java.math.BigDecimal;
@@ -23,10 +24,10 @@ public interface Label {
      * Список свечей, на основе которых считаем лейбл.
      * Обычно тот же набор, что и для фич.
      */
-    List<CandlestickDto> getCandlestickDtos();
+    List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe);
 
     /**
      * Вернуть значение лейбла для индекса.
      */
-    BigDecimal getValue(int index);
+    BigDecimal getValue(CandleTimeframe timeframe, int index);
 }

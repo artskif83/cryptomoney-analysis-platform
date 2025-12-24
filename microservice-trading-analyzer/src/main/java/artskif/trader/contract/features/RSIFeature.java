@@ -1,56 +1,85 @@
 package artskif.trader.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.dto.CandlestickDto;
-import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractMetadata;
-import artskif.trader.entity.MetadataType;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.ta4j.core.indicators.AbstractIndicator;
+import jakarta.inject.Inject;
 import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
-import java.util.Map;
 
 @ApplicationScoped
-public class RSIFeature implements Feature {
+public class RSIFeature extends AbstractFeature<RSIIndicator> {
 
-    public static final String FEATURE_NAME = "feature_rsi_14";
-    public static final String DESCRIPTION = "RSI индикатор с периодом 14";
-    public static final String DATA_TYPE = "numeric(5, 2)";
     public static final int RSI_PERIOD = 14;
-    private final Map<CandleTimeframe, RSIIndicator> rsiIndicator = Map.of();
-    private final BaseFeature baseFeature;
 
+    /**
+     * Перечислимый тип для различных значений RSI фичи
+     */
+    public enum RSIFeatureType implements FeatureTypeMetadata {
+        RSI_5M(
+            "feature_rsi_14_5m",
+            "RSI индикатор с периодом 14 на таймфрейме 5m",
+            "numeric(5, 2)",
+            CandleTimeframe.CANDLE_5M
+        ),
+        RSI_4H(
+            "feature_rsi_14_4h",
+            "RSI индикатор с периодом 14 на таймфрейме 4h",
+            "numeric(5, 2)",
+            CandleTimeframe.CANDLE_4H
+        ),
+        RSI_5M_ON_4H(
+            "feature_rsi_14_5m_on_4h",
+            "RSI индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
+            "numeric(5, 2)",
+            CandleTimeframe.CANDLE_5M
+        );
+
+        private final FeatureMetadata metadata;
+
+        RSIFeatureType(String name, String description, String dataType, CandleTimeframe timeframe) {
+            this.metadata = new FeatureMetadata(name, description, dataType, timeframe);
+        }
+
+        @Override
+        public FeatureMetadata getMetadata() {
+            return metadata;
+        }
+    }
+
+    // No-args constructor required by CDI
+    protected RSIFeature() {
+        super(null);
+    }
+
+    @Inject
     public RSIFeature(BaseFeature baseFeature) {
-        this.baseFeature = baseFeature;
-        this.rsiIndicator.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
-        this.rsiIndicator.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
-    }
-
-    public static ContractMetadata getFeatureMetadata(Integer sequenceOrder, Contract contract) {
-        return new ContractMetadata(FEATURE_NAME, DESCRIPTION, sequenceOrder, DATA_TYPE, MetadataType.FEATURE, contract);
+        super(baseFeature);
+        this.indicators.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
+        this.indicators.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
     }
 
     @Override
-    public List<CandlestickDto> getCandlestickDtos() {
-        return baseFeature.getCandlestickDtos();
+    public Num getValueByName(String valueName, int index) {
+        RSIFeatureType rsiType = FeatureTypeMetadata.findByName(RSIFeatureType.values(), valueName);
+
+        return switch (rsiType) {
+            case RSI_5M -> indicators.get(CandleTimeframe.CANDLE_5M).getValue(index);
+            case RSI_4H -> indicators.get(CandleTimeframe.CANDLE_4H).getValue(index);
+            case RSI_5M_ON_4H -> getHigherTimeframeValue(index, CandleTimeframe.CANDLE_5M, CandleTimeframe.CANDLE_4H);
+        };
+    }
+
+
+    @Override
+    public List<String> getFeatureValueNames() {
+        return FeatureTypeMetadata.getNames(RSIFeatureType.values());
     }
 
     @Override
-    public AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe) {
-        return rsiIndicator.get(timeframe);
-    }
-
-    @Override
-    public String getFeatureName() {
-        return FEATURE_NAME;
-    }
-
-    @Override
-    public String getDataType() {
-        return DATA_TYPE;
+    public FeatureTypeMetadata getFeatureTypeMetadataByValueName(String name) {
+        return FeatureTypeMetadata.findByName(RSIFeatureType.values(), name);
     }
 }
 

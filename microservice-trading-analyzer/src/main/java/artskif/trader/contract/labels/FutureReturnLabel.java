@@ -1,6 +1,7 @@
 package artskif.trader.contract.labels;
 
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.features.BaseFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
@@ -43,13 +44,13 @@ public class FutureReturnLabel implements Label {
     }
 
     @Override
-    public List<CandlestickDto> getCandlestickDtos() {
-        return baseFeature.getCandlestickDtos();
+    public List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe) {
+        return baseFeature.getCandlestickDtos(timeframe);
     }
 
     @Override
-    public BigDecimal getValue(int index) {
-        List<CandlestickDto> candles = getCandlestickDtos();
+    public BigDecimal getValue(CandleTimeframe timeframe, int index) {
+        List<CandlestickDto> candles = getCandlestickDtos(timeframe);
         if (index + HORIZON >= candles.size()) {
             // Хвост можно пометить как null или 0
             return BigDecimal.ZERO;

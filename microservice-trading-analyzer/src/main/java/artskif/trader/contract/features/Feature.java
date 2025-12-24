@@ -29,11 +29,11 @@ public interface Feature {
     }
 
     /**
-     * Получить список свечей для расчета фичи
+     * Получить исторические данные свечей для расчета фичи
      *
-     * @return список свечей
+     * @return список DTO свечей
      */
-    List<CandlestickDto> getCandlestickDtos();
+    List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe);
 
     /**
      * Получить индикатор TA4J для расчета фичи
@@ -43,17 +43,24 @@ public interface Feature {
     AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe);
 
     /**
-     * Получить имя фичи
+     * Получить имена значений фичи для сохранения в БД
      *
-     * @return имя фичи в БД
+     * @return список имен значений фичи
      */
-    String getFeatureName();
+    List<String> getFeatureValueNames();
 
     /**
-     * Получить тип данных фичи для создания колонки в БД
+     * Получить значение фичи по имени
      *
-     * @return SQL тип данных
+     * @return значение фичи
      */
-    String getDataType();
+    Num getValueByName(String valueName, int index);
+
+    /**
+     * Получить тип данных фичи
+     *
+     * @return тип данных в БД
+     */
+    FeatureTypeMetadata getFeatureTypeMetadataByValueName(String name);
 }
 
