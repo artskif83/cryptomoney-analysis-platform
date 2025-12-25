@@ -55,6 +55,20 @@ CREATE TABLE IF NOT EXISTS features
 SELECT create_hypertable('features', 'ts', if_not_exists => TRUE);
 CREATE INDEX features_symbol_tf_ts_idx ON features (tf, ts DESC);
 
+-- Staging таблица для COPY features (UNLOGGED для скорости)
+CREATE UNLOGGED TABLE IF NOT EXISTS stage_features
+(
+    tf             varchar(10),
+    ts             timestamp,
+    open           numeric(18, 8),
+    high           numeric(18, 8),
+    low            numeric(18, 8),
+    close          numeric(18, 8),
+    volume         numeric(30, 8),
+    contract_hash  varchar(64),
+    confirmed      boolean DEFAULT true
+);
+
 -- 4) Таблица контрактов (набор фич для ML)
 CREATE TABLE IF NOT EXISTS contracts
 (

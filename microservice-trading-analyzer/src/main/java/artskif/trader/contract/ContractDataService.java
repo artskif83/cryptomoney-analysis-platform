@@ -3,7 +3,6 @@ package artskif.trader.contract;
 import artskif.trader.contract.features.Feature;
 import artskif.trader.contract.labels.Label;
 import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractMetadata;
 import artskif.trader.entity.MetadataType;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,6 +10,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
@@ -61,14 +61,11 @@ public class ContractDataService {
     }
 
     /**
-     * Пакетное сохранение строк фич (оптимизированная версия)
+     * Пакетное сохранение строк фич через промежуточную таблицу stage_features
+     * Использует PostgreSQL COPY для быстрой загрузки данных
      */
     @Transactional
     public void saveFeatureRowsBatch(Iterable<FeatureRow> rows) {
-        int batchSize = 100;
-        int count = 0;
-
-        // Получаем первую строку для проверки
         var iterator = rows.iterator();
         if (!iterator.hasNext()) {
             Log.warn("⚠️ Пустой список строк для сохранения");
@@ -88,26 +85,180 @@ public class ContractDataService {
             return;
         }
 
-        // Сохраняем первую строку
-        insertFeatureRow(firstRow);
-        count++;
-        entityManager.flush();
-        entityManager.clear();
+        // Собираем все строки обратно в список для формирования CSV
+        java.util.List<FeatureRow> rowList = new java.util.ArrayList<>();
+        rowList.add(firstRow);
+        iterator.forEachRemaining(rowList::add);
 
-        // Сохраняем остальные строки
-        while (iterator.hasNext()) {
-            FeatureRow row = iterator.next();
-            insertFeatureRow(row);
-            count++;
+        // Строим CSV из всех строк фич
+        String csv = buildFeatureCsv(rowList);
 
-            if (count % batchSize == 0) {
-                entityManager.flush();
-                entityManager.clear();
-                Log.debugf("💾 Сохранено %d строк фич", count);
-            }
+        if (csv.isEmpty()) {
+            Log.warn("⚠️ Не удалось сформировать CSV для вставки");
+            return;
         }
 
-        Log.infof("✅ Завершено пакетное сохранение: %d строк", count);
+        final int[] affected = new int[1];
+        org.hibernate.Session session = entityManager.unwrap(org.hibernate.Session.class);
+
+        try {
+            session.doWork(conn -> {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    // Очищаем staging таблицу
+                    stmt.execute("TRUNCATE TABLE stage_features");
+
+                    org.postgresql.PGConnection pgConn = conn.unwrap(org.postgresql.PGConnection.class);
+                    org.postgresql.copy.CopyManager cm = pgConn.getCopyAPI();
+
+                    // Формируем список колонок для COPY
+                    String columnList = buildCopyColumnList(firstRow);
+                    String copySql = "COPY stage_features(" + columnList + ") " +
+                            "FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '', HEADER false)";
+
+                    long copied = cm.copyIn(copySql, new java.io.StringReader(csv));
+                    Log.debugf("💾 В staging загружено строк: %d", copied);
+
+                    // Формируем INSERT ... SELECT с динамическими колонками
+                    String upsertSql = buildUpsertSql(firstRow);
+                    affected[0] = stmt.executeUpdate(upsertSql);
+                    Log.debugf("✅ Upsert затронул строк: %d", affected[0]);
+
+                    // Очищаем staging таблицу
+                    stmt.execute("TRUNCATE TABLE stage_features");
+
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            Log.infof("✅ Завершено пакетное сохранение: %d строк", affected[0]);
+
+        } catch (RuntimeException ex) {
+            Log.errorf(ex, "❌ Ошибка при сохранении фич через COPY -> stage_features");
+            throw new RuntimeException("Не удалось сохранить фичи через stage_features", ex);
+        }
+    }
+
+    /**
+     * Формирует CSV из списка FeatureRow
+     */
+    private String buildFeatureCsv(java.util.List<FeatureRow> rows) {
+        return rows.stream()
+                .filter(row -> row != null)
+                .map(this::featureRowToCsvLine)
+                .filter(line -> line != null && !line.isEmpty())
+                .collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    /**
+     * Преобразует FeatureRow в CSV строку
+     */
+    private String featureRowToCsvLine(FeatureRow row) {
+        try {
+            java.util.List<String> values = new java.util.ArrayList<>();
+
+            // Добавляем базовые колонки
+            values.add(formatDuration(row.getTimeframe()));
+            values.add(formatTimestamp(row.getTimestamp()));
+            values.add(safe(row.getContractHash()));
+
+            // Добавляем фичи в отсортированном порядке
+            Map<String, Object> features = row.getAllFeatures();
+            java.util.List<String> featureNames = new java.util.ArrayList<>(features.keySet());
+            java.util.Collections.sort(featureNames);
+
+            for (String featureName : featureNames) {
+                Object value = features.get(featureName);
+                values.add(formatValue(value));
+            }
+
+            return String.join(",", values);
+        } catch (Exception ex) {
+            Log.warnf(ex, "❌ Не удалось сформировать CSV-строку для FeatureRow: %s", row);
+            return null;
+        }
+    }
+
+    /**
+     * Формирует список колонок для COPY команды
+     */
+    private String buildCopyColumnList(FeatureRow sampleRow) {
+        java.util.List<String> columns = new java.util.ArrayList<>();
+        columns.add("tf");
+        columns.add("ts");
+        columns.add("contract_hash");
+
+        // Добавляем колонки фич в отсортированном порядке
+        java.util.List<String> featureNames = new java.util.ArrayList<>(sampleRow.getAllFeatures().keySet());
+        java.util.Collections.sort(featureNames);
+        columns.addAll(featureNames);
+
+        return String.join(", ", columns);
+    }
+
+    /**
+     * Формирует SQL для INSERT ... SELECT с динамическими колонками
+     */
+    private String buildUpsertSql(FeatureRow sampleRow) {
+        java.util.List<String> featureNames = new java.util.ArrayList<>(sampleRow.getAllFeatures().keySet());
+        java.util.Collections.sort(featureNames);
+
+        StringBuilder columns = new StringBuilder("tf, ts, contract_hash");
+        StringBuilder selectColumns = new StringBuilder("tf, ts, contract_hash");
+        StringBuilder updateSet = new StringBuilder();
+
+        for (String featureName : featureNames) {
+            columns.append(", ").append(featureName);
+            selectColumns.append(", ").append(featureName);
+            if (updateSet.length() > 0) {
+                updateSet.append(", ");
+            }
+            updateSet.append(featureName).append(" = EXCLUDED.").append(featureName);
+        }
+
+        return String.format(
+                "INSERT INTO features(%s) SELECT %s FROM stage_features " +
+                        "ON CONFLICT (tf, ts) DO UPDATE SET %s",
+                columns, selectColumns, updateSet
+        );
+    }
+
+    /**
+     * Форматирует значение для CSV
+     */
+    private String formatValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof java.math.BigDecimal) {
+            return ((java.math.BigDecimal) value).toPlainString();
+        }
+        if (value instanceof Number) {
+            return value.toString();
+        }
+        if (value instanceof Boolean) {
+            return value.toString();
+        }
+        return String.valueOf(value);
+    }
+
+    /**
+     * Форматирует timestamp для CSV
+     */
+    private String formatTimestamp(Instant timestamp) {
+        if (timestamp == null) {
+            return "";
+        }
+        java.time.format.DateTimeFormatter formatter =
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+        return formatter.format(java.time.LocalDateTime.ofInstant(timestamp, java.time.ZoneOffset.UTC));
+    }
+
+    /**
+     * Безопасное преобразование строки
+     */
+    private String safe(String s) {
+        return s == null ? "" : s;
     }
 
     /**
@@ -123,7 +274,6 @@ public class ContractDataService {
             if (feature.isPresent()) {
                 if (!columnExists(metadataName)) {
                     createColumn(metadataName, feature.get().getFeatureTypeMetadataByValueName(metadataName).getDataType());
-                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, feature.get().getFeatureTypeMetadataByValueName(metadataName).getDataType());
                 }
             } else {
                 Log.warnf("❌ Фича не найдена в реестре: %s", metadataName);
@@ -134,7 +284,6 @@ public class ContractDataService {
             if (label.isPresent()) {
                 if (!columnExists(metadataName)) {
                     createColumn(metadataName, label.get().getDataType());
-                    Log.infof("✅ Создана колонка: %s (%s)", metadataName, label.get().getDataType());
                 }
             } else {
                 Log.warnf("❌ Лейбл не найден в реестре: %s", metadataName);
@@ -147,18 +296,28 @@ public class ContractDataService {
     }
 
     /**
-     * Проверить существование колонки
+     * Проверить существование колонки в таблицах features и stage_features
      */
     private boolean columnExists(String columnName) {
         try {
-            String sql = "SELECT column_name FROM information_schema.columns " +
+            // Проверяем существование колонки в таблице features
+            String sqlFeatures = "SELECT column_name FROM information_schema.columns " +
                     "WHERE table_name = 'features' AND column_name = :columnName";
 
-            var result = entityManager.createNativeQuery(sql)
+            var resultFeatures = entityManager.createNativeQuery(sqlFeatures)
                     .setParameter("columnName", columnName)
                     .getResultList();
 
-            return !result.isEmpty();
+            // Проверяем существование колонки в таблице stage_features
+            String sqlStageFeatures = "SELECT column_name FROM information_schema.columns " +
+                    "WHERE table_name = 'stage_features' AND column_name = :columnName";
+
+            var resultStageFeatures = entityManager.createNativeQuery(sqlStageFeatures)
+                    .setParameter("columnName", columnName)
+                    .getResultList();
+
+            // Колонка должна существовать в обеих таблицах
+            return !resultFeatures.isEmpty() && !resultStageFeatures.isEmpty();
         } catch (Exception e) {
             Log.errorf(e, "Ошибка при проверке существования колонки: %s", columnName);
             return false;
@@ -167,13 +326,21 @@ public class ContractDataService {
 
     /**
      * Создать колонку (вызывается из transactional метода)
+     * Создает колонку как в основной таблице features, так и в промежуточной stage_features
      */
     private void createColumn(String columnName, String dataType) {
         try {
-            String sql = String.format("ALTER TABLE features ADD COLUMN IF NOT EXISTS %s %s",
+            // Создаем колонку в основной таблице features
+            String sqlFeatures = String.format("ALTER TABLE features ADD COLUMN IF NOT EXISTS %s %s",
                     columnName, dataType);
-            entityManager.createNativeQuery(sql).executeUpdate();
-            Log.infof("✅ Создана колонка %s с типом %s", columnName, dataType);
+            entityManager.createNativeQuery(sqlFeatures).executeUpdate();
+            Log.infof("✅ Создана колонка %s с типом %s в таблице features", columnName, dataType);
+
+            // Создаем колонку в промежуточной таблице stage_features
+            String sqlStageFeatures = String.format("ALTER TABLE stage_features ADD COLUMN IF NOT EXISTS %s %s",
+                    columnName, dataType);
+            entityManager.createNativeQuery(sqlStageFeatures).executeUpdate();
+            Log.infof("✅ Создана колонка %s с типом %s в таблице stage_features", columnName, dataType);
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при создании колонки: %s", columnName);
             throw new RuntimeException("Не удалось создать колонку: " + columnName, e);

@@ -43,7 +43,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
         if (unsavedBuffer.isEmpty()) {
-            LOG.warn("RSI нет данных для сохранения");
+            LOG.warn("Нет данных для сохранения");
             return 0;
         }
 
