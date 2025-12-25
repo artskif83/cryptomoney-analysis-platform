@@ -1,5 +1,6 @@
 package artskif.trader.contract.contract;
 
+import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
 import artskif.trader.contract.ContractRegistry;
 import artskif.trader.contract.features.*;
@@ -22,18 +23,18 @@ import java.util.Map;
  * - Подписывание каждой строки фич специальным хешкодом контракта
  */
 @ApplicationScoped
-public class ContractV1 extends AbstractContract {
+public class Contract5MBase extends AbstractContract {
 
     private static final String NAME = "Test Contract-5m V1.0 ";
 
 
     // Конструктор без параметров для CDI proxy
-    public ContractV1() {
+    public Contract5MBase() {
         super(null, null);
     }
 
     @Inject
-    public ContractV1(ContractDataService dataService, ContractRegistry registry) {
+    public Contract5MBase(ContractDataService dataService, ContractRegistry registry) {
         super(dataService, registry);
     }
 
@@ -55,8 +56,8 @@ public class ContractV1 extends AbstractContract {
         ));
 
         newContract.addMetadata(ADXFeature.getFeatureMetadata(Map.of(
-                1, ADXFeature.ADXFeatureType.ADX_5M
-                , 2, ADXFeature.ADXFeatureType.ADX_5M_ON_4H), newContract));
+                3, ADXFeature.ADXFeatureType.ADX_5M
+                , 4, ADXFeature.ADXFeatureType.ADX_5M_ON_4H), newContract));
 
         // Добавляем лейблы к контракту
         newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
@@ -83,6 +84,11 @@ public class ContractV1 extends AbstractContract {
             return null;
         }
         return baseFeature;
+    }
+
+    @Override
+    protected CandleTimeframe getBaseTimeframe() {
+        return CandleTimeframe.CANDLE_5M;
     }
 
 }

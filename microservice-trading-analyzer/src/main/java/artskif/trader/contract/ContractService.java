@@ -32,12 +32,12 @@ public class ContractService {
     /**
      * Сгенерировать исторические фичи для всех контрактов
      */
-    public void generateHistoricalFeaturesForAll(CandleTimeframe timeframe) {
+    public void generateHistoricalFeaturesForAll() {
         Log.info("📊 Начало генерации исторических фич для всех контрактов");
 
         contractMap.values().forEach(instance -> {
             try {
-                instance.generateHistoricalFeatures(timeframe);
+                instance.generateHistoricalFeatures();
             } catch (Exception e) {
                 Log.errorf(e, "❌ Ошибка при генерации исторических фич для контракта: %s",
                           instance.getName());
@@ -51,12 +51,11 @@ public class ContractService {
      * Сгенерировать исторические фичи для конкретного контракта
      *
      * @param contractName имя контракта
-     * @param timeframe таймфрейм для генерации
      * @return true если контракт найден и фичи сгенерированы, false если контракт не найден
      */
-    public boolean generateHistoricalFeaturesForContract(String contractName, CandleTimeframe timeframe) {
-        Log.infof("📊 Генерация исторических фич для контракта: %s, таймфрейм: %s",
-                  contractName, timeframe);
+    public boolean generateHistoricalFeaturesForContract(String contractName) {
+        Log.infof("📊 Генерация исторических фич для контракта: %s",
+                  contractName);
 
         AbstractContract contract = contractMap.get(contractName);
 
@@ -66,7 +65,7 @@ public class ContractService {
         }
 
         try {
-            contract.generateHistoricalFeatures(timeframe);
+            contract.generateHistoricalFeatures();
             Log.infof("✅ Исторические фичи сгенерированы для контракта: %s", contractName);
             return true;
         } catch (Exception e) {

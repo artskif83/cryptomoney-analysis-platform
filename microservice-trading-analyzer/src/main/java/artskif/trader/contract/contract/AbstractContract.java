@@ -50,11 +50,13 @@ public abstract class AbstractContract {
 
     protected abstract Feature getBaseFeature();
 
+    protected abstract CandleTimeframe getBaseTimeframe();
+
     /**
      * Сгенерировать исторические фичи и сохранить в таблицу features
      * Это используется для обучения модели ML
      */
-    public void generateHistoricalFeatures(CandleTimeframe timeframe) {
+    public void generateHistoricalFeatures() {
         // Инициализируем контракт
         Contract initializedContract = initializeContract();
         this.contract = initializedContract;
@@ -80,10 +82,10 @@ public abstract class AbstractContract {
 
         int processedCount = 0;
         List<FeatureRow> futureRows = new ArrayList<>();
-        BarSeries barSeries = baseFeature.getIndicator(timeframe).getBarSeries();
+        BarSeries barSeries = baseFeature.getIndicator(getBaseTimeframe()).getBarSeries();
 
         for (int i = 0; i < barSeries.getBarCount(); i++) {
-            FeatureRow featureRow = generateFeatureRow(timeframe, barSeries.getBar(i), contract.metadata, i);
+            FeatureRow featureRow = generateFeatureRow(getBaseTimeframe(), barSeries.getBar(i), contract.metadata, i);
 
             futureRows.add(featureRow);
             processedCount++;
