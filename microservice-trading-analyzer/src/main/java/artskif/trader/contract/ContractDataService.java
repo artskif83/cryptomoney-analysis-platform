@@ -3,6 +3,7 @@ package artskif.trader.contract;
 import artskif.trader.contract.features.Feature;
 import artskif.trader.contract.labels.Label;
 import artskif.trader.entity.Contract;
+import artskif.trader.entity.ContractMetadata;
 import artskif.trader.entity.MetadataType;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -90,6 +91,8 @@ public class ContractDataService {
         // Сохраняем первую строку
         insertFeatureRow(firstRow);
         count++;
+        entityManager.flush();
+        entityManager.clear();
 
         // Сохраняем остальные строки
         while (iterator.hasNext()) {
@@ -104,7 +107,6 @@ public class ContractDataService {
             }
         }
 
-        entityManager.flush();
         Log.infof("✅ Завершено пакетное сохранение: %d строк", count);
     }
 
@@ -113,7 +115,7 @@ public class ContractDataService {
      */
     @Transactional
     public void ensureColumnExist(String metadataName, MetadataType metadataType) {
-        Log.info("🔧 Проверка и создание колонок для всех фич");
+        Log.infof("🔧 Проверка существования колонки: %s", metadataName);
 
         if (metadataType == MetadataType.FEATURE) {
             Optional<Feature> feature = registry.getFeature(metadataName);
@@ -179,35 +181,46 @@ public class ContractDataService {
     }
 
     /**
-     * Сохранить контракт в БД
-     * Если контракт с таким именем уже существует, возвращает существующий
+     * Найти контракт по имени
+     *
+     * @param name имя контракта
+     * @return контракт или null если не найден
      */
     @Transactional
-    public Contract saveContract(Contract contract) {
+    public Contract findContractByName(String name) {
         try {
-            // Проверяем, существует ли контракт с таким именем
-            // Используем JOIN FETCH для eager загрузки коллекции features
+            // Используем JOIN FETCH для eager загрузки коллекции metadata
             String query = "SELECT c FROM Contract c LEFT JOIN FETCH c.metadata WHERE c.name = :name";
-            Optional<Contract> existingContract = entityManager.createQuery(query, Contract.class)
-                    .setParameter("name", contract.name)
+            return entityManager.createQuery(query, Contract.class)
+                    .setParameter("name", name)
                     .getResultStream()
-                    .findFirst();
-
-            if (existingContract.isPresent()) {
-                Log.infof("📋 Контракт '%s' уже существует в БД (id: %d)", contract.name, existingContract.get().id);
-                return existingContract.get();
-            }
-
-            // Сохраняем новый контракт
-            contract.persist();
-            Log.infof("✅ Контракт '%s' успешно сохранён в БД (id: %d)", contract.name, contract.id);
-            return contract;
-
+                    .findFirst()
+                    .orElse(null);
         } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при сохранении контракта: %s", contract.name);
-            throw new RuntimeException("Не удалось сохранить контракт", e);
+            Log.errorf(e, "❌ Ошибка при поиске контракта: %s", name);
+            return null;
         }
     }
+
+    /**
+     * Сохранить новый контракт в БД (без проверки существования)
+     *
+     * @param contract контракт для сохранения
+     * @return сохранённый контракт
+     */
+    @Transactional
+    public Contract saveNewContract(Contract contract) {
+        try {
+            contract.persist();
+            entityManager.flush(); // Сразу сбрасываем в БД для получения ID
+            Log.infof("✅ Контракт '%s' успешно создан и сохранён в БД (id: %d)", contract.name, contract.id);
+            return contract;
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при сохранении нового контракта: %s", contract.name);
+            throw new RuntimeException("Не удалось сохранить новый контракт", e);
+        }
+    }
+
 
     /**
      * Удалить контракт со всеми его метаданными и зависимыми фичами по ID

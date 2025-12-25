@@ -7,6 +7,7 @@ import artskif.trader.contract.features.FeatureTypeMetadata;
 import artskif.trader.contract.features.AbstractFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.mapper.CandlestickMapper;
+import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -88,6 +89,7 @@ public class BaseFeature extends AbstractFeature<ClosePriceIndicator> {
         this.indicators.put(CandleTimeframe.CANDLE_5M, new ClosePriceIndicator(baseBarSeries));
         this.indicators.put(CandleTimeframe.CANDLE_4H, new ClosePriceIndicator(
                 BarSeriesUtils.aggregateBars(baseBarSeries, CandleTimeframe.CANDLE_4H.getDuration(),"baseBarSeries4H")));
+        Log.infof("✅ BaseFeature проинициализирована для таймфреймов: %s", indicators.size());
     }
 
 

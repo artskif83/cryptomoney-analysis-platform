@@ -39,7 +39,7 @@ public class ContractService {
             try {
                 instance.generateHistoricalFeatures();
             } catch (Exception e) {
-                Log.errorf(e, "❌ Ошибка при генерации исторических фич для контракта: %s",
+                Log.errorf(e, "❌ Ошибка при генерации исторических фич для всех контрактов. Текущий контракт: %s",
                           instance.getName());
             }
         });

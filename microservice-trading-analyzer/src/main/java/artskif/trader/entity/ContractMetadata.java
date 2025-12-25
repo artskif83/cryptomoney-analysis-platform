@@ -14,6 +14,10 @@ import java.time.Instant;
 public class ContractMetadata extends PanacheEntityBase {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    public Long id;
+
     @Column(name = "name", nullable = false, length = 255)
     public String name;
 
@@ -44,6 +48,7 @@ public class ContractMetadata extends PanacheEntityBase {
     }
 
     public ContractMetadata(String name, String description, Integer sequenceOrder, String dataType, MetadataType metadataType, Contract contract) {
+        // id будет сгенерирован автоматически при persist
         this.name = name;
         this.description = description;
         this.sequenceOrder = sequenceOrder;

@@ -1,11 +1,9 @@
 package artskif.trader.contract.util;
 
-import artskif.trader.entity.ContractMetadata;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
 
 public final class FeaturesUtils {
 
@@ -14,7 +12,7 @@ public final class FeaturesUtils {
      *
      * @param lowerTfBar   свеча на нижнем таймфрейме
      * @param higherSeries серия свечей на старшем таймфрейме
-     * @return индекс свечи на старшем таймфрейме
+     * @return индекс свечи на старшем таймфрейме или -1, если соответствующая свеча не найдена
      */
     public static int mapToHigherTfIndex(
             Bar lowerTfBar,
@@ -30,8 +28,6 @@ public final class FeaturesUtils {
             }
         }
 
-        throw new IllegalStateException(
-                "No higher timeframe bar found for time: " + t
-        );
+        return -1;
     }
 }

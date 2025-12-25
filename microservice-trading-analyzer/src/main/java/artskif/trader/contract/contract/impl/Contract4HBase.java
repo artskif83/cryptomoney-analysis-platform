@@ -21,7 +21,7 @@ import java.util.Map;
 @ApplicationScoped
 public class Contract4HBase  extends AbstractContract {
 
-    private static final String NAME = "Test Contract-5h V1.0 ";
+    private static final String NAME = "Test Contract-4h V1.0 ";
 
 
     // Конструктор без параметров для CDI proxy
@@ -41,7 +41,14 @@ public class Contract4HBase  extends AbstractContract {
      */
     @Override
     protected Contract initializeContract() {
-        // Создаем контракт с метаданными
+        // Сначала проверяем, существует ли контракт
+        Contract existingContract = dataService.findContractByName(NAME);
+        if (existingContract != null) {
+            Log.infof("📋 Контракт '%s' уже существует в БД (id: %d), используем существующий", NAME, existingContract.id);
+            return existingContract;
+        }
+
+        // Создаем новый контракт с метаданными
         Contract newContract = new Contract(NAME, "First testing contract 4h timeframe", "V1");
 
         // Добавляем все фичи к контракту одним вызовом
@@ -59,11 +66,11 @@ public class Contract4HBase  extends AbstractContract {
         // Добавляем лейблы к контракту
 //        newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
 
-        // Генерируем и сохраняем hash
+        // Генерируем hash
         newContract.contractHash = generateContractHash(newContract);
-        dataService.saveContract(newContract);
 
-        return newContract;
+        // Сохраняем новый контракт через транзакционный метод сервиса
+        return dataService.saveNewContract(newContract);
     }
 
     @Override

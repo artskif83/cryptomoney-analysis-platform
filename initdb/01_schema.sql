@@ -73,9 +73,10 @@ CREATE INDEX IF NOT EXISTS contracts_contract_hash_idx ON contracts(contract_has
 -- 5) Таблица метаданных для фич (параметров ML)
 CREATE TABLE IF NOT EXISTS contract_metadata
 (
-    name           varchar(255)   NOT NULL PRIMARY KEY,
+    id             bigserial      PRIMARY KEY,
+    name           varchar(255)   NOT NULL,
     description    text           NOT NULL,
-    sequence_order integer        NOT NULL UNIQUE,
+    sequence_order integer        NOT NULL,
     data_type      varchar(50)    NOT NULL,
     metadata_type  varchar(20)    NOT NULL CHECK (metadata_type IN ('FEATURE', 'LABEL')),
     contract_id    bigint         NOT NULL,

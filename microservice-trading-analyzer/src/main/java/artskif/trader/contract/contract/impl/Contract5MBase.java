@@ -49,6 +49,14 @@ public class Contract5MBase extends AbstractContract {
      */
     @Override
     protected Contract initializeContract() {
+
+        // Сначала проверяем, существует ли контракт
+        Contract existingContract = dataService.findContractByName(NAME);
+        if (existingContract != null) {
+            Log.infof("📋 Контракт '%s' уже существует в БД (id: %d), используем существующий", NAME, existingContract.id);
+            return existingContract;
+        }
+
         // Создаем контракт с метаданными
         Contract newContract = new Contract(NAME, "First testing contract 5m timeframe", "V1");
 
@@ -69,7 +77,7 @@ public class Contract5MBase extends AbstractContract {
 
         // Генерируем и сохраняем hash
         newContract.contractHash = generateContractHash(newContract);
-        dataService.saveContract(newContract);
+        dataService.saveNewContract(newContract);
 
         return newContract;
     }

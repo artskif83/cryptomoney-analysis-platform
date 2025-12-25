@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FeaturesUtilsTest {
 
@@ -97,7 +97,7 @@ class FeaturesUtilsTest {
     }
 
     @Test
-    void mapToHigherTfIndex_shouldThrowException_whenNoMatchingHigherTfBarExists() {
+    void mapToHigherTfIndex_shouldReturnMinusOne_whenNoMatchingHigherTfBarExists() {
         // Given: создаем серию свечей на старшем таймфрейме
         BarSeries higherSeries = new BaseBarSeriesBuilder()
                 .withName("higher")
@@ -115,13 +115,11 @@ class FeaturesUtilsTest {
         Instant lowerBarStartTime = baseTime.minusHours(1).minusMinutes(15).toInstant();
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
-        // When & Then: должно быть выброшено исключение
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries)
-        );
+        // When
+        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
-        assertTrue(exception.getMessage().contains("No higher timeframe bar found for time"));
+        // Then: должно быть возвращено -1
+        assertEquals(-1, result);
     }
 
     @Test

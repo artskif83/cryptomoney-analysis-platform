@@ -4,6 +4,7 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.util.FeaturesUtils;
 import artskif.trader.dto.CandlestickDto;
 import org.ta4j.core.indicators.AbstractIndicator;
+import org.ta4j.core.num.NaN;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public interface Feature {
         AbstractIndicator<Num> lowerTfIndicator = getIndicator(lowerTimeframe);
         AbstractIndicator<Num> higherTfIndicator = getIndicator(higherTimeframe);
         int higherTfIndex = FeaturesUtils.mapToHigherTfIndex(lowerTfIndicator.getBarSeries().getBar(index), higherTfIndicator.getBarSeries());
-        return higherTfIndicator.getValue(higherTfIndex);
+        return higherTfIndex == -1 ? NaN.NaN : higherTfIndicator.getValue(higherTfIndex);
     }
 
     /**

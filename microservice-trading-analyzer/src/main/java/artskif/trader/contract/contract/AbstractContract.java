@@ -115,11 +115,11 @@ public abstract class AbstractContract {
         );
 
         // Добавляем базовые данные свечи
-        row.addFeature("open", bar.getOpenPrice());
-        row.addFeature("high", bar.getHighPrice());
-        row.addFeature("low", bar.getLowPrice());
-        row.addFeature("close", bar.getClosePrice());
-        row.addFeature("volume", bar.getVolume());
+        row.addFeature("open", bar.getOpenPrice().bigDecimalValue());
+        row.addFeature("high", bar.getHighPrice().bigDecimalValue());
+        row.addFeature("low", bar.getLowPrice().bigDecimalValue());
+        row.addFeature("close", bar.getClosePrice().bigDecimalValue());
+        row.addFeature("volume", bar.getVolume().bigDecimalValue());
 
         for (ContractMetadata metadata : metadatas) {
             try {
