@@ -1,40 +1,36 @@
-package artskif.trader.contract.contract;
+package artskif.trader.contract.contract.impl;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
 import artskif.trader.contract.ContractRegistry;
-import artskif.trader.contract.features.*;
+import artskif.trader.contract.contract.AbstractContract;
+import artskif.trader.contract.features.Feature;
 import artskif.trader.contract.features.impl.ADXFeature;
 import artskif.trader.contract.features.impl.BaseFeature;
 import artskif.trader.contract.features.impl.RSIFeature;
-import artskif.trader.contract.labels.impl.FutureReturnLabel;
 import artskif.trader.entity.Contract;
+import artskif.trader.entity.ContractMetadata;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-/**
- * Экземпляр контракта - описывает один отдельный контракт (одна запись в таблице contracts)
- * Отвечает за:
- * - Генерацию исторического набора фич и сохранение в таблицу features
- * - Генерацию фич для текущей свечи из liveBuffer
- * - Подписывание каждой строки фич специальным хешкодом контракта
- */
 @ApplicationScoped
-public class Contract5MBase extends AbstractContract {
+public class Contract4HBase  extends AbstractContract {
 
-    private static final String NAME = "Test Contract-5m V1.0 ";
+    private static final String NAME = "Test Contract-5h V1.0 ";
 
 
     // Конструктор без параметров для CDI proxy
-    public Contract5MBase() {
+    public Contract4HBase() {
         super(null, null);
     }
 
     @Inject
-    public Contract5MBase(ContractDataService dataService, ContractRegistry registry) {
+    public Contract4HBase(ContractDataService dataService, ContractRegistry registry) {
         super(dataService, registry);
     }
 
@@ -46,21 +42,22 @@ public class Contract5MBase extends AbstractContract {
     @Override
     protected Contract initializeContract() {
         // Создаем контракт с метаданными
-        Contract newContract = new Contract(NAME, "First testing contract 5m timeframe", "V1");
+        Contract newContract = new Contract(NAME, "First testing contract 4h timeframe", "V1");
 
-        // Добавляем фичи к контракту
-        newContract.addMetadata(RSIFeature.getFeatureMetadata(
-                Map.of(1, RSIFeature.RSIFeatureType.RSI_5M
-                        , 2, RSIFeature.RSIFeatureType.RSI_5M_ON_4H),
+        // Добавляем все фичи к контракту одним вызовом
+        List<ContractMetadata> allMetadata = new ArrayList<>();
+        allMetadata.addAll(RSIFeature.getFeatureMetadata(
+                Map.of(1, RSIFeature.RSIFeatureType.RSI_4H),
                 newContract
         ));
-
-        newContract.addMetadata(ADXFeature.getFeatureMetadata(Map.of(
-                3, ADXFeature.ADXFeatureType.ADX_5M
-                , 4, ADXFeature.ADXFeatureType.ADX_5M_ON_4H), newContract));
+        allMetadata.addAll(ADXFeature.getFeatureMetadata(
+                Map.of(2, ADXFeature.ADXFeatureType.ADX_4H),
+                newContract
+        ));
+        newContract.addMetadata(allMetadata);
 
         // Добавляем лейблы к контракту
-        newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
+//        newContract.addMetadata(FutureReturnLabel.getLabelMetadata(100, newContract));
 
         // Генерируем и сохраняем hash
         newContract.contractHash = generateContractHash(newContract);
@@ -77,7 +74,7 @@ public class Contract5MBase extends AbstractContract {
 
     @Override
     protected Feature getBaseFeature() {
-        Feature baseFeature = registry.getFeature(BaseFeature.BaseFeatureType.BASE_5M.getName()).orElse(null);
+        Feature baseFeature = registry.getFeature(BaseFeature.BaseFeatureType.BASE_4H.getName()).orElse(null);
         if (baseFeature == null) {
             Log.errorf("❌ Не удалось получить индикатор главной фичи для контракта %s. Пропуск генерации исторических фич.",
                     contract.name);
@@ -88,8 +85,7 @@ public class Contract5MBase extends AbstractContract {
 
     @Override
     protected CandleTimeframe getBaseTimeframe() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_4H;
     }
 
 }
-
