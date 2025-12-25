@@ -83,12 +83,21 @@ public abstract class AbstractContract {
         int processedCount = 0;
         List<FeatureRow> futureRows = new ArrayList<>();
         BarSeries barSeries = baseFeature.getIndicator(getBaseTimeframe()).getBarSeries();
+        int totalBars = barSeries.getBarCount();
+        int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
-        for (int i = 0; i < barSeries.getBarCount(); i++) {
+        for (int i = 0; i < totalBars; i++) {
             FeatureRow featureRow = generateFeatureRow(getBaseTimeframe(), barSeries.getBar(i), contract.metadata, i);
 
             futureRows.add(featureRow);
             processedCount++;
+
+            // Выводим прогресс каждые progressStep свечей
+            if (i > 0 && (i % progressStep == 0 || i == totalBars - 1)) {
+                double progressPercent = ((double) processedCount / totalBars) * 100;
+                Log.infof("⏳ Прогресс генерации фич: %.1f%% (%d/%d свечей)",
+                    progressPercent, processedCount, totalBars);
+            }
         }
 
         // Сохраняем в БД
