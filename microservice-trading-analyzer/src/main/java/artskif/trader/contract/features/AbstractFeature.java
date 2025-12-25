@@ -1,6 +1,7 @@
 package artskif.trader.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.contract.features.impl.BaseFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;

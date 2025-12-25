@@ -7,15 +7,11 @@ import artskif.trader.entity.CandleId;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.control.ActivateRequestContext;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import artskif.trader.mapper.CandlestickMapper;
 
 import org.hibernate.Session;
 import org.jboss.logging.Logger;
-
-import javax.sql.DataSource;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.Statement;
@@ -146,6 +142,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
 
     @Override
+    @Transactional
     public Map<Instant, CandlestickDto> restoreFromStorage(Integer size, CandleTimeframe timeframe, String symbol) {
         if (timeframe == null || symbol == null || symbol.isEmpty()) {
             LOG.warn("Неверные параметры для восстановления свечей из базы данных");
@@ -154,7 +151,6 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
         return performRestore(size, timeframe, symbol);
     }
 
-    @Transactional
     protected Map<Instant, CandlestickDto> performRestore(Integer size, CandleTimeframe timeframe, String symbol) {
 
         try {

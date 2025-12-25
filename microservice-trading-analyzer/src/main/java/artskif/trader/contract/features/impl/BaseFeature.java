@@ -1,7 +1,10 @@
-package artskif.trader.contract.features;
+package artskif.trader.contract.features.impl;
 
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.contract.features.FeatureMetadata;
+import artskif.trader.contract.features.FeatureTypeMetadata;
+import artskif.trader.contract.features.AbstractFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.mapper.CandlestickMapper;
 import jakarta.annotation.PostConstruct;
@@ -20,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class BaseFeature extends AbstractFeature<ClosePriceIndicator>{
+public class BaseFeature extends AbstractFeature<ClosePriceIndicator> {
     private final Candle candle;
     private final Map<CandleTimeframe, List<CandlestickDto>> candlestickDtos = new HashMap<>();
 

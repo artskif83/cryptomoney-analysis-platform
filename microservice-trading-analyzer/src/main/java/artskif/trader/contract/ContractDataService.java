@@ -1,8 +1,6 @@
 package artskif.trader.contract;
 
-import artskif.trader.contract.features.ContractFeatureRegistry;
 import artskif.trader.contract.features.Feature;
-import artskif.trader.contract.labels.ContractLabelRegistry;
 import artskif.trader.contract.labels.Label;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.MetadataType;
@@ -26,10 +24,7 @@ public class ContractDataService {
     EntityManager entityManager;
 
     @Inject
-    ContractFeatureRegistry featureRegistry;
-
-    @Inject
-    ContractLabelRegistry labelRegistry;
+    ContractRegistry registry;
 
     /**
      * Вставить новую строку фич
@@ -121,7 +116,7 @@ public class ContractDataService {
         Log.info("🔧 Проверка и создание колонок для всех фич");
 
         if (metadataType == MetadataType.FEATURE) {
-            Optional<Feature> feature = featureRegistry.getFeature(metadataName);
+            Optional<Feature> feature = registry.getFeature(metadataName);
 
             if (feature.isPresent()) {
                 if (!columnExists(metadataName)) {
@@ -132,7 +127,7 @@ public class ContractDataService {
                 Log.warnf("❌ Фича не найдена в реестре: %s", metadataName);
             }
         } else if (metadataType == MetadataType.LABEL) {
-            Optional<Label> label = labelRegistry.getLabel(metadataName);
+            Optional<Label> label = registry.getLabel(metadataName);
 
             if (label.isPresent()) {
                 if (!columnExists(metadataName)) {

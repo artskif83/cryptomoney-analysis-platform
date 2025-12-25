@@ -2,9 +2,8 @@ package artskif.trader.contract.contract;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
-import artskif.trader.contract.features.ContractFeatureRegistry;
+import artskif.trader.contract.ContractRegistry;
 import artskif.trader.contract.features.Feature;
-import artskif.trader.contract.labels.ContractLabelRegistry;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import io.quarkus.logging.Log;
@@ -22,13 +21,11 @@ import java.util.List;
 public abstract class AbstractContract {
 
     protected final ContractDataService dataService;
-    protected final ContractFeatureRegistry featureRegistry;
-    protected final ContractLabelRegistry labelRegistry;
+    protected final ContractRegistry registry;
 
-    public AbstractContract(ContractDataService dataService, ContractFeatureRegistry featureRegistry, ContractLabelRegistry labelRegistry) {
+    public AbstractContract(ContractDataService dataService, ContractRegistry registry) {
         this.dataService = dataService;
-        this.featureRegistry = featureRegistry;
-        this.labelRegistry = labelRegistry;
+        this.registry = registry;
     }
 
     public abstract String getName();

@@ -2,10 +2,13 @@ package artskif.trader.contract.contract;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.ContractDataService;
+import artskif.trader.contract.ContractRegistry;
 import artskif.trader.contract.features.*;
 import artskif.trader.contract.FeatureRow;
-import artskif.trader.contract.labels.ContractLabelRegistry;
-import artskif.trader.contract.labels.FutureReturnLabel;
+import artskif.trader.contract.features.impl.ADXFeature;
+import artskif.trader.contract.features.impl.BaseFeature;
+import artskif.trader.contract.features.impl.RSIFeature;
+import artskif.trader.contract.labels.impl.FutureReturnLabel;
 import artskif.trader.contract.labels.Label;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
@@ -37,12 +40,12 @@ public class ContractV1 extends AbstractContract {
 
     // Конструктор без параметров для CDI proxy
     public ContractV1() {
-        super(null, null, null);
+        super(null, null);
     }
 
     @Inject
-    public ContractV1(ContractDataService dataService, ContractFeatureRegistry featureRegistry, ContractLabelRegistry labelRegistry) {
-        super(dataService, featureRegistry, labelRegistry);
+    public ContractV1(ContractDataService dataService, ContractRegistry registry) {
+        super(dataService, registry);
     }
 
     /**
@@ -130,7 +133,7 @@ public class ContractV1 extends AbstractContract {
 
     @Override
     protected Feature getBaseFeature() {
-        Feature baseFeature = featureRegistry.getFeature(BaseFeature.BaseFeatureType.BASE_5M.getName()).orElse(null);
+        Feature baseFeature = registry.getFeature(BaseFeature.BaseFeatureType.BASE_5M.getName()).orElse(null);
         if (baseFeature == null) {
             Log.errorf("❌ Не удалось получить индикатор главной фичи для контракта %s. Пропуск генерации исторических фич.",
                     contract.name);
@@ -158,7 +161,7 @@ public class ContractV1 extends AbstractContract {
 
                 // Вычисляем значение фичи
                 if (metadata.metadataType == MetadataType.FEATURE) {
-                    Feature feature = featureRegistry.getFeature(metadata.name).orElse(null);
+                    Feature feature = registry.getFeature(metadata.name).orElse(null);
                     if (feature != null) {
                         FeatureTypeMetadata featureTypeMetadataByValueName = feature.getFeatureTypeMetadataByValueName(metadata.name);
                         if (featureTypeMetadataByValueName != null && featureTypeMetadataByValueName.getTimeframe().equals(timeframe)) {
@@ -172,7 +175,7 @@ public class ContractV1 extends AbstractContract {
                                 metadata.name);
                     }
                 } else if (metadata.metadataType == MetadataType.LABEL) {
-                    Label label = labelRegistry.getLabel(metadata.name).orElse(null);
+                    Label label = registry.getLabel(metadata.name).orElse(null);
 
                     if (label != null) {
                         row.addFeature(metadata.name, label.getValue(timeframe, index).intValue());

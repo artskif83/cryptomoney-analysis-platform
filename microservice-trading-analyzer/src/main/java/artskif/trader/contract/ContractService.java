@@ -2,7 +2,6 @@ package artskif.trader.contract;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.contract.AbstractContract;
-import artskif.trader.contract.features.ContractFeatureRegistry;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -17,12 +16,12 @@ import java.util.Map;
 @ApplicationScoped
 public class ContractService {
 
-    ContractFeatureRegistry featureRegistry;
+    ContractRegistry registry;
     private final Map<String, AbstractContract> contractMap = new HashMap<>();
 
     @Inject
-    public ContractService(ContractFeatureRegistry featureRegistry, Instance<AbstractContract> contractInstances) {
-        this.featureRegistry = featureRegistry;
+    public ContractService(ContractRegistry registry, Instance<AbstractContract> contractInstances) {
+        this.registry = registry;
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
             contractMap.put(contractName, contract);
