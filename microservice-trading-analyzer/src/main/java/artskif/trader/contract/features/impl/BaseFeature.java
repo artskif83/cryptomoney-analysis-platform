@@ -86,9 +86,38 @@ public class BaseFeature extends AbstractFeature<ClosePriceIndicator> {
             }
         }
 
-        this.indicators.put(CandleTimeframe.CANDLE_5M, new ClosePriceIndicator(baseBarSeries));
+        // Находим индекс первого бара, который начинается ровно в 00:00 (начало суток)
+        int firstAlignedBarIndex = -1;
+        for (int i = 0; i < baseBarSeries.getBarCount(); i++) {
+            Bar bar = baseBarSeries.getBar(i);
+            java.time.Instant beginTime = bar.getBeginTime();
+
+            // Проверяем, что время выровнено по суткам (00:00 часов)
+            long epochSeconds = beginTime.getEpochSecond();
+            long secondsInDay = 86400; // 24 часа * 3600 секунд
+            if (epochSeconds % secondsInDay == 0) {
+                firstAlignedBarIndex = i;
+                break;
+            }
+        }
+
+        // Если найден выровненный бар, создаём новую серию без начальных баров
+        BaseBarSeries alignedBarSeries = baseBarSeries;
+        if (firstAlignedBarIndex > 0) {
+            Log.infof("🔧 Удаляем %d начальных баров для выравнивания с 00:00", firstAlignedBarIndex);
+            alignedBarSeries = new BaseBarSeriesBuilder()
+                    .withName(BaseFeatureType.BASE_5M.getName())
+                    .withNumFactory(DecimalNumFactory.getInstance(2))
+                    .build();
+
+            for (int i = firstAlignedBarIndex; i < baseBarSeries.getBarCount(); i++) {
+                alignedBarSeries.addBar(baseBarSeries.getBar(i));
+            }
+        }
+
+        this.indicators.put(CandleTimeframe.CANDLE_5M, new ClosePriceIndicator(alignedBarSeries));
         this.indicators.put(CandleTimeframe.CANDLE_4H, new ClosePriceIndicator(
-                BarSeriesUtils.aggregateBars(baseBarSeries, CandleTimeframe.CANDLE_4H.getDuration(),"baseBarSeries4H")));
+                BarSeriesUtils.aggregateBars(alignedBarSeries, CandleTimeframe.CANDLE_4H.getDuration(),"baseBarSeries4H")));
         Log.infof("✅ BaseFeature проинициализирована для таймфреймов: %s", indicators.size());
     }
 
