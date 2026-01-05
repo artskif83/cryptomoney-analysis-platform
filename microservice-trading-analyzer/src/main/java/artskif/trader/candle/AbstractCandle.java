@@ -25,14 +25,6 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
         return DEFAULT_SYMBOL;
     }
 
-    @PostConstruct
-    void init() {
-        if (!getEnabled()) {
-            return;
-        }
-        initRestoreBuffer();
-    }
-
     /**
      * Восстанавливает буфер из пачки истории (JSON-массив /history-*-candles).
      * message: строка массива data, например:
