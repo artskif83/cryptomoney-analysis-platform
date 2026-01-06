@@ -8,7 +8,6 @@ import artskif.trader.events.CandleEvent;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.events.CandleEventType;
 import artskif.trader.mapper.CandlestickMapper;
-import jakarta.annotation.PostConstruct;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -44,12 +43,28 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                 getLiveBuffer().incrementVersion();
                 log().infof("✅ [%s] В актуальный буфер пришло %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
                         getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
+
+                // Обновляем live bar series если это CandleInstance
+                if (this instanceof CandleInstance) {
+                    for (CandlestickDto candleDto : historyDto.getData().values()) {
+                        ((CandleInstance) this).addBarToLiveSeries(candleDto);
+                    }
+                }
+
                 getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
             }
             getHistoricalBuffer().putItems(historyDto.getData());
             getHistoricalBuffer().incrementVersion();
             log().infof("✅ [%s] В исторический буфер пришло %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
                     getName(), historyDto.getData().size(), getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
+
+            // Обновляем historical bar series если это CandleInstance
+            if (this instanceof CandleInstance) {
+                for (CandlestickDto candleDto : historyDto.getData().values()) {
+                    ((CandleInstance) this).addBarToHistoricalSeries(candleDto);
+                }
+            }
+
             getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
 
             if (historyDto.isLast()) {
@@ -83,6 +98,13 @@ public abstract class AbstractCandle extends AbstractTimeSeries<CandlestickDto> 
                 getHistoricalBuffer().putItem(bucket, candle);
                 initSaveLiveBuffer();
                 getLiveBuffer().incrementVersion();
+
+                // Обновляем bar series если это CandleInstance
+                if (this instanceof CandleInstance) {
+                    ((CandleInstance) this).addBarToLiveSeries(candle);
+                    ((CandleInstance) this).addBarToHistoricalSeries(candle);
+                }
+
                 getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
 
             }

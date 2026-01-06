@@ -24,7 +24,7 @@ public class BufferSaveScheduler {
                 .filter(instance -> instance.isSaveLiveEnabled() || instance.isSaveHistoricalEnabled())
                 .forEach(candleInstance -> {
                     try {
-                        candleInstance.saveBuffer();
+                        //candleInstance.saveBuffer();
                     } catch (Exception e) {
                         log.severe("Ошибка при сохранении данных для " + candleInstance.getName() + ": " + e.getMessage());
                     }
