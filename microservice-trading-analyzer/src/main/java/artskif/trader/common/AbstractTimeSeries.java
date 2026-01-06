@@ -28,10 +28,10 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
     @ActivateRequestContext
     protected void initRestoreBuffer() {
         log().infof("📥 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
-        getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol()));
+        getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol(), true));
         getLiveBuffer().incrementVersion();
         log().infof("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
-        getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol()));
+        getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol(), false));
     }
 
     protected void initSaveLiveBuffer() {

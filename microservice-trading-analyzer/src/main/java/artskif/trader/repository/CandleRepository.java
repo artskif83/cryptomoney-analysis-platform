@@ -143,26 +143,41 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     @Override
     @Transactional
-    public Map<Instant, CandlestickDto> restoreFromStorage(Integer size, CandleTimeframe timeframe, String symbol) {
+    public Map<Instant, CandlestickDto> restoreFromStorage(Integer size, CandleTimeframe timeframe, String symbol, boolean isLive) {
         if (timeframe == null || symbol == null || symbol.isEmpty()) {
             LOG.warn("Неверные параметры для восстановления свечей из базы данных");
             return new LinkedHashMap<>();
         }
-        return performRestore(size, timeframe, symbol);
-    }
-
-    protected Map<Instant, CandlestickDto> performRestore(Integer size, CandleTimeframe timeframe, String symbol) {
 
         try {
+            int limit = size != null ? size : DEFAULT_RESTORE_LIMIT;
+
+            // Для live-режима вычисляем временную границу актуальности данных
+            Instant cutoffTime = null;
+            if (isLive) {
+                // Актуальные данные = текущее время минус (период таймфрейма * количество свечей)
+                long secondsToSubtract = timeframe.getDuration().toSeconds() * limit;
+                cutoffTime = Instant.now().minusSeconds(secondsToSubtract);
+                LOG.infof("Live-режим: загружаем данные не старее %s для таймфрейма %s и символа %s",
+                        cutoffTime, timeframe, symbol);
+            }
 
             // Получаем последние свечи для конкретного таймфрейма и символа, отсортированные по timestamp по убыванию
-            int limit = size != null ? size : DEFAULT_RESTORE_LIMIT;
-            List<Candle> candles = find(
-                    "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC", symbol, timeframe.name()
-            ).page(0, limit).list();
+            List<Candle> candles;
+            if (cutoffTime != null) {
+                candles = find(
+                        "id.symbol = ?1 AND id.tf = ?2 AND id.ts >= ?3 ORDER BY id.ts DESC",
+                        symbol, timeframe.name(), cutoffTime
+                ).page(0, limit).list();
+            } else {
+                candles = find(
+                        "id.symbol = ?1 AND id.tf = ?2 ORDER BY id.ts DESC",
+                        symbol, timeframe.name()
+                ).page(0, limit).list();
+            }
 
-            LOG.infof("Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s",
-                    candles.size(), timeframe, symbol);
+            LOG.infof("Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s (isLive=%s)",
+                    candles.size(), timeframe, symbol, isLive);
 
             if (candles.isEmpty()) {
                 LOG.infof("Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
