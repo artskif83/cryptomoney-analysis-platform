@@ -1,6 +1,7 @@
 package artskif.trader.contract.features.impl;
 
 import artskif.trader.candle.Candle;
+import artskif.trader.candle.CandleInstance;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.contract.features.FeatureMetadata;
 import artskif.trader.contract.features.FeatureTypeMetadata;
@@ -71,7 +72,7 @@ public class BaseFeature extends AbstractFeature<ClosePriceIndicator> {
 
     @PostConstruct
     private void init(){
-        Candle.CandleInstance instance = candle.getInstance(CandleTimeframe.CANDLE_5M);
+        CandleInstance instance = candle.getInstance(CandleTimeframe.CANDLE_5M);
         List<CandlestickDto> candlestickDtoList = instance.getHistoricalBuffer().getList();
         candlestickDtos.put(CandleTimeframe.CANDLE_5M, candlestickDtoList);
         BaseBarSeries baseBarSeries = new BaseBarSeriesBuilder()
