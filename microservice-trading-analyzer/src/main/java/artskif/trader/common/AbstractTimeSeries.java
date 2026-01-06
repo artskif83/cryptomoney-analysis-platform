@@ -24,7 +24,6 @@ public abstract class AbstractTimeSeries<C> implements BufferedPoint<C>, Logged 
 
     public abstract Integer getMaxHistoryBufferSize();
 
-    public abstract boolean getEnabled();
 
     @ActivateRequestContext
     protected void initRestoreBuffer() {

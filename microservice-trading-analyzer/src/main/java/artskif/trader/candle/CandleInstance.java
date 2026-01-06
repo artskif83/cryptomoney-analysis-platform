@@ -20,12 +20,11 @@ import org.ta4j.core.num.DecimalNumFactory;
  */
 public class CandleInstance extends AbstractCandle {
 
-    private static final int MAX_LIVE_BUFFER_SIZE = 10000;
-    private static final int MAX_HISTORICAL_BUFFER_SIZE = 1000000;
+    private final int maxLiveBufferSize;
+    private final int maxHistoricalBufferSize;
 
     private final CandleTimeframe timeframe;
     private final String name;
-    private final boolean enabled;
     private final CandleEventBus bus;
     private final Logger logger;
 
@@ -38,38 +37,36 @@ public class CandleInstance extends AbstractCandle {
     @Getter
     private final BaseBarSeries historicalBarSeries;
 
-    public CandleInstance(CandleTimeframe timeframe, String name, boolean enabled, CandleEventBus bus) {
+    public CandleInstance(CandleTimeframe timeframe, String name,
+                          int maxLiveBufferSize, int maxHistoricalBufferSize, CandleEventBus bus) {
         this.timeframe = timeframe;
         this.name = name;
-        this.enabled = enabled;
+        this.maxLiveBufferSize = maxLiveBufferSize;
+        this.maxHistoricalBufferSize = maxHistoricalBufferSize;
         this.bus = bus;
         this.logger = Logger.getLogger(Candle.class.getName() + "." + name);
 
-        this.liveBuffer = new TimeSeriesBuffer<>(MAX_LIVE_BUFFER_SIZE);
-        this.historicalBuffer = new TimeSeriesBuffer<>(MAX_HISTORICAL_BUFFER_SIZE);
+        this.liveBuffer = new TimeSeriesBuffer<>(maxLiveBufferSize);
+        this.historicalBuffer = new TimeSeriesBuffer<>(maxHistoricalBufferSize);
         this.candleBufferRepository = new CandleRepository();
 
         // Инициализация BaseBarSeries для live и historical данных
         this.liveBarSeries = new BaseBarSeriesBuilder()
                 .withName(name + "_live")
                 .withNumFactory(DecimalNumFactory.getInstance(2))
-                .withMaxBarCount(MAX_LIVE_BUFFER_SIZE)
+                .withMaxBarCount(maxLiveBufferSize)
                 .build();
 
         this.historicalBarSeries = new BaseBarSeriesBuilder()
                 .withName(name + "_historical")
                 .withNumFactory(DecimalNumFactory.getInstance(2))
-                .withMaxBarCount(MAX_HISTORICAL_BUFFER_SIZE)
+                .withMaxBarCount(maxHistoricalBufferSize)
                 .build();
     }
 
     @ActivateRequestContext
     public void init() {
-        if (!enabled) {
-            logger.infof("⚠️ [%s] Таймфрейм отключен", name);
-            return;
-        }
-        logger.infof("✅ [%s] Инициализация таймфрейма", name);
+        logger.infof("✅ [%s] Инициализация инстанса свечей для таймфрейма", name);
         initRestoreBuffer();
 
         // Заполняем BaseBarSeries из буферов после восстановления данных
@@ -103,18 +100,14 @@ public class CandleInstance extends AbstractCandle {
 
     @Override
     public Integer getMaxLiveBufferSize() {
-        return MAX_LIVE_BUFFER_SIZE;
+        return maxLiveBufferSize;
     }
 
     @Override
     public Integer getMaxHistoryBufferSize() {
-        return MAX_HISTORICAL_BUFFER_SIZE;
+        return maxHistoricalBufferSize;
     }
 
-    @Override
-    public boolean getEnabled() {
-        return enabled;
-    }
 
     @Override
     protected CandleEventBus getEventBus() {

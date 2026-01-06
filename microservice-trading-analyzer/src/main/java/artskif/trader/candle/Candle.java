@@ -24,12 +24,31 @@ public class Candle {
 
     @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
     boolean candle1mEnabled;
+    @ConfigProperty(name = "analysis.candle1m.max-live-buffer-size", defaultValue = "10000")
+    int candle1mMaxLiveBufferSize;
+    @ConfigProperty(name = "analysis.candle1m.max-historical-buffer-size", defaultValue = "1000000")
+    int candle1mMaxHistoricalBufferSize;
+
     @ConfigProperty(name = "analysis.candle5m.enabled", defaultValue = "true")
     boolean candle5mEnabled;
+    @ConfigProperty(name = "analysis.candle5m.max-live-buffer-size", defaultValue = "10000")
+    int candle5mMaxLiveBufferSize;
+    @ConfigProperty(name = "analysis.candle5m.max-historical-buffer-size", defaultValue = "1000000")
+    int candle5mMaxHistoricalBufferSize;
+
     @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
     boolean candle4hEnabled;
+    @ConfigProperty(name = "analysis.candle4h.max-live-buffer-size", defaultValue = "10000")
+    int candle4hMaxLiveBufferSize;
+    @ConfigProperty(name = "analysis.candle4h.max-historical-buffer-size", defaultValue = "1000000")
+    int candle4hMaxHistoricalBufferSize;
+
     @ConfigProperty(name = "analysis.candle1w.enabled", defaultValue = "true")
     boolean candle1wEnabled;
+    @ConfigProperty(name = "analysis.candle1w.max-live-buffer-size", defaultValue = "10000")
+    int candle1wMaxLiveBufferSize;
+    @ConfigProperty(name = "analysis.candle1w.max-historical-buffer-size", defaultValue = "1000000")
+    int candle1wMaxHistoricalBufferSize;
 
     @Inject
     public Candle(CandleEventBus bus) {
@@ -43,22 +62,26 @@ public class Candle {
         // Инициализируем экземпляры для каждого таймфрейма, только если enabled
         if (candle1mEnabled) {
             instances.put(CandleTimeframe.CANDLE_1M, new CandleInstance(
-                    CandleTimeframe.CANDLE_1M, "CANDLE-1m", candle1mEnabled, bus
+                    CandleTimeframe.CANDLE_1M, "CANDLE-1m",
+                    candle1mMaxLiveBufferSize, candle1mMaxHistoricalBufferSize, bus
             ));
         }
         if (candle5mEnabled) {
             instances.put(CandleTimeframe.CANDLE_5M, new CandleInstance(
-                    CandleTimeframe.CANDLE_5M, "CANDLE-5m", candle5mEnabled, bus
+                    CandleTimeframe.CANDLE_5M, "CANDLE-5m",
+                    candle5mMaxLiveBufferSize, candle5mMaxHistoricalBufferSize, bus
             ));
         }
         if (candle4hEnabled) {
             instances.put(CandleTimeframe.CANDLE_4H, new CandleInstance(
-                    CandleTimeframe.CANDLE_4H, "CANDLE-4H", candle4hEnabled, bus
+                    CandleTimeframe.CANDLE_4H, "CANDLE-4H",
+                    candle4hMaxLiveBufferSize, candle4hMaxHistoricalBufferSize, bus
             ));
         }
         if (candle1wEnabled) {
             instances.put(CandleTimeframe.CANDLE_1W, new CandleInstance(
-                    CandleTimeframe.CANDLE_1W, "CANDLE-1W", candle1wEnabled, bus
+                    CandleTimeframe.CANDLE_1W, "CANDLE-1W",
+                    candle1wMaxLiveBufferSize, candle1wMaxHistoricalBufferSize, bus
             ));
         }
 
@@ -85,7 +108,7 @@ public class Candle {
      */
     public void handleTick(CandleTimeframe timeframe, String message) {
         CandleInstance instance = instances.get(timeframe);
-        if (instance != null && instance.getEnabled()) {
+        if (instance != null) {
             instance.handleTick(message);
         }
     }
@@ -95,7 +118,7 @@ public class Candle {
      */
     public void restoreFromHistory(CandleTimeframe timeframe, String message) {
         CandleInstance instance = instances.get(timeframe);
-        if (instance != null && instance.getEnabled()) {
+        if (instance != null) {
             instance.restoreFromHistory(message);
         }
     }
