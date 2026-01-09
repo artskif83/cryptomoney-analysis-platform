@@ -3,20 +3,21 @@ package artskif.trader.candle;
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
-import artskif.trader.mapper.CandlestickMapper;
 import artskif.trader.repository.BufferRepository;
 import artskif.trader.repository.CandleRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
-import lombok.Getter;
 import org.jboss.logging.Logger;
-import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.num.DecimalNumFactory;
 
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 /**
  * Класс, представляющий экземпляр свечи для конкретного таймфрейма.
  * Содержит собственные буферы и логику обработки.
+ * Поддерживает потокобезопасный доступ к liveBarSeries и historicalBarSeries.
  */
 public class CandleInstance extends AbstractCandle {
 
@@ -32,10 +33,13 @@ public class CandleInstance extends AbstractCandle {
     private final TimeSeriesBuffer<CandlestickDto> liveBuffer;
     private final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
 
-    @Getter
     private final BaseBarSeries liveBarSeries;
-    @Getter
     private final BaseBarSeries historicalBarSeries;
+
+    // ReadWriteLock для потокобезопасного доступа к серии баров
+    private final ReadWriteLock liveSeriesLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock historicalSeriesLock = new ReentrantReadWriteLock();
+
 
     public CandleInstance(CandleTimeframe timeframe, String name,
                           int maxLiveBufferSize, int maxHistoricalBufferSize, CandleEventBus bus) {
@@ -67,10 +71,27 @@ public class CandleInstance extends AbstractCandle {
     @ActivateRequestContext
     public void init() {
         logger.infof("✅ [%s] Инициализация инстанса свечей для таймфрейма", name);
-        initRestoreBuffer();
 
-        // Заполняем BaseBarSeries из буферов после восстановления данных
-        populateBarSeriesFromBuffers();
+        // Восстанавливаем только Live буфер при старте
+        initRestoreLiveBuffer();
+
+        // Заполняем только Live серию из Live буфера при старте
+        copyLiveBufferToSeries();
+    }
+
+    /**
+     * Инициализация исторических данных.
+     * Вызывается по требованию, не при старте проекта.
+     */
+    @ActivateRequestContext
+    public void initHistoricalData() {
+        logger.infof("📚 [%s] Инициализация исторических данных для таймфрейма", name);
+
+        // Восстанавливаем Historical буфер из базы данных
+        initRestoreHistoricalBuffer();
+
+        // Заполняем Historical серию из Historical буфера
+        copyHistoricalBufferToSeries();
     }
 
     @Override
@@ -119,43 +140,24 @@ public class CandleInstance extends AbstractCandle {
         return logger;
     }
 
-    /**
-     * Добавляет новый бар в live серию
-     */
-    protected void addBarToLiveSeries(CandlestickDto candlestickDto) {
-        Bar bar = CandlestickMapper.mapDtoToBar(candlestickDto);
-        if (bar != null) {
-            liveBarSeries.addBar(bar);
-            logger.tracef("🔹 [%s] Добавлен бар в live серию: timestamp=%s", name, candlestickDto.getTimestamp());
-        }
+    @Override
+    protected BaseBarSeries getLiveBarSeries() {
+        return liveBarSeries;
     }
 
-    /**
-     * Добавляет новый бар в historical серию
-     */
-    protected void addBarToHistoricalSeries(CandlestickDto candlestickDto) {
-        Bar bar = CandlestickMapper.mapDtoToBar(candlestickDto);
-        if (bar != null) {
-            historicalBarSeries.addBar(bar);
-            logger.tracef("🔹 [%s] Добавлен бар в historical серию: timestamp=%s", name, candlestickDto.getTimestamp());
-        }
+    @Override
+    protected BaseBarSeries getHistoricalBarSeries() {
+        return historicalBarSeries;
     }
 
-    /**
-     * Заполняет серии данными из буферов при инициализации
-     */
-    protected void populateBarSeriesFromBuffers() {
-        // Заполняем historical серию из historical буфера
-        for (CandlestickDto candlestickDto : historicalBuffer.getList()) {
-            addBarToHistoricalSeries(candlestickDto);
-        }
-        logger.infof("✅ [%s] Historical серия заполнена: %d баров", name, historicalBarSeries.getBarCount());
+    @Override
+    protected ReadWriteLock getLiveSeriesLock() {
+        return liveSeriesLock;
+    }
 
-        // Заполняем live серию из live буфера
-        for (CandlestickDto candlestickDto : liveBuffer.getList()) {
-            addBarToLiveSeries(candlestickDto);
-        }
-        logger.infof("✅ [%s] Live серия заполнена: %d баров", name, liveBarSeries.getBarCount());
+    @Override
+    protected ReadWriteLock getHistoricalSeriesLock() {
+        return historicalSeriesLock;
     }
 }
 
