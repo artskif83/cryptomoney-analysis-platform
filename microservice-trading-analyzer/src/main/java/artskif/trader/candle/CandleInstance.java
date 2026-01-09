@@ -4,7 +4,6 @@ import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.CandleEventBus;
 import artskif.trader.repository.BufferRepository;
-import artskif.trader.repository.CandleRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import org.jboss.logging.Logger;
 import org.ta4j.core.BaseBarSeries;
@@ -42,7 +41,8 @@ public class CandleInstance extends AbstractCandle {
 
 
     public CandleInstance(CandleTimeframe timeframe, String name,
-                          int maxLiveBufferSize, int maxHistoricalBufferSize, CandleEventBus bus) {
+                          int maxLiveBufferSize, int maxHistoricalBufferSize, CandleEventBus bus,
+                          BufferRepository<CandlestickDto> candleBufferRepository) {
         this.timeframe = timeframe;
         this.name = name;
         this.maxLiveBufferSize = maxLiveBufferSize;
@@ -52,7 +52,7 @@ public class CandleInstance extends AbstractCandle {
 
         this.liveBuffer = new TimeSeriesBuffer<>(maxLiveBufferSize);
         this.historicalBuffer = new TimeSeriesBuffer<>(maxHistoricalBufferSize);
-        this.candleBufferRepository = new CandleRepository();
+        this.candleBufferRepository = candleBufferRepository;
 
         // Инициализация BaseBarSeries для live и historical данных
         this.liveBarSeries = new BaseBarSeriesBuilder()

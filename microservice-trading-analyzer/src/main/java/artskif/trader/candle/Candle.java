@@ -1,6 +1,7 @@
 package artskif.trader.candle;
 
 import artskif.trader.events.CandleEventBus;
+import artskif.trader.repository.CandleRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -21,6 +22,7 @@ public class Candle {
 
     private final Map<CandleTimeframe, CandleInstance> instances = new EnumMap<>(CandleTimeframe.class);
     private final CandleEventBus bus;
+    private final CandleRepository candleRepository;
 
     @ConfigProperty(name = "analysis.candle1m.enabled", defaultValue = "true")
     boolean candle1mEnabled;
@@ -51,8 +53,9 @@ public class Candle {
     int candle1wMaxHistoricalBufferSize;
 
     @Inject
-    public Candle(CandleEventBus bus) {
+    public Candle(CandleEventBus bus, CandleRepository candleRepository) {
         this.bus = bus;
+        this.candleRepository = candleRepository;
     }
 
     @PostConstruct
@@ -63,25 +66,25 @@ public class Candle {
         if (candle1mEnabled) {
             instances.put(CandleTimeframe.CANDLE_1M, new CandleInstance(
                     CandleTimeframe.CANDLE_1M, "CANDLE-1m",
-                    candle1mMaxLiveBufferSize, candle1mMaxHistoricalBufferSize, bus
+                    candle1mMaxLiveBufferSize, candle1mMaxHistoricalBufferSize, bus, candleRepository
             ));
         }
         if (candle5mEnabled) {
             instances.put(CandleTimeframe.CANDLE_5M, new CandleInstance(
                     CandleTimeframe.CANDLE_5M, "CANDLE-5m",
-                    candle5mMaxLiveBufferSize, candle5mMaxHistoricalBufferSize, bus
+                    candle5mMaxLiveBufferSize, candle5mMaxHistoricalBufferSize, bus, candleRepository
             ));
         }
         if (candle4hEnabled) {
             instances.put(CandleTimeframe.CANDLE_4H, new CandleInstance(
                     CandleTimeframe.CANDLE_4H, "CANDLE-4H",
-                    candle4hMaxLiveBufferSize, candle4hMaxHistoricalBufferSize, bus
+                    candle4hMaxLiveBufferSize, candle4hMaxHistoricalBufferSize, bus, candleRepository
             ));
         }
         if (candle1wEnabled) {
             instances.put(CandleTimeframe.CANDLE_1W, new CandleInstance(
                     CandleTimeframe.CANDLE_1W, "CANDLE-1W",
-                    candle1wMaxLiveBufferSize, candle1wMaxHistoricalBufferSize, bus
+                    candle1wMaxLiveBufferSize, candle1wMaxHistoricalBufferSize, bus, candleRepository
             ));
         }
 
