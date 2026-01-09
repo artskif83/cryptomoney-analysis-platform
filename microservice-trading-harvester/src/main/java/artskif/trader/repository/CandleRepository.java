@@ -92,7 +92,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 LOG.infof("✅ Свечи не найдены. Берем весь диапазон как гап: от %s до now", startBoundary);
                 TimeGap gap = new TimeGap(startBoundary, null);
                 gaps.add(gap);
-                return List.of();
+                return gaps;
             }
 
 
