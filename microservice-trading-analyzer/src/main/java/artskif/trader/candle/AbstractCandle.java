@@ -11,6 +11,7 @@ import artskif.trader.events.CandleEventType;
 import artskif.trader.mapper.CandlestickMapper;
 import artskif.trader.repository.BufferRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBarSeries;
@@ -156,7 +157,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
         }
 
         // Проверка актуальности последнего элемента
-        long allowedDelaySeconds = getCandleTimeframe().getDuration().toSeconds() + ACTUALITY_TIME_BUFFER_SECONDS;
+        long allowedDelaySeconds = (getCandleTimeframe().getDuration().toSeconds() * 2) + ACTUALITY_TIME_BUFFER_SECONDS;
         long actualDelaySeconds = now.getEpochSecond() - lastBucket.getEpochSecond();
 
         if (actualDelaySeconds > allowedDelaySeconds) {
@@ -370,11 +371,13 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 getLiveBuffer().incrementVersion();
 
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
-                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize())) {
+                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize()) && getLiveBarSeries().getBarCount() >= getMaxLiveBufferSize()) {
                     addBarToLiveSeries(candle);
+                    initSaveLiveBuffer();
+                } else {
+                    log().warnf("⚠️ [%s] Свеча не добавлена в live серию, т.к. буфер еще не актуален", getName());
                 }
 
-                initSaveLiveBuffer();
 
                 getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
 

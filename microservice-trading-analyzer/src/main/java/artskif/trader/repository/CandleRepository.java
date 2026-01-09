@@ -156,7 +156,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             Instant cutoffTime = null;
             if (isLive) {
                 // Актуальные данные = текущее время минус (период таймфрейма * количество свечей)
-                long secondsToSubtract = timeframe.getDuration().toSeconds() * limit;
+                long secondsToSubtract = timeframe.getDuration().toSeconds() * (limit+1);
                 cutoffTime = Instant.now().minusSeconds(secondsToSubtract);
                 LOG.infof("Live-режим: загружаем данные не старее %s для таймфрейма %s и символа %s",
                         cutoffTime, timeframe, symbol);
