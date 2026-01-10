@@ -139,9 +139,13 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * Проверяет актуальность буфера по следующим критериям:
      * 1. Минимальное количество элементов в буфере
      * 2. Последовательность элементов (не должны отставать друг от друга больше чем на duration)
-     * 3. Последний элемент не должен отставать от текущего времени больше чем на duration + запас
+     * 3. Последний элемент не должен отставать от текущего времени больше чем на duration + запас (если checkLastElementActuality = true)
+     *
+     * @param buffer буфер для проверки
+     * @param maxSize минимальный размер буфера (если null, проверка размера не выполняется)
+     * @param checkLastElementActuality если true, проверяется актуальность последнего элемента относительно текущего времени
      */
-    protected boolean isBufferActual(TimeSeriesBuffer<CandlestickDto> buffer, Integer maxSize) {
+    protected boolean isBufferActual(TimeSeriesBuffer<CandlestickDto> buffer, Integer maxSize, boolean checkLastElementActuality) {
         if (maxSize != null && buffer.size() < maxSize) {
             log().debugf("⚠️ [%s] Буфер не актуален: недостаточно элементов (%d < %d)",
                     getName(), buffer.size(), buffer.getMaxSize());
@@ -156,14 +160,16 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
             return false;
         }
 
-        // Проверка актуальности последнего элемента
-        long allowedDelaySeconds = (getCandleTimeframe().getDuration().toSeconds() * 2) + ACTUALITY_TIME_BUFFER_SECONDS;
-        long actualDelaySeconds = now.getEpochSecond() - lastBucket.getEpochSecond();
+        // Проверка актуальности последнего элемента (только если checkLastElementActuality = true)
+        if (checkLastElementActuality) {
+            long allowedDelaySeconds = (getCandleTimeframe().getDuration().toSeconds() * 2) + ACTUALITY_TIME_BUFFER_SECONDS;
+            long actualDelaySeconds = now.getEpochSecond() - lastBucket.getEpochSecond();
 
-        if (actualDelaySeconds > allowedDelaySeconds) {
-            log().debugf("⚠️ [%s] Буфер не актуален: последний элемент слишком старый (задержка %d сек > допустимо %d сек)",
-                    getName(), actualDelaySeconds, allowedDelaySeconds);
-            return false;
+            if (actualDelaySeconds > allowedDelaySeconds) {
+                log().debugf("⚠️ [%s] Буфер не актуален: последний элемент слишком старый (задержка %d сек > допустимо %d сек)",
+                        getName(), actualDelaySeconds, allowedDelaySeconds);
+                return false;
+            }
         }
 
         // Проверка последовательности элементов
@@ -256,7 +262,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * Вызывается автоматически при старте проекта.
      */
     protected void copyLiveBufferToSeries() {
-        if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize())) {
+        if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true)) {
             copyBufferToSeries(getLiveBuffer(), getLiveBarSeries(), getLiveSeriesLock(), "live");
         } else {
             log().warnf("⚠️ [%s] Актуальный буфер не скопирован в live серию, т.к. буфер еще не актуален", getName());
@@ -270,7 +276,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * Вызывается по требованию, не при старте проекта.
      */
     protected void copyHistoricalBufferToSeries() {
-        if (isBufferActual(getHistoricalBuffer(), null)) {
+        if (isBufferActual(getHistoricalBuffer(), null, false)) {
             copyBufferToSeries(getHistoricalBuffer(), getHistoricalBarSeries(), getHistoricalSeriesLock(), "historical");
         } else {
             log().warnf("⚠️ [%s] Исторический буфер не скопирован в historical серию, т.к. буфер еще не актуален", getName());
@@ -341,7 +347,9 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
             copyLiveBufferToSeries();
 
-            initSaveHistoricalBuffer();
+            if (historyDto.isLast() && isBufferActual(getHistoricalBuffer(), null, false)) {
+                initSaveHistoricalBuffer();
+            }
             getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
@@ -371,13 +379,12 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 getLiveBuffer().incrementVersion();
 
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
-                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize()) && getLiveBarSeries().getBarCount() >= getMaxLiveBufferSize()) {
+                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true) && getLiveBarSeries().getBarCount() >= getMaxLiveBufferSize()) {
                     addBarToLiveSeries(candle);
                     initSaveLiveBuffer();
                 } else {
                     log().warnf("⚠️ [%s] Свеча не добавлена в live серию, т.к. буфер еще не актуален", getName());
                 }
-
 
                 getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
 
