@@ -121,7 +121,8 @@ public abstract class AbstractHistoryCandle {
             LOG.infof("🔧 Обработка гапа #%d/%d: %s", gapNumber, timeGaps.size(), gap);
 
             // Для каждого гапа запрашиваем данные с постраничным разбиением
-            int gapPagesLoaded = harvestGap(apiClient, config, timeframe, topic, gapStartMs, gapEndMs, gapNumber, timeGaps.size());
+            boolean isLastGap = (gapNumber == timeGaps.size());
+            int gapPagesLoaded = harvestGap(apiClient, config, timeframe, topic, gapStartMs, gapEndMs, gapNumber, timeGaps.size(), isLastGap);
             totalPagesLoaded += gapPagesLoaded;
 
             LOG.infof("✅ Гап #%d обработан, загружено страниц: %d", gapNumber, gapPagesLoaded);
@@ -147,11 +148,12 @@ public abstract class AbstractHistoryCandle {
      * @param gapEndMs   конец гапа в миллисекундах
      * @param gapNumber  номер текущего гапа
      * @param totalGaps  общее количество гапов
+     * @param isLastGap  является ли этот гап последним в списке
      * @return количество загруженных страниц
      */
     private int harvestGap(CryptoRestApiClient<CandleRequest> apiClient, HarvestConfig config,
                            String timeframe, String topic, Long gapStartMs, Long gapEndMs,
-                           int gapNumber, int totalGaps) {
+                           int gapNumber, int totalGaps, boolean isLastGap) {
 
         // OKX API: before - верхняя граница (более поздние свечи), after - нижняя граница (более ранние свечи)
         // Запрашиваем от конца гапа (gapEndMs) к началу (gapStartMs)
@@ -184,7 +186,14 @@ public abstract class AbstractHistoryCandle {
             }
 
             long minTs = extractMinTimestamp(data);
-            boolean isLast = (before == null);
+
+            // Проверяем, является ли это последней страницей последнего гапа
+            // isLast = true только если:
+            // 1. Это последний гап (isLastGap == true)
+            // 2. И мы достигли начала гапа (minTs <= gapStartMs) или следующая итерация выйдет за границу
+            boolean isReachedGapStart = minTs <= gapStartMs;
+            boolean willExceedGapStart = (minTs - 1) < gapStartMs;
+            boolean isLast = isLastGap && (isReachedGapStart || willExceedGapStart);
 
             // Детальное логирование с информацией о гапе и конфигурации
             logCandleData(timeframe, data, gapNumber, totalGaps, gapStartMs, gapEndMs, minTs, isLast, config);
@@ -193,11 +202,11 @@ public abstract class AbstractHistoryCandle {
             kafkaProducer.sendMessage(topic, payload);
 
             pagesLoaded++;
-            LOG.infof("📦 Страница #%d (%d записей) для timeframe=%s в гапе; minTs=%d (%s)",
-                    pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs));
+            LOG.infof("📦 Страница #%d (%d записей) для timeframe=%s в гапе; minTs=%d (%s); isLast=%s",
+                    pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs), isLast);
 
             // Проверяем, достигли ли мы начала гапа
-            if (minTs <= gapStartMs) {
+            if (isReachedGapStart) {
                 LOG.infof("⛳ Граница гапа достигнута: minTs=%d <= gapStart=%d для timeframe=%s",
                         minTs, gapStartMs, timeframe);
                 break;
@@ -207,7 +216,7 @@ public abstract class AbstractHistoryCandle {
             before = minTs - 1;
 
             // Убеждаемся, что не вышли за границу гапа
-            if (before < gapStartMs) {
+            if (willExceedGapStart) {
                 LOG.infof("⛳ before=%d вышел за начало гапа=%d, останавливаемся", before, gapStartMs);
                 break;
             }
