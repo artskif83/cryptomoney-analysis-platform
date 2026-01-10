@@ -191,8 +191,12 @@ public abstract class AbstractHistoryCandle {
             // isLast = true только если:
             // 1. Это последний гап (isLastGap == true)
             // 2. И мы достигли начала гапа (minTs <= gapStartMs) или следующая итерация выйдет за границу
-            boolean isReachedGapStart = minTs <= gapStartMs;
-            boolean willExceedGapStart = (minTs - 1) < gapStartMs;
+            boolean isReachedGapStart = minTs <= gapStartMs + getTimeframeType().getDuration().toMillis();
+            boolean willExceedGapStart = (minTs - 1) < gapStartMs + getTimeframeType().getDuration().toMillis();
+            LOG.debugf("🔍 Проверка границ гапа: minTs=%d (%s), gapStartMs=%s (%s), isReachedGapStart=%s, willExceedGapStart=%s",
+                minTs, Instant.ofEpochMilli(minTs),
+                gapStartMs, Instant.ofEpochMilli(gapStartMs),
+                isReachedGapStart, willExceedGapStart);
             boolean isLast = isLastGap && (isReachedGapStart || willExceedGapStart);
 
             // Детальное логирование с информацией о гапе и конфигурации
