@@ -1,4 +1,4 @@
-package artskif.trader.contract;
+package artskif.trader.strategy.contract;
 
 import artskif.trader.candle.CandleTimeframe;
 import io.quarkus.logging.Log;

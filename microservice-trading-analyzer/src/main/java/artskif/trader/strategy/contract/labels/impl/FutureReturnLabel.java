@@ -1,9 +1,9 @@
-package artskif.trader.contract.labels.impl;
+package artskif.trader.strategy.contract.labels.impl;
 
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.features.impl.BaseFeature;
-import artskif.trader.contract.labels.Label;
+import artskif.trader.strategy.contract.features.impl.BaseFeature;
+import artskif.trader.strategy.contract.labels.Label;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;

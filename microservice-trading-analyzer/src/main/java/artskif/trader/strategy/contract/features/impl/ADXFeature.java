@@ -1,9 +1,9 @@
-package artskif.trader.contract.features.impl;
+package artskif.trader.strategy.contract.features.impl;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.features.FeatureMetadata;
-import artskif.trader.contract.features.FeatureTypeMetadata;
-import artskif.trader.contract.features.AbstractFeature;
+import artskif.trader.strategy.contract.features.FeatureMetadata;
+import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
+import artskif.trader.strategy.contract.features.AbstractFeature;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.indicators.adx.ADXIndicator;

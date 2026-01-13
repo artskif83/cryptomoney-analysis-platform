@@ -1,11 +1,11 @@
-package artskif.trader.contract.features.impl;
+package artskif.trader.strategy.contract.features.impl;
 
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleInstance;
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.features.FeatureMetadata;
-import artskif.trader.contract.features.FeatureTypeMetadata;
-import artskif.trader.contract.features.AbstractFeature;
+import artskif.trader.strategy.contract.features.FeatureMetadata;
+import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
+import artskif.trader.strategy.contract.features.AbstractFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.mapper.CandlestickMapper;
 import io.quarkus.logging.Log;

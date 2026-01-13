@@ -1,12 +1,12 @@
-package artskif.trader.contract.contract;
+package artskif.trader.strategy.contract.contract;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.ContractDataService;
-import artskif.trader.contract.ContractRegistry;
-import artskif.trader.contract.FeatureRow;
-import artskif.trader.contract.features.Feature;
-import artskif.trader.contract.features.FeatureTypeMetadata;
-import artskif.trader.contract.labels.Label;
+import artskif.trader.strategy.contract.ContractDataService;
+import artskif.trader.strategy.contract.ContractRegistry;
+import artskif.trader.strategy.contract.FeatureRow;
+import artskif.trader.strategy.contract.features.Feature;
+import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
+import artskif.trader.strategy.contract.labels.Label;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import artskif.trader.entity.MetadataType;

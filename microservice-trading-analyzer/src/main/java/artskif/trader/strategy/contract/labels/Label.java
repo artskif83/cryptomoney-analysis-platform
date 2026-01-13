@@ -1,4 +1,4 @@
-package artskif.trader.contract.labels;
+package artskif.trader.strategy.contract.labels;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;

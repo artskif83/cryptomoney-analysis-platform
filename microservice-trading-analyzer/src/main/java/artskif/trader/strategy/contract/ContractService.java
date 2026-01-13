@@ -1,7 +1,6 @@
-package artskif.trader.contract;
+package artskif.trader.strategy.contract;
 
-import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.contract.AbstractContract;
+import artskif.trader.strategy.contract.contract.AbstractContract;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;

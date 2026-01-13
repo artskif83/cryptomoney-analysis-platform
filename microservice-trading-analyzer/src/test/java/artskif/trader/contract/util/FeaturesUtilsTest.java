@@ -1,5 +1,6 @@
 package artskif.trader.contract.util;
 
+import artskif.trader.strategy.contract.util.FeaturesUtils;
 import org.junit.jupiter.api.Test;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;

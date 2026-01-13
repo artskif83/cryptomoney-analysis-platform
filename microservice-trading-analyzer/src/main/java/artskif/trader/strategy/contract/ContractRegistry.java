@@ -1,7 +1,7 @@
-package artskif.trader.contract;
+package artskif.trader.strategy.contract;
 
-import artskif.trader.contract.features.Feature;
-import artskif.trader.contract.labels.Label;
+import artskif.trader.strategy.contract.features.Feature;
+import artskif.trader.strategy.contract.labels.Label;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;

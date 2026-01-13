@@ -1,4 +1,4 @@
-package artskif.trader.contract.features;
+package artskif.trader.strategy.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
 

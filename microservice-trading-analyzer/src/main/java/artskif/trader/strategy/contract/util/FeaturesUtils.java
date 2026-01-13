@@ -1,4 +1,4 @@
-package artskif.trader.contract.util;
+package artskif.trader.strategy.contract.util;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;

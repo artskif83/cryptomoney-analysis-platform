@@ -1,7 +1,7 @@
-package artskif.trader.contract.features;
+package artskif.trader.strategy.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.contract.util.FeaturesUtils;
+import artskif.trader.strategy.contract.util.FeaturesUtils;
 import artskif.trader.dto.CandlestickDto;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.num.NaN;
