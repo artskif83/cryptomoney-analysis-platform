@@ -18,7 +18,7 @@ public class BufferSaveScheduler {
     @Inject
     Candle candle;
 
-    @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "30s")
+    @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "5s")
     void saveAllBuffersPeriodically() {
         candle.getAllInstances().values().stream()
                 .filter(instance -> instance.isSaveLiveEnabled() || instance.isSaveHistoricalEnabled())
