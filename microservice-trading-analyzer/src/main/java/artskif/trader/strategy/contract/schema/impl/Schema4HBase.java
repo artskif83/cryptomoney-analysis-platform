@@ -1,16 +1,17 @@
-package artskif.trader.strategy.contract.contract.impl;
+package artskif.trader.strategy.contract.schema.impl;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.ContractDataService;
 import artskif.trader.strategy.contract.ContractRegistry;
-import artskif.trader.strategy.contract.contract.AbstractContract;
+import artskif.trader.strategy.contract.schema.AbstractSchema;
 import artskif.trader.strategy.contract.features.Feature;
 import artskif.trader.strategy.contract.features.impl.ADXFeature;
-import artskif.trader.strategy.contract.features.impl.BaseFeature;
+import artskif.trader.strategy.contract.features.impl.CloseFeature;
 import artskif.trader.strategy.contract.features.impl.RSIFeature;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -19,33 +20,33 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class Contract4HBase  extends AbstractContract {
+public class Schema4HBase extends AbstractSchema {
 
     private static final String NAME = "Test Contract-4h V1.0 ";
 
 
     // Конструктор без параметров для CDI proxy
-    public Contract4HBase() {
+    public Schema4HBase() {
         super(null, null);
     }
 
     @Inject
-    public Contract4HBase(ContractDataService dataService, ContractRegistry registry) {
+    public Schema4HBase(ContractDataService dataService, ContractRegistry registry) {
         super(dataService, registry);
     }
 
     /**
      * Создать и инициализировать контракт с метаданными
-     *
-     * @return инициализированный контракт с сохраненным хешем
      */
-    @Override
-    protected Contract initializeContract() {
+    @PostConstruct
+    public void initContract() {
         // Сначала проверяем, существует ли контракт
         Contract existingContract = dataService.findContractByName(NAME);
         if (existingContract != null) {
             Log.infof("📋 Контракт '%s' уже существует в БД (id: %d), используем существующий", NAME, existingContract.id);
-            return existingContract;
+            this.contract = existingContract;
+            this.contractHash = existingContract.contractHash;
+            return;
         }
 
         // Создаем новый контракт с метаданными
@@ -70,7 +71,8 @@ public class Contract4HBase  extends AbstractContract {
         newContract.contractHash = generateContractHash(newContract);
 
         // Сохраняем новый контракт через транзакционный метод сервиса
-        return dataService.saveNewContract(newContract);
+        this.contract = dataService.saveNewContract(newContract);
+        this.contractHash = this.contract.contractHash;
     }
 
     @Override
@@ -80,18 +82,7 @@ public class Contract4HBase  extends AbstractContract {
 
 
     @Override
-    protected Feature getBaseFeature() {
-        Feature baseFeature = registry.getFeature(BaseFeature.BaseFeatureType.BASE_4H.getName()).orElse(null);
-        if (baseFeature == null) {
-            Log.errorf("❌ Не удалось получить индикатор главной фичи для контракта %s. Пропуск генерации исторических фич.",
-                    contract.name);
-            return null;
-        }
-        return baseFeature;
-    }
-
-    @Override
-    protected CandleTimeframe getBaseTimeframe() {
+    public CandleTimeframe getTimeframe() {
         return CandleTimeframe.CANDLE_4H;
     }
 

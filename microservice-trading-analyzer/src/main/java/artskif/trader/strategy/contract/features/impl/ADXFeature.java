@@ -58,10 +58,10 @@ public class ADXFeature extends AbstractFeature<ADXIndicator> {
     }
 
     @Inject
-    public ADXFeature(BaseFeature baseFeature) {
-        super(baseFeature);
-        this.indicators.put(CandleTimeframe.CANDLE_5M, new ADXIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_5M).getBarSeries(), ADX_PERIOD));
-        this.indicators.put(CandleTimeframe.CANDLE_4H, new ADXIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_4H).getBarSeries(), ADX_PERIOD));
+    public ADXFeature(CloseFeature closeFeature) {
+        super(closeFeature);
+        this.indicators.put(CandleTimeframe.CANDLE_5M, new ADXIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_5M).getBarSeries(), ADX_PERIOD));
+        this.indicators.put(CandleTimeframe.CANDLE_4H, new ADXIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_4H).getBarSeries(), ADX_PERIOD));
     }
 
     @Override

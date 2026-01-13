@@ -4,6 +4,8 @@ import artskif.trader.strategy.contract.features.Feature;
 import artskif.trader.strategy.contract.labels.Label;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.MetadataType;
+import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
+import artskif.trader.strategy.contract.snapshot.impl.ContractSnapshotRow;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -31,7 +33,7 @@ public class ContractDataService {
      * Вставить новую строку фич
      */
     @Transactional
-    public void insertFeatureRow(FeatureRow row) {
+    public void insertFeatureRow(ContractSnapshotRow row) {
         Map<String, Object> features = row.getAllFeatures();
 
         // Формируем SQL для INSERT
@@ -48,7 +50,7 @@ public class ContractDataService {
         var query = entityManager.createNativeQuery(sql)
                 .setParameter("tf", formatDuration(row.getTimeframe()))
                 .setParameter("ts", row.getTimestamp())
-                .setParameter("contractHash", row.getContractHash());
+                .setParameter("contractHash", row.contractHash());
 
         // Добавляем параметры для фич
         for (Map.Entry<String, Object> entry : features.entrySet()) {
@@ -65,28 +67,28 @@ public class ContractDataService {
      * Использует PostgreSQL COPY для быстрой загрузки данных
      */
     @Transactional
-    public void saveFeatureRowsBatch(Iterable<FeatureRow> rows) {
+    public void saveContractSnapshotRowsBatch(Iterable<ContractSnapshot> rows) {
         var iterator = rows.iterator();
         if (!iterator.hasNext()) {
             Log.warn("⚠️ Пустой список строк для сохранения");
             return;
         }
 
-        FeatureRow firstRow = iterator.next();
+        ContractSnapshot firstRow = iterator.next();
 
         // Проверяем, существует ли запись для этого контракта
         String checkSql = "SELECT COUNT(*) FROM features WHERE contract_hash = :contract_hash";
         Long existingCount = (Long) entityManager.createNativeQuery(checkSql)
-                .setParameter("contract_hash", firstRow.getContractHash())
+                .setParameter("contract_hash", firstRow.contractHash())
                 .getSingleResult();
 
         if (existingCount > 0) {
-            Log.error("❌ Данные для FeatureRow контракта уже существуют. Сначала удалите контракт.");
+            Log.error("❌ Данные для ContractSnapshotRow контракта уже существуют. Сначала удалите контракт.");
             return;
         }
 
         // Собираем все строки обратно в список для формирования CSV
-        java.util.List<FeatureRow> rowList = new java.util.ArrayList<>();
+        java.util.List<ContractSnapshot> rowList = new java.util.ArrayList<>();
         rowList.add(firstRow);
         iterator.forEachRemaining(rowList::add);
 
@@ -140,27 +142,27 @@ public class ContractDataService {
     }
 
     /**
-     * Формирует CSV из списка FeatureRow
+     * Формирует CSV из списка ContractSnapshotRow
      */
-    private String buildFeatureCsv(java.util.List<FeatureRow> rows) {
+    private String buildFeatureCsv(java.util.List<ContractSnapshot> rows) {
         return rows.stream()
                 .filter(row -> row != null)
-                .map(this::featureRowToCsvLine)
+                .map(this::ContractSnapshotToCsvLine)
                 .filter(line -> line != null && !line.isEmpty())
                 .collect(java.util.stream.Collectors.joining("\n"));
     }
 
     /**
-     * Преобразует FeatureRow в CSV строку
+     * Преобразует ContractSnapshotRow в CSV строку
      */
-    private String featureRowToCsvLine(FeatureRow row) {
+    private String ContractSnapshotToCsvLine(ContractSnapshot row) {
         try {
             java.util.List<String> values = new java.util.ArrayList<>();
 
             // Добавляем базовые колонки
             values.add(formatDuration(row.getTimeframe()));
             values.add(formatTimestamp(row.getTimestamp()));
-            values.add(safe(row.getContractHash()));
+            values.add(safe(row.contractHash()));
 
             // Добавляем фичи в отсортированном порядке
             Map<String, Object> features = row.getAllFeatures();
@@ -174,7 +176,7 @@ public class ContractDataService {
 
             return String.join(",", values);
         } catch (Exception ex) {
-            Log.warnf(ex, "❌ Не удалось сформировать CSV-строку для FeatureRow: %s", row);
+            Log.warnf(ex, "❌ Не удалось сформировать CSV-строку для ContractSnapshotRow: %s", row);
             return null;
         }
     }
@@ -182,7 +184,7 @@ public class ContractDataService {
     /**
      * Формирует список колонок для COPY команды
      */
-    private String buildCopyColumnList(FeatureRow sampleRow) {
+    private String buildCopyColumnList(ContractSnapshot sampleRow) {
         java.util.List<String> columns = new java.util.ArrayList<>();
         columns.add("tf");
         columns.add("ts");
@@ -199,7 +201,7 @@ public class ContractDataService {
     /**
      * Формирует SQL для INSERT ... SELECT с динамическими колонками
      */
-    private String buildUpsertSql(FeatureRow sampleRow) {
+    private String buildUpsertSql(ContractSnapshot sampleRow) {
         java.util.List<String> featureNames = new java.util.ArrayList<>(sampleRow.getAllFeatures().keySet());
         java.util.Collections.sort(featureNames);
 

@@ -21,12 +21,6 @@ public interface Label {
     String getDataType();
 
     /**
-     * Список свечей, на основе которых считаем лейбл.
-     * Обычно тот же набор, что и для фич.
-     */
-    List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe);
-
-    /**
      * Вернуть значение лейбла для индекса.
      */
     BigDecimal getValue(CandleTimeframe timeframe, int index);

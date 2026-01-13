@@ -1,6 +1,7 @@
-package artskif.trader.strategy.contract;
+package artskif.trader.strategy;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.strategy.contract.ContractDataService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -12,14 +13,14 @@ import java.util.Map;
 /**
  * REST API для управления контрактами
  */
-@Path("/api/contracts")
+@Path("/api/strategy")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class ContractResource {
+public class StrategyResource {
 
 
     @Inject
-    ContractService contractService;
+    StrategyService strategyService;
 
     @Inject
     ContractDataService contractDataService;
@@ -34,7 +35,7 @@ public class ContractResource {
             Log.infof("🚀 Запуск генерации исторических фич");
 
             // Генерируем исторические данные
-            contractService.generateHistoricalFeaturesForAll();
+            strategyService.generateHistoricalFeaturesForAll();
 
             return Response.ok()
                     .entity(Map.of(
@@ -66,7 +67,7 @@ public class ContractResource {
                       contractId);
 
             // Получаем имя контракта по ID
-            String contractName = contractService.getContractNameById(contractId);
+            String contractName = strategyService.getContractNameById(contractId);
             if (contractName == null) {
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity(Map.of(
@@ -78,7 +79,7 @@ public class ContractResource {
             }
 
             // Генерируем исторические данные для контракта
-            boolean success = contractService.generateHistoricalFeaturesForContract(contractName);
+            boolean success = strategyService.generateHistoricalFeaturesForContract(contractName);
 
             if (!success) {
                 return Response.status(Response.Status.NOT_FOUND)
@@ -130,7 +131,7 @@ public class ContractResource {
     @Path("/current-predict")
     public Response generatePredict() {
         try {
-            contractService.generatePredict();
+            strategyService.generatePredict();
 
             return Response.ok()
                     .entity(Map.of(

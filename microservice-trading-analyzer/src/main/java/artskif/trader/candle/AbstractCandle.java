@@ -51,9 +51,9 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
     protected abstract Logger log();
 
-    protected abstract BaseBarSeries getLiveBarSeries();
+    public abstract BaseBarSeries getLiveBarSeries();
 
-    protected abstract BaseBarSeries getHistoricalBarSeries();
+    public abstract BaseBarSeries getHistoricalBarSeries();
 
     protected abstract ReadWriteLock getLiveSeriesLock();
 

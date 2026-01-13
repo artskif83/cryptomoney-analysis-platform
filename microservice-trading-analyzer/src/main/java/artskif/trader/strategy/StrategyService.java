@@ -1,6 +1,7 @@
-package artskif.trader.strategy.contract;
+package artskif.trader.strategy;
 
-import artskif.trader.strategy.contract.contract.AbstractContract;
+import artskif.trader.strategy.contract.ContractRegistry;
+import artskif.trader.strategy.contract.schema.AbstractSchema;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -13,13 +14,13 @@ import java.util.Map;
  * Сервис для управления контрактами и их фичами
  */
 @ApplicationScoped
-public class ContractService {
+public class StrategyService {
 
     ContractRegistry registry;
-    private final Map<String, AbstractContract> contractMap = new HashMap<>();
+    private final Map<String, AbstractSchema> contractMap = new HashMap<>();
 
     @Inject
-    public ContractService(ContractRegistry registry, Instance<AbstractContract> contractInstances) {
+    public StrategyService(ContractRegistry registry, Instance<AbstractSchema> contractInstances) {
         this.registry = registry;
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
@@ -34,14 +35,14 @@ public class ContractService {
     public void generateHistoricalFeaturesForAll() {
         Log.info("📊 Начало генерации исторических фич для всех контрактов");
 
-        contractMap.values().forEach(instance -> {
-            try {
-                instance.generateHistoricalFeatures();
-            } catch (Exception e) {
-                Log.errorf(e, "❌ Ошибка при генерации исторических фич для всех контрактов. Текущий контракт: %s",
-                          instance.getName());
-            }
-        });
+//        contractMap.values().forEach(instance -> {
+//            try {
+//                instance.generateHistoricalFeatures();
+//            } catch (Exception e) {
+//                Log.errorf(e, "❌ Ошибка при генерации исторических фич для всех контрактов. Текущий контракт: %s",
+//                          instance.getName());
+//            }
+//        });
 
         Log.info("✅ Завершена генерация исторических фич для всех контрактов");
     }
@@ -56,21 +57,22 @@ public class ContractService {
         Log.infof("📊 Генерация исторических фич для контракта: %s",
                   contractName);
 
-        AbstractContract contract = contractMap.get(contractName);
-
-        if (contract == null) {
-            Log.warnf("⚠️ Контракт не найден: %s", contractName);
-            return false;
-        }
-
-        try {
-            contract.generateHistoricalFeatures();
-            Log.infof("✅ Исторические фичи сгенерированы для контракта: %s", contractName);
-            return true;
-        } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при генерации исторических фич для контракта: %s", contractName);
-            throw new RuntimeException("Ошибка при генерации фич: " + e.getMessage(), e);
-        }
+//        AbstractSchema contract = contractMap.get(contractName);
+//
+//        if (contract == null) {
+//            Log.warnf("⚠️ Контракт не найден: %s", contractName);
+//            return false;
+//        }
+//
+//        try {
+//            contract.generateHistoricalFeatures();
+//            Log.infof("✅ Исторические фичи сгенерированы для контракта: %s", contractName);
+//            return true;
+//        } catch (Exception e) {
+//            Log.errorf(e, "❌ Ошибка при генерации исторических фич для контракта: %s", contractName);
+//            throw new RuntimeException("Ошибка при генерации фич: " + e.getMessage(), e);
+//        }
+        return true;
     }
 
     /**

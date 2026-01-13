@@ -1,18 +1,18 @@
-package artskif.trader.strategy.contract.contract.impl;
+package artskif.trader.strategy.contract.schema.impl;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.ContractDataService;
 import artskif.trader.strategy.contract.ContractRegistry;
-import artskif.trader.strategy.contract.contract.AbstractContract;
-import artskif.trader.strategy.contract.features.*;
+import artskif.trader.strategy.contract.schema.AbstractSchema;
 import artskif.trader.strategy.contract.features.Feature;
 import artskif.trader.strategy.contract.features.impl.ADXFeature;
-import artskif.trader.strategy.contract.features.impl.BaseFeature;
+import artskif.trader.strategy.contract.features.impl.CloseFeature;
 import artskif.trader.strategy.contract.features.impl.RSIFeature;
 import artskif.trader.strategy.contract.labels.impl.FutureReturnLabel;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import io.quarkus.logging.Log;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -28,34 +28,34 @@ import java.util.Map;
  * - Подписывание каждой строки фич специальным хешкодом контракта
  */
 @ApplicationScoped
-public class Contract5MBase extends AbstractContract {
+public class Schema5MBase extends AbstractSchema {
 
     private static final String NAME = "Test Contract-5m V1.0 ";
 
 
     // Конструктор без параметров для CDI proxy
-    public Contract5MBase() {
+    public Schema5MBase() {
         super(null, null);
     }
 
     @Inject
-    public Contract5MBase(ContractDataService dataService, ContractRegistry registry) {
+    public Schema5MBase(ContractDataService dataService, ContractRegistry registry) {
         super(dataService, registry);
     }
 
     /**
      * Создать и инициализировать контракт с метаданными
-     *
-     * @return инициализированный контракт с сохраненным хешем
      */
-    @Override
-    protected Contract initializeContract() {
+    @PostConstruct
+    public void initContract() {
 
         // Сначала проверяем, существует ли контракт
         Contract existingContract = dataService.findContractByName(NAME);
         if (existingContract != null) {
             Log.infof("📋 Контракт '%s' уже существует в БД (id: %d), используем существующий", NAME, existingContract.id);
-            return existingContract;
+            this.contract = existingContract;
+            this.contractHash = existingContract.contractHash;
+            return;
         }
 
         // Создаем контракт с метаданными
@@ -78,9 +78,8 @@ public class Contract5MBase extends AbstractContract {
 
         // Генерируем и сохраняем hash
         newContract.contractHash = generateContractHash(newContract);
-        dataService.saveNewContract(newContract);
-
-        return newContract;
+        this.contract = dataService.saveNewContract(newContract);
+        this.contractHash = this.contract.contractHash;
     }
 
     @Override
@@ -90,18 +89,7 @@ public class Contract5MBase extends AbstractContract {
 
 
     @Override
-    protected Feature getBaseFeature() {
-        Feature baseFeature = registry.getFeature(BaseFeature.BaseFeatureType.BASE_5M.getName()).orElse(null);
-        if (baseFeature == null) {
-            Log.errorf("❌ Не удалось получить индикатор главной фичи для контракта %s. Пропуск генерации исторических фич.",
-                    contract.name);
-            return null;
-        }
-        return baseFeature;
-    }
-
-    @Override
-    protected CandleTimeframe getBaseTimeframe() {
+    public CandleTimeframe getTimeframe() {
         return CandleTimeframe.CANDLE_5M;
     }
 

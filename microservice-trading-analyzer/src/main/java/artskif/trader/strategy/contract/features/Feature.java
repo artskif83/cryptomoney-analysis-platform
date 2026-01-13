@@ -30,13 +30,6 @@ public interface Feature {
     }
 
     /**
-     * Получить исторические данные свечей для расчета фичи
-     *
-     * @return список DTO свечей
-     */
-    List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe);
-
-    /**
      * Получить индикатор TA4J для расчета фичи
      *
      * @return индикатор TA4J

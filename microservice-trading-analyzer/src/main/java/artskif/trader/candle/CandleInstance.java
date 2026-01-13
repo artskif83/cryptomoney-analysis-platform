@@ -141,12 +141,12 @@ public class CandleInstance extends AbstractCandle {
     }
 
     @Override
-    protected BaseBarSeries getLiveBarSeries() {
+    public BaseBarSeries getLiveBarSeries() {
         return liveBarSeries;
     }
 
     @Override
-    protected BaseBarSeries getHistoricalBarSeries() {
+    public BaseBarSeries getHistoricalBarSeries() {
         return historicalBarSeries;
     }
 

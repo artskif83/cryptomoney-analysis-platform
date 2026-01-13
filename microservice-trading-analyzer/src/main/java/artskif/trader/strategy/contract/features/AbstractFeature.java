@@ -1,7 +1,7 @@
 package artskif.trader.strategy.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.strategy.contract.features.impl.BaseFeature;
+import artskif.trader.strategy.contract.features.impl.CloseFeature;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
@@ -22,16 +22,16 @@ import java.util.Map;
  */
 public abstract class AbstractFeature<T extends AbstractIndicator<Num>> implements Feature {
 
-    protected final BaseFeature baseFeature;
+    protected final CloseFeature closeFeature;
     protected final Map<CandleTimeframe, T> indicators = new HashMap<>();
 
     /**
      * Конструктор для фич, которые используют BaseFeature
      *
-     * @param baseFeature базовая фича с OHLCV данными
+     * @param closeFeature базовая фича с OHLCV данными
      */
-    protected AbstractFeature(BaseFeature baseFeature) {
-        this.baseFeature = baseFeature;
+    protected AbstractFeature(CloseFeature closeFeature) {
+        this.closeFeature = closeFeature;
     }
 
     /**
@@ -59,17 +59,6 @@ public abstract class AbstractFeature<T extends AbstractIndicator<Num>> implemen
         }
 
         return metadataList;
-    }
-
-    /**
-     * Делегирует получение свечных данных в BaseFeature
-     *
-     * @param timeframe таймфрейм для получения данных
-     * @return список DTO свечей
-     */
-    @Override
-    public List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe) {
-        return baseFeature.getCandlestickDtos(timeframe);
     }
 
     /**

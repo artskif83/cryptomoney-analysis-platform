@@ -2,7 +2,7 @@ package artskif.trader.strategy.contract.labels.impl;
 
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.strategy.contract.features.impl.BaseFeature;
+import artskif.trader.strategy.contract.features.impl.CloseFeature;
 import artskif.trader.strategy.contract.labels.Label;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
@@ -11,7 +11,6 @@ import artskif.trader.entity.MetadataType;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @ApplicationScoped
@@ -24,10 +23,10 @@ public class FutureReturnLabel implements Label {
     private static final int HORIZON = 10;
     private static final BigDecimal THRESHOLD = new BigDecimal("0.01");
 
-    private final BaseFeature baseFeature;
+    private final CloseFeature closeFeature;
 
-    public FutureReturnLabel(BaseFeature baseFeature) {
-        this.baseFeature = baseFeature;
+    public FutureReturnLabel(CloseFeature closeFeature) {
+        this.closeFeature = closeFeature;
     }
 
     public static ContractMetadata getLabelMetadata(Integer sequenceOrder, Contract contract) {
@@ -45,22 +44,18 @@ public class FutureReturnLabel implements Label {
     }
 
     @Override
-    public List<CandlestickDto> getCandlestickDtos(CandleTimeframe timeframe) {
-        return baseFeature.getCandlestickDtos(timeframe);
-    }
-
-    @Override
     public BigDecimal getValue(CandleTimeframe timeframe, int index) {
-        List<CandlestickDto> candles = getCandlestickDtos(timeframe);
-        if (index + HORIZON >= candles.size()) {
-            // Хвост можно пометить как null или 0
-            return BigDecimal.ZERO;
-        }
-        BigDecimal current = candles.get(index).getClose();
-        BigDecimal future = candles.get(index + HORIZON).getClose();
-        BigDecimal ret = future.subtract(current)
-                .divide(current, 8, RoundingMode.HALF_UP);
-        return ret.compareTo(THRESHOLD) >= 0 ? BigDecimal.ONE : BigDecimal.ZERO;
+//        List<CandlestickDto> candles = getCandlestickDtos(timeframe);
+//        if (index + HORIZON >= candles.size()) {
+//            // Хвост можно пометить как null или 0
+//            return BigDecimal.ZERO;
+//        }
+//        BigDecimal current = candles.get(index).getClose();
+//        BigDecimal future = candles.get(index + HORIZON).getClose();
+//        BigDecimal ret = future.subtract(current)
+//                .divide(current, 8, RoundingMode.HALF_UP);
+//        return ret.compareTo(THRESHOLD) >= 0 ? BigDecimal.ONE : BigDecimal.ZERO;
+        return null;
     }
 }
 

@@ -1,6 +1,6 @@
-package artskif.trader.strategy.contract;
+package artskif.trader.strategy.contract.snapshot.impl;
 
-import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
 import lombok.Getter;
 
 import java.time.Duration;
@@ -8,22 +8,15 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Строка с фичами для одной свечи
- * Содержит все вычисленные значения фич и хеш контракта
- */
-public class FeatureRow {
+public final class ContractSnapshotRow implements ContractSnapshot {
 
-    @Getter
     private final Duration timeframe;
-    @Getter
     private final Instant timestamp;
-    @Getter
     private final String contractHash;
     private final Map<String, Object> features;
 
-    public FeatureRow(Duration timeframe, Instant timestamp,
-                      String contractHash) {
+    public ContractSnapshotRow(Duration timeframe, Instant timestamp,
+                               String contractHash) {
         this.timeframe = timeframe;
         this.timestamp = timestamp;
         this.contractHash = contractHash;
@@ -52,9 +45,23 @@ public class FeatureRow {
     }
 
     @Override
+    public Duration getTimeframe() {
+        return timeframe;
+    }
+
+    @Override
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public String contractHash() {
+        return contractHash;
+    }
+
+    @Override
     public String toString() {
         return String.format("FeatureRow{tf=%s, ts=%s, hash='%s', features=%d}",
                 timeframe, timestamp, contractHash.substring(0, 8), features.size());
     }
 }
-

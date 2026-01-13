@@ -1,6 +1,7 @@
 package artskif.trader.strategy.contract.features.impl;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.strategy.contract.features.FeatureMetadata;
 import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
 import artskif.trader.strategy.contract.features.AbstractFeature;
@@ -57,10 +58,10 @@ public class RSIFeature extends AbstractFeature<RSIIndicator> {
     }
 
     @Inject
-    public RSIFeature(BaseFeature baseFeature) {
-        super(baseFeature);
-        this.indicators.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
-        this.indicators.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(baseFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
+    public RSIFeature(CloseFeature closeFeature) {
+        super(closeFeature);
+        this.indicators.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
+        this.indicators.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
     }
 
     @Override
