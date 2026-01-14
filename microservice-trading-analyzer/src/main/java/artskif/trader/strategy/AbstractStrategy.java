@@ -20,10 +20,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
     public abstract String getName();
 
     public boolean isRunning() {
-        boolean status = running.get();
-        Log.debugf("🔍 Проверка статуса стратегии '%s': %b (instance: %s)",
-                   getName(), status, System.identityHashCode(this));
-        return status;
+        return running.get();
     }
 
     @Override
@@ -68,8 +65,6 @@ public abstract class AbstractStrategy implements CandleEventListener {
      * Установить статус запуска стратегии
      */
     public void setRunning(boolean isRunning) {
-        Log.debugf("🔧 Установка статуса стратегии '%s': %b -> %b (instance: %s)",
-                   getName(), this.running.get(), isRunning, System.identityHashCode(this));
         this.running.set(isRunning);
         if (!isRunning) {
             lastProcessedBarIndex = null; // Сбрасываем при остановке

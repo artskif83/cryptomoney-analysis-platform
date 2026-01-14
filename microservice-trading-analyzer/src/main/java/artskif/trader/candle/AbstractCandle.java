@@ -69,7 +69,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      */
     @ActivateRequestContext
     protected void initRestoreLiveBuffer() {
-        log().infof("📥 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
+        log().infof("💾 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
         getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol(), true));
         getLiveBuffer().incrementVersion();
     }

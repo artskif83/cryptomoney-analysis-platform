@@ -158,7 +158,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 // Актуальные данные = текущее время минус (период таймфрейма * количество свечей)
                 long secondsToSubtract = timeframe.getDuration().toSeconds() * (limit+1);
                 cutoffTime = Instant.now().minusSeconds(secondsToSubtract);
-                LOG.infof("Live-режим: загружаем данные не старее %s для таймфрейма %s и символа %s",
+                LOG.infof("💾 Live-режим: загружаем данные не старее %s для таймфрейма %s и символа %s",
                         cutoffTime, timeframe, symbol);
             }
 
@@ -176,11 +176,11 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 ).page(0, limit).list();
             }
 
-            LOG.infof("Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s (isLive=%s)",
+            LOG.infof("💾 Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s (isLive=%s)",
                     candles.size(), timeframe, symbol, isLive);
 
             if (candles.isEmpty()) {
-                LOG.infof("Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
+                LOG.infof("💾 Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
                 return new LinkedHashMap<>();
             }
 
@@ -194,7 +194,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 }
             }
 
-            LOG.infof("Восстановлено %d свечей из базы данных для таймфрейма %s и символа %s",
+            LOG.infof("💾 Восстановлено %d свечей из базы данных для таймфрейма %s и символа %s",
                     result.size(), timeframe, symbol);
             return result;
         } catch (Exception ex) {

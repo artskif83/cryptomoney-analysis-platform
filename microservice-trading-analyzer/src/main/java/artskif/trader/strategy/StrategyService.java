@@ -35,14 +35,14 @@ public class StrategyService {
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
             contractMap.put(contractName, contract);
-            Log.infof("📝 Зарегистрирован контракт: %s", contractName);
+            Log.infof("📋 Зарегистрирован контракт: %s", contractName);
         });
 
         // Регистрируем стратегии
         strategyInstances.forEach(strategy -> {
             String strategyName = strategy.getName();
             strategyMap.put(strategyName, strategy);
-            Log.infof("📊 Зарегистрирована стратегия: %s", strategyName);
+            Log.infof("📋 Зарегистрирована стратегия: %s", strategyName);
         });
     }
 

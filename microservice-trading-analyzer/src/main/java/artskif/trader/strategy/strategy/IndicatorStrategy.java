@@ -107,7 +107,7 @@ public class IndicatorStrategy extends AbstractStrategy {
             tradeEvent = eventModel.detect(snapshot5m);
             tradeEvent.ifPresent(event -> {
                 Log.infof(
-                        "TradeEvent: %s %s (%s)",
+                        "✅ TradeEvent: %s %s (%s)",
                         event.type(),
                         event.direction(),
                         event.confidence()

@@ -3,7 +3,10 @@ package artskif.trader.strategy.event.impl;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
 import artskif.trader.strategy.event.EventModel;
+import artskif.trader.strategy.event.common.Confidence;
+import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEvent;
+import artskif.trader.strategy.event.common.TradeEventType;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Optional;
@@ -12,7 +15,7 @@ import java.util.Optional;
 public class IndicatorEventModel implements EventModel {
     @Override
     public Optional<TradeEvent> detect(ContractSnapshot snapshot) {
-        return Optional.empty();
+        return Optional.of(new TradeEvent(TradeEventType.BREAKOUT, Direction.LONG, Confidence.HIGH));
     }
 
     @Override

@@ -70,7 +70,7 @@ public class CandleInstance extends AbstractCandle {
 
     @ActivateRequestContext
     public void init() {
-        logger.infof("✅ [%s] Инициализация инстанса свечей для таймфрейма", name);
+        logger.infof("🔌 [%s] Инициализация инстанса свечей для таймфрейма", name);
 
         // Восстанавливаем только Live буфер при старте
         initRestoreLiveBuffer();
