@@ -123,7 +123,7 @@ public class ContractDataService {
                     // Формируем INSERT ... SELECT с динамическими колонками
                     String upsertSql = buildUpsertSql(firstRow);
                     affected[0] = stmt.executeUpdate(upsertSql);
-                    Log.debugf("✅ Upsert затронул строк: %d", affected[0]);
+                    Log.debugf("💾 Upsert затронул строк: %d", affected[0]);
 
                     // Очищаем staging таблицу
                     stmt.execute("TRUNCATE TABLE stage_features");

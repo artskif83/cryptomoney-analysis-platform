@@ -87,14 +87,14 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
     protected void initSaveLiveBuffer() {
         if (!isSaveLiveEnabled()) {
-            log().infof("📥 [%s] Активировано сохранение активного буфера по расписанию", getName());
+            log().infof("💾 [%s] Активировано сохранение активного буфера по расписанию", getName());
         }
         saveLiveEnabled.set(true);
     }
 
     protected void initSaveHistoricalBuffer() {
         if (!isSaveHistoricalEnabled()) {
-            log().infof("📥 [%s] Активировано сохранение исторического буфера по расписанию", getName());
+            log().infof("💾 [%s] Активировано сохранение исторического буфера по расписанию", getName());
         }
         saveHistoricalEnabled.set(true);
     }
