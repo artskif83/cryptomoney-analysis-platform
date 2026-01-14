@@ -72,8 +72,6 @@ public class CloseFeature extends AbstractFeature<ClosePriceIndicator> {
 
         this.indicators.put(CandleTimeframe.CANDLE_5M, new ClosePriceIndicator(instance5m.getLiveBarSeries()));
         this.indicators.put(CandleTimeframe.CANDLE_4H, new ClosePriceIndicator(instance4h.getLiveBarSeries()));
-
-        Log.infof("✅ BaseFeature проинициализирована для таймфреймов: %s", indicators.size());
     }
 
 

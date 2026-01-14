@@ -2,6 +2,7 @@ package artskif.trader.strategy.strategy;
 
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.ContractMetadata;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.contract.ContractDataService;
@@ -10,7 +11,6 @@ import artskif.trader.strategy.contract.schema.impl.Schema4HBase;
 import artskif.trader.strategy.contract.schema.impl.Schema5MBase;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
-import artskif.trader.strategy.contract.snapshot.impl.ContractSnapshotRow;
 import artskif.trader.strategy.event.EventModel;
 import artskif.trader.strategy.event.common.TradeEvent;
 import artskif.trader.strategy.event.impl.IndicatorEventModel;
@@ -57,10 +57,10 @@ public class IndicatorStrategy extends AbstractStrategy {
     }
 
     @Override
-    public void onBar() {
+    public void onBar(CandlestickDto candle) {
 
         // 1. Получаем live BarSeries
-        BarSeries series = candle
+        BarSeries series = this.candle
                 .getInstance(CandleTimeframe.CANDLE_4H)
                 .getLiveBarSeries();
 
@@ -80,7 +80,7 @@ public class IndicatorStrategy extends AbstractStrategy {
                 regimeModel.classify(snapshot);
 
         // 4. Получаем live BarSeries для 5m
-        BarSeries series5m = candle
+        BarSeries series5m = this.candle
                 .getInstance(CandleTimeframe.CANDLE_5M)
                 .getLiveBarSeries();
 
@@ -91,13 +91,20 @@ public class IndicatorStrategy extends AbstractStrategy {
 
         int lastIndex5m = series5m.getEndIndex();
 
+        // Проверяем, обрабатывали ли мы уже этот бар
+        if (lastProcessedBarIndex != null && lastProcessedBarIndex == lastIndex5m) {
+            return; // Пропускаем дубликаты
+        }
+
+
         // 2. Собираем snapshot по последнему бару
         ContractSnapshot snapshot5m =
                 snapshotBuilder.build(schema5mBase, lastIndex5m, true);
 
+        Optional<TradeEvent> tradeEvent = Optional.empty();
         if (regime == MarketRegime.TREND_UP) {
             // 4. Детектим событие с учётом режима
-            Optional<TradeEvent> tradeEvent = eventModel.detect(snapshot5m);
+            tradeEvent = eventModel.detect(snapshot5m);
             tradeEvent.ifPresent(event -> {
                 Log.infof(
                         "TradeEvent: %s %s (%s)",
@@ -105,9 +112,13 @@ public class IndicatorStrategy extends AbstractStrategy {
                         event.direction(),
                         event.confidence()
                 );
-
                 // дальше: передача в TradeManager / Executor
             });
+        }
+
+        if (tradeEvent.isPresent()) {
+            // Обновляем индекс
+            lastProcessedBarIndex = lastIndex5m;
         }
     }
 

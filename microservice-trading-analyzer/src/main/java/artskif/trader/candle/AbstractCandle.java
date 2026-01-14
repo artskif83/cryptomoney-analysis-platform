@@ -141,14 +141,17 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * 2. Последовательность элементов (не должны отставать друг от друга больше чем на duration)
      * 3. Последний элемент не должен отставать от текущего времени больше чем на duration + запас (если checkLastElementActuality = true)
      *
-     * @param buffer буфер для проверки
-     * @param maxSize минимальный размер буфера (если null, проверка размера не выполняется)
+     * @param buffer                    буфер для проверки
+     * @param maxSize                   минимальный размер буфера (если null, проверка размера не выполняется)
      * @param checkLastElementActuality если true, проверяется актуальность последнего элемента относительно текущего времени
+     * @param bufferName                название буфера для логирования
      */
-    protected boolean isBufferActual(TimeSeriesBuffer<CandlestickDto> buffer, Integer maxSize, boolean checkLastElementActuality) {
+    protected boolean isBufferActual(TimeSeriesBuffer<CandlestickDto> buffer, Integer maxSize, boolean checkLastElementActuality, String bufferName) {
+        log().debugf("🔍 [%s] Проверяем актуальность буфера '%s'", getName(), bufferName);
+
         if (maxSize != null && buffer.size() < maxSize) {
-            log().debugf("⚠️ [%s] Буфер не актуален: недостаточно элементов (%d < %d)",
-                    getName(), buffer.size(), buffer.getMaxSize());
+            log().debugf("⚠️ [%s] Буфер '%s' не актуален: недостаточно элементов (%d < %d)",
+                    getName(), bufferName, buffer.size(), buffer.getMaxSize());
             return false;
         }
 
@@ -156,7 +159,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
         Instant lastBucket = buffer.getLastBucket();
 
         if (lastBucket == null) {
-            log().debugf("⚠️ [%s] Буфер не актуален: последний элемент не найден", getName());
+            log().debugf("⚠️ [%s] Буфер '%s' не актуален: последний элемент не найден", getName(), bufferName);
             return false;
         }
 
@@ -166,8 +169,8 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
             long actualDelaySeconds = now.getEpochSecond() - lastBucket.getEpochSecond();
 
             if (actualDelaySeconds > allowedDelaySeconds) {
-                log().debugf("⚠️ [%s] Буфер не актуален: последний элемент слишком старый (задержка %d сек > допустимо %d сек)",
-                        getName(), actualDelaySeconds, allowedDelaySeconds);
+                log().debugf("⚠️ [%s] Буфер '%s' не актуален: последний элемент слишком старый (задержка %d сек > допустимо %d сек)",
+                        getName(), bufferName, actualDelaySeconds, allowedDelaySeconds);
                 return false;
             }
         }
@@ -180,16 +183,16 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
             if (previousBucket != null) {
                 long gap = bucket.getEpochSecond() - previousBucket.getEpochSecond();
                 if (gap > durationSeconds * 2) { // допускаем пропуск максимум одной свечи
-                    log().debugf("⚠️ [%s] Буфер не актуален: найден разрыв в последовательности (разрыв %d сек > допустимо %d сек)",
-                            getName(), gap, durationSeconds * 2);
+                    log().debugf("⚠️ [%s] Буфер '%s' не актуален: найден разрыв в последовательности (разрыв %d сек > допустимо %d сек)",
+                            getName(), bufferName, gap, durationSeconds * 2);
                     return false;
                 }
             }
             previousBucket = bucket;
         }
 
-        log().debugf("✅ [%s] Буфер актуален: размер=%d, последний элемент %s",
-                getName(), buffer.size(), lastBucket);
+        log().debugf("✅ [%s] Буфер '%s' актуален: размер=%d, последний элемент %s",
+                getName(), bufferName, buffer.size(), lastBucket);
         return true;
     }
 
@@ -209,9 +212,12 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                                     String seriesName) {
         log().infof("🔄 [%s] Начинаем копирование %s буфера в %s серию", getName(), seriesName, seriesName);
 
-        Instant lastSeriesTimestamp = null;
-        lock.readLock().lock();
+        // Получаем элементы для копирования вне блокировки
+        Map<Instant, CandlestickDto> itemsToCopy;
+
+        lock.writeLock().lock();
         try {
+            Instant lastSeriesTimestamp = null;
             if (!series.isEmpty()) {
                 lastSeriesTimestamp = series.getLastBar().getEndTime();
                 log().debugf("🔍 [%s] Последний элемент в %s серии: timestamp=%s",
@@ -220,38 +226,32 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 log().debugf("🔍 [%s] %s серия пуста, будут скопированы все элементы",
                         getName(), seriesName);
             }
-        } finally {
-            lock.readLock().unlock();
-        }
 
-        // Получаем элементы для копирования
-        Map<Instant, CandlestickDto> itemsToCopy;
-        if (lastSeriesTimestamp == null) {
-            // Серия пуста - копируем все элементы
-            itemsToCopy = buffer.getAll();
-        } else {
-            // Серия не пуста - копируем только элементы после последнего
-            itemsToCopy = buffer.getItemsBetween(lastSeriesTimestamp, null);
-        }
+            // Получаем элементы для копирования
+            if (lastSeriesTimestamp == null) {
+                // Серия пуста - копируем все элементы
+                itemsToCopy = buffer.getAll();
+            } else {
+                // Серия не пуста - копируем только элементы после последнего
+                itemsToCopy = buffer.getItemsBetween(lastSeriesTimestamp, null);
+            }
 
-        if (itemsToCopy.isEmpty()) {
-            log().debugf("ℹ️ [%s] Нет новых элементов для копирования в %s серию", getName(), seriesName);
-            return;
-        }
+            if (itemsToCopy.isEmpty()) {
+                log().debugf("ℹ️ [%s] Нет новых элементов для копирования в %s серию", getName(), seriesName);
+                return;
+            }
 
-        // Копируем элементы
-        int count = 0;
-        for (CandlestickDto candleDto : itemsToCopy.values()) {
-            addBarToSeries(candleDto, series, lock, seriesName);
-            count++;
-        }
-
-        lock.readLock().lock();
-        try {
+            // Копируем элементы (все под одной блокировкой)
+            int count = 0;
+            for (CandlestickDto candleDto : itemsToCopy.values()) {
+                if (addBarToSeriesUnsafe(candleDto, series, seriesName)) {
+                    count++;
+                }
+            }
             log().infof("✅ [%s] %s буфер скопирован в %s серию: %d новых элементов (всего в серии: %d)",
                     getName(), seriesName, seriesName, count, series.getBarCount());
         } finally {
-            lock.readLock().unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -262,7 +262,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * Вызывается автоматически при старте проекта.
      */
     protected void copyLiveBufferToSeries() {
-        if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true)) {
+        if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live")) {
             copyBufferToSeries(getLiveBuffer(), getLiveBarSeries(), getLiveSeriesLock(), "live");
         } else {
             log().warnf("⚠️ [%s] Актуальный буфер не скопирован в live серию, т.к. буфер еще не актуален", getName());
@@ -276,7 +276,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * Вызывается по требованию, не при старте проекта.
      */
     protected void copyHistoricalBufferToSeries() {
-        if (isBufferActual(getHistoricalBuffer(), null, false)) {
+        if (isBufferActual(getHistoricalBuffer(), null, false, "historical")) {
             copyBufferToSeries(getHistoricalBuffer(), getHistoricalBarSeries(), getHistoricalSeriesLock(), "historical");
         } else {
             log().warnf("⚠️ [%s] Исторический буфер не скопирован в historical серию, т.к. буфер еще не актуален", getName());
@@ -284,30 +284,40 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     }
 
     /**
-     * Добавляет новый бар в указанную серию
+     * Добавляет новый бар в указанную серию (без блокировок, небезопасный метод).
+     * Используется внутри методов, которые уже держат блокировку.
+     *
+     * @return true если бар был добавлен, false если был пропущен
      */
-    private void addBarToSeries(CandlestickDto candlestickDto, BaseBarSeries series, ReadWriteLock lock, String seriesType) {
+    private boolean addBarToSeriesUnsafe(CandlestickDto candlestickDto, BaseBarSeries series, String seriesType) {
         Bar bar = CandlestickMapper.mapDtoToBar(candlestickDto);
         if (bar == null) {
-            return;
+            return false;
         }
 
+        // Проверяем, что новый бар идет после последнего бара в серии
+        if (!series.isEmpty()) {
+            Bar lastBar = series.getLastBar();
+            long expectedTimestamp = lastBar.getEndTime().getEpochSecond() + getCandleTimeframe().getDuration().getSeconds();
+            long actualTimestamp = bar.getEndTime().getEpochSecond();
+
+            if (actualTimestamp != expectedTimestamp) {
+                log().warnf("⚠️ [%s] Попытка добавить бар с timestamp=%s, который меньше ожидаемого timestamp=%s в %s серию. Бар пропущен.",
+                        getName(), candlestickDto.getTimestamp(), java.time.Instant.ofEpochSecond(expectedTimestamp), seriesType);
+                return false;
+            }
+        }
+        series.addBar(bar);
+        return true;
+    }
+
+    /**
+     * Добавляет новый бар в указанную серию (с блокировкой, потокобезопасный метод)
+     */
+    private void addBarToSeries(CandlestickDto candlestickDto, BaseBarSeries series, ReadWriteLock lock, String seriesType) {
         lock.writeLock().lock();
         try {
-            // Проверяем, что новый бар идет после последнего бара в серии
-            if (!series.isEmpty()) {
-                Bar lastBar = series.getLastBar();
-                long expectedTimestamp = lastBar.getEndTime().getEpochSecond() + getCandleTimeframe().getDuration().getSeconds();
-                long actualTimestamp = bar.getEndTime().getEpochSecond();
-
-                if (actualTimestamp != expectedTimestamp) {
-                    log().warnf("⚠️ [%s] Попытка добавить бар с timestamp=%s, который меньше ожидаемого timestamp=%s в %s серию. Бар пропущен.",
-                            getName(), candlestickDto.getTimestamp(), java.time.Instant.ofEpochSecond(expectedTimestamp), seriesType);
-                    return;
-                }
-            }
-            series.addBar(bar);
-            log().tracef("🔹 [%s] Добавлен бар в %s серию: timestamp=%s", getName(), seriesType, candlestickDto.getTimestamp());
+            addBarToSeriesUnsafe(candlestickDto, series, seriesType);
         } finally {
             lock.writeLock().unlock();
         }
@@ -335,21 +345,17 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 return;
             }
 
+            log().infof("🔄 [%s] Восстанавливаем исторические %d элементов (instId=%s, isLast=%s)",
+                    getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast());
+
             getLiveBuffer().putItems(historyDto.getData());
             getLiveBuffer().incrementVersion();
-            log().infof("✅ [%s] В актуальный буфер пришло %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
-                    getName(), historyDto.getData().size(), getLiveBuffer().size(), historyDto.getInstId(), historyDto.isLast());
-
             getHistoricalBuffer().putItems(historyDto.getData());
             getHistoricalBuffer().incrementVersion();
-            log().infof("✅ [%s] В исторический буфер пришло %d элементов. Текущий размер %d (instId=%s, isLast=%s)",
-                    getName(), historyDto.getData().size(), getHistoricalBuffer().size(), historyDto.getInstId(), historyDto.isLast());
 
             copyLiveBufferToSeries();
 
-            if (historyDto.isLast() && isBufferActual(getHistoricalBuffer(), null, false)) {
-                initSaveHistoricalBuffer();
-            }
+            initSaveHistoricalBuffer();
             getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
@@ -379,15 +385,13 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 getLiveBuffer().incrementVersion();
 
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
-                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true) && getLiveBarSeries().getBarCount() >= getMaxLiveBufferSize()) {
+                if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live") && getLiveBarSeries().getBarCount() >= getMaxLiveBufferSize()) {
                     addBarToLiveSeries(candle);
                     initSaveLiveBuffer();
+                    getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
                 } else {
                     log().warnf("⚠️ [%s] Свеча не добавлена в live серию, т.к. буфер еще не актуален", getName());
                 }
-
-                getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
-
             }
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось разобрать сообщение - %s. Ошибка - %s", getName(), message, e.getMessage());

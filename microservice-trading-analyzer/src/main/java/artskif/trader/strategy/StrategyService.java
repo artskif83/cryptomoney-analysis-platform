@@ -1,5 +1,6 @@
 package artskif.trader.strategy;
 
+import artskif.trader.events.CandleEventBus;
 import artskif.trader.strategy.contract.ContractRegistry;
 import artskif.trader.strategy.contract.schema.AbstractSchema;
 import io.quarkus.logging.Log;
@@ -9,24 +10,133 @@ import jakarta.inject.Inject;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Сервис для управления контрактами и их фичами
+ * Сервис для управления стратегиями и их жизненным циклом
  */
 @ApplicationScoped
 public class StrategyService {
 
     ContractRegistry registry;
     private final Map<String, AbstractSchema> contractMap = new HashMap<>();
+    private final Map<String, AbstractStrategy> strategyMap = new ConcurrentHashMap<>();
+    private final CandleEventBus eventBus;
 
     @Inject
-    public StrategyService(ContractRegistry registry, Instance<AbstractSchema> contractInstances) {
+    public StrategyService(ContractRegistry registry,
+                           Instance<AbstractSchema> contractInstances,
+                           Instance<AbstractStrategy> strategyInstances,
+                           CandleEventBus eventBus) {
         this.registry = registry;
+        this.eventBus = eventBus;
+
+        // Регистрируем контракты
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
             contractMap.put(contractName, contract);
             Log.infof("📝 Зарегистрирован контракт: %s", contractName);
         });
+
+        // Регистрируем стратегии
+        strategyInstances.forEach(strategy -> {
+            String strategyName = strategy.getName();
+            strategyMap.put(strategyName, strategy);
+            Log.infof("📊 Зарегистрирована стратегия: %s", strategyName);
+        });
+    }
+
+    /**
+     * Запустить стратегию по имени
+     *
+     * @param strategyName имя стратегии
+     * @return true если стратегия успешно запущена
+     */
+    public boolean startStrategy(String strategyName) {
+        AbstractStrategy strategy = strategyMap.get(strategyName);
+
+        if (strategy == null) {
+            Log.warnf("⚠️ Стратегия не найдена: %s", strategyName);
+            return false;
+        }
+
+        if (strategy.isRunning()) {
+            Log.warnf("⚠️ Стратегия уже запущена: %s", strategyName);
+            return false;
+        }
+
+        try {
+            // Помечаем стратегию как запущенную
+            strategy.setRunning(true);
+            // Подписываемся на события
+            eventBus.subscribe(strategy);
+
+            Log.infof("✅ Стратегия запущена: %s (таймфрейм: %s)",
+                    strategyName, strategy.getTimeframe());
+            return true;
+
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при запуске стратегии: %s", strategyName);
+            return false;
+        }
+    }
+
+    /**
+     * Остановить стратегию по имени
+     *
+     * @param strategyName имя стратегии
+     * @return true если стратегия успешно остановлена
+     */
+    public boolean stopStrategy(String strategyName) {
+        AbstractStrategy strategy = strategyMap.get(strategyName);
+
+        if (strategy == null) {
+            Log.warnf("⚠️ Стратегия не найдена: %s", strategyName);
+            return false;
+        }
+
+        if (!strategy.isRunning()) {
+            Log.warnf("⚠️ Стратегия не запущена: %s", strategyName);
+            return false;
+        }
+
+        try {
+            // Отписываемся от событий
+            eventBus.unsubscribe(strategy);
+            // Помечаем стратегию как остановленную
+            strategy.setRunning(false);
+
+            Log.infof("🛑 Стратегия остановлена: %s", strategyName);
+            return true;
+
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при остановке стратегии: %s", strategyName);
+            return false;
+        }
+    }
+
+    /**
+     * Получить список всех зарегистрированных стратегий
+     *
+     * @return карта имен стратегий и их статусов запуска
+     */
+    public Map<String, Boolean> getAllStrategies() {
+        Map<String, Boolean> result = new HashMap<>();
+        strategyMap.forEach((name, strategy) ->
+                result.put(name, strategy.isRunning())
+        );
+        return result;
+    }
+
+    /**
+     * Проверить, запущена ли стратегия
+     *
+     * @param strategyName имя стратегии
+     * @return true если стратегия запущена
+     */
+    public boolean isStrategyRunning(String strategyName) {
+        AbstractStrategy strategy = strategyMap.get(strategyName);
+        return strategy != null && strategy.isRunning();
     }
 
     /**
@@ -55,7 +165,7 @@ public class StrategyService {
      */
     public boolean generateHistoricalFeaturesForContract(String contractName) {
         Log.infof("📊 Генерация исторических фич для контракта: %s",
-                  contractName);
+                contractName);
 
 //        AbstractSchema contract = contractMap.get(contractName);
 //

@@ -1,6 +1,10 @@
 package artskif.trader.strategy;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.dto.CandlestickDto;
+import artskif.trader.events.CandleEvent;
+import artskif.trader.events.CandleEventBus;
+import artskif.trader.events.CandleEventType;
 import artskif.trader.strategy.contract.ContractDataService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
@@ -8,6 +12,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -24,6 +30,148 @@ public class StrategyResource {
 
     @Inject
     ContractDataService contractDataService;
+
+    @Inject
+    CandleEventBus candleEventBus;
+
+    /**
+     * Запустить стратегию по имени
+     * @param strategyName имя стратегии для запуска
+     */
+    @POST
+    @Path("/start/{strategyName}")
+    public Response startStrategy(@PathParam("strategyName") String strategyName) {
+        try {
+            Log.infof("🚀 Запрос на запуск стратегии: %s", strategyName);
+
+            boolean success = strategyService.startStrategy(strategyName);
+
+            if (success) {
+                return Response.ok()
+                        .entity(Map.of(
+                                "status", "success",
+                                "message", "Стратегия успешно запущена",
+                                "strategyName", strategyName,
+                                "running", true
+                        ))
+                        .build();
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Не удалось запустить стратегию (не найдена или уже запущена)",
+                                "strategyName", strategyName
+                        ))
+                        .build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при запуске стратегии: %s", strategyName);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "strategyName", strategyName
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Остановить стратегию по имени
+     * @param strategyName имя стратегии для остановки
+     */
+    @POST
+    @Path("/stop/{strategyName}")
+    public Response stopStrategy(@PathParam("strategyName") String strategyName) {
+        try {
+            Log.infof("🛑 Запрос на остановку стратегии: %s", strategyName);
+
+            boolean success = strategyService.stopStrategy(strategyName);
+
+            if (success) {
+                return Response.ok()
+                        .entity(Map.of(
+                                "status", "success",
+                                "message", "Стратегия успешно остановлена",
+                                "strategyName", strategyName,
+                                "running", false
+                        ))
+                        .build();
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Не удалось остановить стратегию (не найдена или не запущена)",
+                                "strategyName", strategyName
+                        ))
+                        .build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при остановке стратегии: %s", strategyName);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "strategyName", strategyName
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Получить список всех зарегистрированных стратегий и их статусы
+     */
+    @GET
+    @Path("/list")
+    public Response getAllStrategies() {
+        try {
+            Map<String, Boolean> strategies = strategyService.getAllStrategies();
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "strategies", strategies
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении списка стратегий");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Получить статус конкретной стратегии
+     * @param strategyName имя стратегии
+     */
+    @GET
+    @Path("/status/{strategyName}")
+    public Response getStrategyStatus(@PathParam("strategyName") String strategyName) {
+        try {
+            boolean isRunning = strategyService.isStrategyRunning(strategyName);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "strategyName", strategyName,
+                            "running", isRunning
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении статуса стратегии: %s", strategyName);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "strategyName", strategyName
+                    ))
+                    .build();
+        }
+    }
 
     /**
      * Сгенерировать исторические фичи для всех контрактов
@@ -187,6 +335,106 @@ public class StrategyResource {
                             "status", "error",
                             "message", e.getMessage(),
                             "contractId", contractId
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Симулировать событие CANDLE_TICK
+     *
+     * @param instrument инструмент (например, BTC-USDT)
+     * @param timeframe таймфрейм (1m, 5m, 4h, 1w)
+     * @param open цена открытия
+     * @param high максимальная цена
+     * @param low минимальная цена
+     * @param close цена закрытия
+     * @param volume объем торгов
+     * @param confirmed подтверждена ли свеча
+     * @return ответ с результатом симуляции
+     */
+    @POST
+    @Path("/simulate/candle-tick")
+    public Response simulateCandleTick(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
+            @QueryParam("timeframe") @DefaultValue("CANDLE_5M") String timeframe,
+            @QueryParam("open") @DefaultValue("50000") BigDecimal open,
+            @QueryParam("high") @DefaultValue("51000") BigDecimal high,
+            @QueryParam("low") @DefaultValue("49000") BigDecimal low,
+            @QueryParam("close") @DefaultValue("50500") BigDecimal close,
+            @QueryParam("volume") @DefaultValue("100") BigDecimal volume,
+            @QueryParam("confirmed") @DefaultValue("false") Boolean confirmed
+    ) {
+        try {
+
+            // Парсинг таймфрейма
+            CandleTimeframe candleTimeframe;
+            try {
+                candleTimeframe = CandleTimeframe.fromString(timeframe);
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Неверный таймфрейм. Доступные значения: 1m, 5m, 4h, 1w",
+                                "timeframe", timeframe
+                        ))
+                        .build();
+            }
+
+            // Создание CandlestickDto
+            CandlestickDto candlestickDto = new CandlestickDto();
+            Instant bucket = Instant.now();
+            candlestickDto.setTimestamp(bucket);
+            candlestickDto.setOpen(open);
+            candlestickDto.setHigh(high);
+            candlestickDto.setLow(low);
+            candlestickDto.setClose(close);
+            candlestickDto.setVolume(volume);
+            candlestickDto.setConfirmed(confirmed);
+            candlestickDto.setPeriod(candleTimeframe);
+            candlestickDto.setInstrument(instrument);
+
+            // Создание и публикация события
+            CandleEvent event = new CandleEvent(
+                    CandleEventType.CANDLE_TICK,
+                    candleTimeframe,
+                    instrument,
+                    bucket,
+                    candlestickDto,
+                    confirmed
+            );
+
+            candleEventBus.publish(event);
+
+            Log.infof("📊 Событие CANDLE_TICK симулировано: %s %s O=%s H=%s L=%s C=%s V=%s confirmed=%s",
+                    instrument, timeframe, open, high, low, close, volume, confirmed);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Событие CANDLE_TICK успешно опубликовано",
+                            "event", Map.of(
+                                    "type", "CANDLE_TICK",
+                                    "instrument", instrument,
+                                    "timeframe", timeframe,
+                                    "bucket", bucket.toString(),
+                                    "candle", Map.of(
+                                            "open", open,
+                                            "high", high,
+                                            "low", low,
+                                            "close", close,
+                                            "volume", volume,
+                                            "confirmed", confirmed
+                                    )
+                            )
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при симуляции события CANDLE_TICK");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
                     ))
                     .build();
         }

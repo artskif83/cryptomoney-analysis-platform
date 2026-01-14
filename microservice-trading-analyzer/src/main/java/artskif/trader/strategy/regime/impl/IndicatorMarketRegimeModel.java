@@ -12,7 +12,7 @@ public class IndicatorMarketRegimeModel implements MarketRegimeModel {
     @Override
     public MarketRegime classify(ContractSnapshot snapshot) {
         // RSI, ADX, slope — без знания стратегии
-        return MarketRegime.FLAT;
+        return MarketRegime.TREND_UP;
     }
 
     @Override

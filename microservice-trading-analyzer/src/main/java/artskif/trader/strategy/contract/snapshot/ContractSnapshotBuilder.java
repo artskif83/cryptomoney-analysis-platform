@@ -87,7 +87,8 @@ public class ContractSnapshotBuilder {
                     Label label = registry.getLabel(metadata.name).orElse(null);
 
                     if (label != null) {
-                        row.addFeature(metadata.name, label.getValue(timeframe, barIndex).intValue());
+                        BigDecimal value = label.getValue(timeframe, barIndex);
+                        row.addFeature(metadata.name, value != null ? value.intValue() : null);
                     } else {
                         Log.debugf("⚠️ Лейбл %s не существует в реестре для лейблов",
                                 metadata.name);
