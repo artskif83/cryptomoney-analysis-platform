@@ -52,6 +52,11 @@ public class IndicatorStrategy extends AbstractStrategy {
     }
 
     @Override
+    public String getName() {
+        return "Indicator Strategy";
+    }
+
+    @Override
     public void onBar() {
 
         // 1. Получаем live BarSeries
@@ -111,10 +116,7 @@ public class IndicatorStrategy extends AbstractStrategy {
         return CandleTimeframe.CANDLE_5M;
     }
 
-    /**
-     * Сгенерировать исторические фичи и сохранить в таблицу features
-     * Это используется для обучения модели ML
-     */
+    @Override
     public void generateHistoricalFeatures() {
 
         // Убеждаемся что контракт инициализирован перед генерацией фич
