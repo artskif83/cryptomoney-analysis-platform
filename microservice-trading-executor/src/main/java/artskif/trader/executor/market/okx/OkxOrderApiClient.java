@@ -13,47 +13,47 @@ import java.math.BigDecimal;
 import java.util.*;
 
 @Service
-public class OkxOrderService extends OkxApiClient implements OrdersClient {
+public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
-    private static final Logger log = LoggerFactory.getLogger(OkxOrderService.class);
+    private static final Logger log = LoggerFactory.getLogger(OkxOrderApiClient.class);
 
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
     // основной прод-конструктор (через Spring)
     @Autowired
-    public OkxOrderService(OkxConfig config) {
+    public OkxOrderApiClient(OkxConfig config) {
         super(config.getRestApiUrl(), config.getApiKey(), config.getApiSecret(), config.getPassphrase());
     }
 
     // доп. конструктор для тестов (без Spring)
-    public OkxOrderService(String restApiUrl,
-                           String apiKey,
-                           String apiSecret,
-                           String passphrase,
-                           OkHttpClient httpClient) {
+    public OkxOrderApiClient(String restApiUrl,
+                             String apiKey,
+                             String apiSecret,
+                             String passphrase,
+                             OkHttpClient httpClient) {
         super(restApiUrl, apiKey, apiSecret, passphrase, httpClient);
     }
 
     // ==== ExchangeClient ====
 
     @Override
-    public OrderExecutionResult placeMarketBuy(Symbol symbol, BigDecimal baseQty) {
-        var result = placeSpotMarket(symbol, "buy", baseQty);
+    public OrderExecutionResult placeMarketBuy(Symbol symbol, BigDecimal quoteSz) {
+        var result = placeSpotMarket(symbol, "buy", quoteSz);
         log.info("📊 Результат покупки: {}", result);
         return result;
     }
 
     @Override
-    public OrderExecutionResult placeMarketSell(Symbol symbol, BigDecimal baseQty) {
-        var result = placeSpotMarket(symbol, "sell", baseQty);
+    public OrderExecutionResult placeMarketSell(Symbol symbol, BigDecimal quoteSz) {
+        var result = placeSpotMarket(symbol, "sell", quoteSz);
         log.info("📊 Результат продажи: {}", result);
         return result;
     }
 
     // ==== Основная логика размещения ордеров через REST API ====
 
-    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal baseQty) {
+    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal quoteSz) {
         final String clientId = UUID.randomUUID().toString().replace("-", "");
         final String instId = symbol.base() + "-" + symbol.quote();
 
@@ -63,8 +63,8 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
         orderBody.put("tdMode", "cash");
         orderBody.put("side", side);  // buy | sell
         orderBody.put("ordType", "market");
-        orderBody.put("sz", baseQty.stripTrailingZeros().toPlainString());
-        orderBody.put("tgtCcy", "base_ccy");
+        orderBody.put("sz", quoteSz.stripTrailingZeros().toPlainString());
+        orderBody.put("tgtCcy", "quote_ccy");  // размер ордера указывается в quote-валюте (например, USDT)
         orderBody.put("clOrdId", clientId);
 
         try {

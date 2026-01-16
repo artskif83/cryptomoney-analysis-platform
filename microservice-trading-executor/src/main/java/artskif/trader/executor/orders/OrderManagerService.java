@@ -22,23 +22,23 @@ public final class OrderManagerService {
         this.exchange = exchange;
     }
 
-    public OrderExecutionResult executeMarketBuy(Symbol symbol, BigDecimal baseQty) {
+    public OrderExecutionResult executeMarketBuy(Symbol symbol, BigDecimal quoteSz) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("💰 Выполняется рыночная покупка: {}, количество: {}", symbol.asPair(), baseQty);
-            return exchange.placeMarketBuy(symbol, baseQty);
+            log.debug("💰 Выполняется рыночная покупка: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
+            return exchange.placeMarketBuy(symbol, quoteSz);
         } finally {
             lock.unlock();
         }
     }
 
-    public OrderExecutionResult executeMarketSell(Symbol symbol, BigDecimal baseQty) {
+    public OrderExecutionResult executeMarketSell(Symbol symbol, BigDecimal quoteSz) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("💰 Выполняется рыночная продажа: {}, количество: {}", symbol.asPair(), baseQty);
-            return exchange.placeMarketSell(symbol, baseQty);
+            log.debug("💰 Выполняется рыночная продажа: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
+            return exchange.placeMarketSell(symbol, quoteSz);
         } finally {
             lock.unlock();
         }
