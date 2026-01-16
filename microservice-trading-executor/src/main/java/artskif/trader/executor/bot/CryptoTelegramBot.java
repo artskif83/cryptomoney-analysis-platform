@@ -1,6 +1,9 @@
 package artskif.trader.executor.bot;
 
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.BotSession;
@@ -16,17 +19,22 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 @Component
 public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
+    private static final Logger log = LoggerFactory.getLogger(CryptoTelegramBot.class);
+
+    private final String botToken;
     private final TelegramClient telegramClient;
     @Getter
     private Long lastChatId;
 
-    public CryptoTelegramBot() {
-        telegramClient = new OkHttpTelegramClient(getBotToken());
+    public CryptoTelegramBot(@Value("${BOT_TOKEN}") String botToken) {
+        this.botToken = botToken;
+        this.telegramClient = new OkHttpTelegramClient(botToken);
+        log.info("Telegram бот инициализирован");
     }
 
     @Override
     public String getBotToken() {
-        return "";
+        return botToken;
     }
 
     @Override
@@ -51,7 +59,7 @@ public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingl
             try {
                 telegramClient.execute(message); // Sending our message object to user
             } catch (TelegramApiException e) {
-                e.printStackTrace();
+                log.error("Failed to send message to Telegram", e);
             }
         }
     }
@@ -65,12 +73,12 @@ public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingl
         try {
             telegramClient.execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            log.error("Failed to send message to Telegram chat", e);
         }
     }
 
     @AfterBotRegistration
     public void afterRegistration(BotSession botSession) {
-        System.out.println("Registered bot running state is: " + botSession.isRunning());
+        log.info("Registered bot running state is: {}", botSession.isRunning());
     }
 }

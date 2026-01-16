@@ -6,6 +6,8 @@ import artskif.trader.executor.orders.model.Symbol;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class OkxOrderService implements ExchangeClient {
+
+    private static final Logger log = LoggerFactory.getLogger(OkxOrderService.class);
 
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final int MAX_RETRIES = 3;
@@ -73,14 +77,14 @@ public class OkxOrderService implements ExchangeClient {
     @Override
     public OrderExecutionResult placeMarketBuy(Symbol symbol, BigDecimal baseQty) {
         var result = placeSpotMarket(symbol, "buy", baseQty);
-        System.out.println("результат, " + result);
+        log.info("результат, {}", result);
         return result;
     }
 
     @Override
     public OrderExecutionResult placeMarketSell(Symbol symbol, BigDecimal baseQty) {
         var result = placeSpotMarket(symbol, "sell", baseQty);
-        System.out.println("результат, " + result);
+        log.info("результат, {}", result);
         return result;
     }
 
@@ -102,7 +106,7 @@ public class OkxOrderService implements ExchangeClient {
 
         try {
             String requestBody = mapper.writeValueAsString(orderBody);
-            System.out.println("Размещаем ордер через REST API: " + requestBody);
+            log.info("Размещаем ордер через REST API: {}", requestBody);
 
             // Размещаем ордер
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
@@ -128,7 +132,7 @@ public class OkxOrderService implements ExchangeClient {
                 throw new RuntimeException("Order placed but ordId not received: " + safeJson(response));
             }
 
-            System.out.println("Ордер размещен, ordId: " + ordId);
+            log.info("Ордер размещен, ordId: {}", ordId);
 
             // Получаем детали исполнения ордера с retry-логикой
             BigDecimal avgPrice = null;
@@ -155,7 +159,7 @@ public class OkxOrderService implements ExchangeClient {
                         execBase = parseBigDec(orderDetails.get("accFillSz"));
 
                         if (avgPrice != null && execBase != null) {
-                            System.out.println("Ордер исполнен: avgPrice=" + avgPrice + ", execBase=" + execBase);
+                            log.info("Ордер исполнен: avgPrice={}, execBase={}", avgPrice, execBase);
                             break;
                         }
                     } else if ("canceled".equals(state) || "rejected".equals(state)) {
@@ -179,7 +183,7 @@ public class OkxOrderService implements ExchangeClient {
 
             String code = String.valueOf(response.getOrDefault("code", ""));
             if (!"0".equals(code)) {
-                System.err.println("Failed to get order details. Code: " + code);
+                log.error("Failed to get order details. Code: {}", code);
                 return null;
             }
 
@@ -194,7 +198,7 @@ public class OkxOrderService implements ExchangeClient {
 
             return null;
         } catch (Exception e) {
-            System.err.println("Error getting order details: " + e.getMessage());
+            log.error("Error getting order details: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -207,17 +211,17 @@ public class OkxOrderService implements ExchangeClient {
         String sign = generateSignature(timestamp, method, endpoint, bodyForSign);
 
         // Отладочное логирование
-        System.out.println("=== OKX REST API Request ===");
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("Timestamp length: " + timestamp.length());
-        System.out.println("Method: " + method);
-        System.out.println("Endpoint: " + endpoint);
-        System.out.println("Body: " + (bodyForSign.isEmpty() ? "<empty>" : bodyForSign));
-        System.out.println("PreHash: " + timestamp + method.toUpperCase() + endpoint + bodyForSign);
-        System.out.println("Signature: " + sign);
-        System.out.println("API Key: " + (apiKey != null ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "null"));
-        System.out.println("Passphrase: " + (passphrase != null ? passphrase.substring(0, Math.min(4, passphrase.length())) + "..." : "null"));
-        System.out.println("===========================");
+        log.debug("=== OKX REST API Request ===");
+        log.debug("Timestamp: {}", timestamp);
+        log.debug("Timestamp length: {}", timestamp.length());
+        log.debug("Method: {}", method);
+        log.debug("Endpoint: {}", endpoint);
+        log.debug("Body: {}", bodyForSign.isEmpty() ? "<empty>" : bodyForSign);
+        log.debug("PreHash: {}", timestamp + method.toUpperCase() + endpoint + bodyForSign);
+        log.debug("Signature: {}", sign);
+        log.debug("API Key: {}", apiKey != null ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "null");
+        log.debug("Passphrase: {}", passphrase != null ? passphrase.substring(0, Math.min(4, passphrase.length())) + "..." : "null");
+        log.debug("===========================");
 
         Request.Builder requestBuilder = new Request.Builder()
                 .url(restApiUrl + endpoint)
