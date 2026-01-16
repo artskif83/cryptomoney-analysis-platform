@@ -23,21 +23,21 @@ public class TradingController {
 
     @PostMapping("/buy")
     public OrderExecutionResult placeMarketBuy(@RequestBody MarketOrderRequest request) {
-        log.info("Получен запрос на покупку: {} - {}, количество: {}",
+        log.info("📥 Получен запрос на покупку: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
         OrderExecutionResult result = exchangeClient.placeMarketBuy(symbol, request.quantity());
-        log.info("Покупка выполнена: {}", result);
+        log.info("✅ Покупка выполнена: {}", result);
         return result;
     }
 
     @PostMapping("/sell")
     public OrderExecutionResult placeMarketSell(@RequestBody MarketOrderRequest request) {
-        log.info("Получен запрос на продажу: {} - {}, количество: {}",
+        log.info("📥 Получен запрос на продажу: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
         OrderExecutionResult result = exchangeClient.placeMarketSell(symbol, request.quantity());
-        log.info("Продажа выполнена: {}", result);
+        log.info("✅ Продажа выполнена: {}", result);
         return result;
     }
 

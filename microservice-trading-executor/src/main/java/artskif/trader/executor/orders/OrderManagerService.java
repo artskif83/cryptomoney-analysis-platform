@@ -28,7 +28,7 @@ public final class OrderManagerService {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("Выполняется рыночная покупка: {}, количество: {}", symbol.asPair(), baseQty);
+            log.debug("💰 Выполняется рыночная покупка: {}, количество: {}", symbol.asPair(), baseQty);
             return exchange.placeMarketBuy(symbol, baseQty);
         } finally {
             lock.unlock();
@@ -39,7 +39,7 @@ public final class OrderManagerService {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("Выполняется рыночная продажа: {}, количество: {}", symbol.asPair(), baseQty);
+            log.debug("💰 Выполняется рыночная продажа: {}, количество: {}", symbol.asPair(), baseQty);
             return exchange.placeMarketSell(symbol, baseQty);
         } finally {
             lock.unlock();

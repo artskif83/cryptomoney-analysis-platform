@@ -77,14 +77,14 @@ public class OkxOrderService implements ExchangeClient {
     @Override
     public OrderExecutionResult placeMarketBuy(Symbol symbol, BigDecimal baseQty) {
         var result = placeSpotMarket(symbol, "buy", baseQty);
-        log.info("результат, {}", result);
+        log.info("📊 Результат покупки: {}", result);
         return result;
     }
 
     @Override
     public OrderExecutionResult placeMarketSell(Symbol symbol, BigDecimal baseQty) {
         var result = placeSpotMarket(symbol, "sell", baseQty);
-        log.info("результат, {}", result);
+        log.info("📊 Результат продажи: {}", result);
         return result;
     }
 
@@ -106,7 +106,6 @@ public class OkxOrderService implements ExchangeClient {
 
         try {
             String requestBody = mapper.writeValueAsString(orderBody);
-            log.info("Размещаем ордер через REST API: {}", requestBody);
 
             // Размещаем ордер
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
@@ -132,7 +131,7 @@ public class OkxOrderService implements ExchangeClient {
                 throw new RuntimeException("Order placed but ordId not received: " + safeJson(response));
             }
 
-            log.info("Ордер размещен, ordId: {}", ordId);
+            log.info("✅ Ордер размещен, ordId: {}", ordId);
 
             // Получаем детали исполнения ордера с retry-логикой
             BigDecimal avgPrice = null;
@@ -159,7 +158,7 @@ public class OkxOrderService implements ExchangeClient {
                         execBase = parseBigDec(orderDetails.get("accFillSz"));
 
                         if (avgPrice != null && execBase != null) {
-                            log.info("Ордер исполнен: avgPrice={}, execBase={}", avgPrice, execBase);
+                            log.info("✅ Ордер исполнен: avgPrice={}, execBase={}", avgPrice, execBase);
                             break;
                         }
                     } else if ("canceled".equals(state) || "rejected".equals(state)) {
@@ -183,7 +182,7 @@ public class OkxOrderService implements ExchangeClient {
 
             String code = String.valueOf(response.getOrDefault("code", ""));
             if (!"0".equals(code)) {
-                log.error("Failed to get order details. Code: {}", code);
+                log.error("❌ Failed to get order details. Code: {}", code);
                 return null;
             }
 
@@ -198,7 +197,7 @@ public class OkxOrderService implements ExchangeClient {
 
             return null;
         } catch (Exception e) {
-            log.error("Error getting order details: {}", e.getMessage(), e);
+            log.error("❌ Error getting order details: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -209,19 +208,6 @@ public class OkxOrderService implements ExchangeClient {
         String timestamp = getIsoTimestamp();
         String bodyForSign = (body != null && !body.isEmpty()) ? body : "";
         String sign = generateSignature(timestamp, method, endpoint, bodyForSign);
-
-        // Отладочное логирование
-        log.debug("=== OKX REST API Request ===");
-        log.debug("Timestamp: {}", timestamp);
-        log.debug("Timestamp length: {}", timestamp.length());
-        log.debug("Method: {}", method);
-        log.debug("Endpoint: {}", endpoint);
-        log.debug("Body: {}", bodyForSign.isEmpty() ? "<empty>" : bodyForSign);
-        log.debug("PreHash: {}", timestamp + method.toUpperCase() + endpoint + bodyForSign);
-        log.debug("Signature: {}", sign);
-        log.debug("API Key: {}", apiKey != null ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "null");
-        log.debug("Passphrase: {}", passphrase != null ? passphrase.substring(0, Math.min(4, passphrase.length())) + "..." : "null");
-        log.debug("===========================");
 
         Request.Builder requestBuilder = new Request.Builder()
                 .url(restApiUrl + endpoint)
@@ -245,7 +231,7 @@ public class OkxOrderService implements ExchangeClient {
             String responseBody = response.body() != null ? response.body().string() : "{}";
 
             if (!response.isSuccessful()) {
-                throw new IOException("HTTP request failed: " + response.code() + " " + response.message() + ", body: " + responseBody);
+                throw new IOException("HTTP запрос завершился с ошибкой: " + response.code() + " " + response.message() + ", тело: " + responseBody);
             }
 
             @SuppressWarnings("unchecked")
@@ -264,7 +250,8 @@ public class OkxOrderService implements ExchangeClient {
             byte[] hash = mac.doFinal(prehash.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate signature", e);
+            log.error("❌ Не удалось сгенерировать подпись: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось сгенерировать подпись", e);
         }
     }
 

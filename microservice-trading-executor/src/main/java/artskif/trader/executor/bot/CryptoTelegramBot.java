@@ -29,7 +29,7 @@ public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingl
     public CryptoTelegramBot(@Value("${BOT_TOKEN}") String botToken) {
         this.botToken = botToken;
         this.telegramClient = new OkHttpTelegramClient(botToken);
-        log.info("Telegram бот инициализирован");
+        log.info("🤖 Telegram бот инициализирован");
     }
 
     @Override
@@ -59,7 +59,7 @@ public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingl
             try {
                 telegramClient.execute(message); // Sending our message object to user
             } catch (TelegramApiException e) {
-                log.error("Failed to send message to Telegram", e);
+                log.error("❌ Не удалось отправить сообщение в Telegram: {}", e.getMessage(), e);
             }
         }
     }
@@ -73,12 +73,12 @@ public class CryptoTelegramBot implements SpringLongPollingBot, LongPollingSingl
         try {
             telegramClient.execute(message);
         } catch (TelegramApiException e) {
-            log.error("Failed to send message to Telegram chat", e);
+            log.error("❌ Не удалось отправить сообщение в чат Telegram: {}", e.getMessage(), e);
         }
     }
 
     @AfterBotRegistration
     public void afterRegistration(BotSession botSession) {
-        log.info("Registered bot running state is: {}", botSession.isRunning());
+        log.info("✅ Зарегистрирован бот, статус работы: {}", botSession.isRunning());
     }
 }
