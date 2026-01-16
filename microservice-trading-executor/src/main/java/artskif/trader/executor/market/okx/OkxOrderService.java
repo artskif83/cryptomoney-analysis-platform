@@ -7,7 +7,6 @@ import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,13 +22,8 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
 
     // основной прод-конструктор (через Spring)
     @Autowired
-    public OkxOrderService(
-            @Value("${OKX_REST_API:https://www.okx.com}") String restApiUrl,
-            @Value("${OKX_API_KEY}") String apiKey,
-            @Value("${OKX_API_SECRET}") String apiSecret,
-            @Value("${OKX_API_PASSPHRASE}") String passphrase
-    ) {
-        super(restApiUrl, apiKey, apiSecret, passphrase);
+    public OkxOrderService(OkxConfig config) {
+        super(config.getRestApiUrl(), config.getApiKey(), config.getApiSecret(), config.getPassphrase());
     }
 
     // доп. конструктор для тестов (без Spring)
