@@ -1,44 +1,25 @@
-package artskif.trader.executor.okx;
+package artskif.trader.executor.market.okx;
 
-import artskif.trader.executor.orders.positions.ExchangeClient;
-import artskif.trader.executor.orders.positions.OrderExecutionResult;
-import artskif.trader.executor.orders.model.Symbol;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PreDestroy;
-import okhttp3.*;
+import artskif.trader.executor.orders.OrdersClient;
+import artskif.trader.executor.orders.OrderExecutionResult;
+import artskif.trader.executor.common.Symbol;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Service
-public class OkxOrderService implements ExchangeClient {
+public class OkxOrderService extends OkxApiClient implements OrdersClient {
 
     private static final Logger log = LoggerFactory.getLogger(OkxOrderService.class);
 
-    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
-
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    private final String apiKey;
-    private final String apiSecret;
-    private final String passphrase;
-    private final String restApiUrl;
-    private final OkHttpClient http;
 
     // основной прод-конструктор (через Spring)
     @Autowired
@@ -48,15 +29,7 @@ public class OkxOrderService implements ExchangeClient {
             @Value("${OKX_API_SECRET}") String apiSecret,
             @Value("${OKX_API_PASSPHRASE}") String passphrase
     ) {
-        this.restApiUrl = restApiUrl;
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.passphrase = passphrase;
-        this.http = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .build();
+        super(restApiUrl, apiKey, apiSecret, passphrase);
     }
 
     // доп. конструктор для тестов (без Spring)
@@ -65,11 +38,7 @@ public class OkxOrderService implements ExchangeClient {
                            String apiSecret,
                            String passphrase,
                            OkHttpClient httpClient) {
-        this.restApiUrl = restApiUrl;
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.passphrase = passphrase;
-        this.http = httpClient;
+        super(restApiUrl, apiKey, apiSecret, passphrase, httpClient);
     }
 
     // ==== ExchangeClient ====
@@ -111,10 +80,8 @@ public class OkxOrderService implements ExchangeClient {
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
 
             // Проверяем код ответа
-            String code = String.valueOf(response.getOrDefault("code", ""));
-            if (!"0".equals(code)) {
-                String msg = String.valueOf(response.getOrDefault("msg", "Unknown error"));
-                throw new RuntimeException("Order placement failed. Code: " + code + ", message: " + msg);
+            if (!isSuccessResponse(response)) {
+                throw new RuntimeException("Order placement failed. " + getErrorMessage(response));
             }
 
             // Извлекаем ordId из ответа
@@ -180,9 +147,8 @@ public class OkxOrderService implements ExchangeClient {
             String endpoint = "/api/v5/trade/order?ordId=" + ordId + "&instId=" + instId;
             Map<String, Object> response = executeRestRequest("GET", endpoint, null);
 
-            String code = String.valueOf(response.getOrDefault("code", ""));
-            if (!"0".equals(code)) {
-                log.error("❌ Failed to get order details. Code: {}", code);
+            if (!isSuccessResponse(response)) {
+                log.error("❌ Failed to get order details. {}", getErrorMessage(response));
                 return null;
             }
 
@@ -200,93 +166,5 @@ public class OkxOrderService implements ExchangeClient {
             log.error("❌ Error getting order details: {}", e.getMessage(), e);
             return null;
         }
-    }
-
-    // ==== REST API запросы с аутентификацией ====
-
-    private Map<String, Object> executeRestRequest(String method, String endpoint, String body) throws IOException {
-        String timestamp = getIsoTimestamp();
-        String bodyForSign = (body != null && !body.isEmpty()) ? body : "";
-        String sign = generateSignature(timestamp, method, endpoint, bodyForSign);
-
-        Request.Builder requestBuilder = new Request.Builder()
-                .url(restApiUrl + endpoint)
-                .addHeader("OK-ACCESS-KEY", apiKey)
-                .addHeader("OK-ACCESS-SIGN", sign)
-                .addHeader("OK-ACCESS-TIMESTAMP", timestamp)
-                .addHeader("OK-ACCESS-PASSPHRASE", passphrase)
-                .addHeader("Content-Type", "application/json");
-
-        if ("POST".equals(method)) {
-            requestBuilder.post(RequestBody.create(bodyForSign, JSON));
-        } else if ("GET".equals(method)) {
-            requestBuilder.get();
-        } else {
-            throw new IllegalArgumentException("Unsupported HTTP method: " + method);
-        }
-
-        Request request = requestBuilder.build();
-
-        try (Response response = http.newCall(request).execute()) {
-            String responseBody = response.body() != null ? response.body().string() : "{}";
-
-            if (!response.isSuccessful()) {
-                throw new IOException("HTTP запрос завершился с ошибкой: " + response.code() + " " + response.message() + ", тело: " + responseBody);
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> result = mapper.readValue(responseBody, Map.class);
-            return result;
-        }
-    }
-
-    // Генерация подписи для REST API (согласно документации OKX)
-    private String generateSignature(String timestamp, String method, String endpoint, String body) {
-        try {
-            // OKX требует: timestamp + method.toUpperCase() + endpoint + body
-            String prehash = timestamp + method.toUpperCase() + endpoint + body;
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            byte[] hash = mac.doFinal(prehash.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hash);
-        } catch (Exception e) {
-            log.error("❌ Не удалось сгенерировать подпись: {}", e.getMessage(), e);
-            throw new RuntimeException("Не удалось сгенерировать подпись", e);
-        }
-    }
-
-    // Получение ISO timestamp в формате OKX (ISO 8601)
-    private String getIsoTimestamp() {
-        // OKX требует формат ISO 8601: 2024-01-16T10:30:45.123Z (только миллисекунды!)
-        // Instant.toString() может давать микросекунды/наносекунды, что OKX не понимает
-        // Поэтому форматируем явно с ограничением до миллисекунд
-        return DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-                .withZone(ZoneOffset.UTC)
-                .format(Instant.now());
-    }
-
-    private static BigDecimal parseBigDec(Object o) {
-        if (o == null) return null;
-        String s = String.valueOf(o);
-        if (s.isBlank()) return null;
-        try {
-            return new BigDecimal(s);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private String safeJson(Object o) {
-        try {
-            return mapper.writeValueAsString(o);
-        } catch (Exception e) {
-            return String.valueOf(o);
-        }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        http.dispatcher().executorService().shutdown();
-        http.connectionPool().evictAll();
     }
 }

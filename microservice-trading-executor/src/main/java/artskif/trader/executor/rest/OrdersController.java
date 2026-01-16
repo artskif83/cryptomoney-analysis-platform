@@ -1,8 +1,8 @@
 package artskif.trader.executor.rest;
 
-import artskif.trader.executor.orders.positions.ExchangeClient;
-import artskif.trader.executor.orders.positions.OrderExecutionResult;
-import artskif.trader.executor.orders.model.Symbol;
+import artskif.trader.executor.orders.OrdersClient;
+import artskif.trader.executor.orders.OrderExecutionResult;
+import artskif.trader.executor.common.Symbol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +11,14 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/trading")
-public class TradingController {
+public class OrdersController {
 
-    private static final Logger log = LoggerFactory.getLogger(TradingController.class);
+    private static final Logger log = LoggerFactory.getLogger(OrdersController.class);
 
-    private final ExchangeClient exchangeClient;
+    private final OrdersClient ordersClient;
 
-    public TradingController(ExchangeClient exchangeClient) {
-        this.exchangeClient = exchangeClient;
+    public OrdersController(OrdersClient ordersClient) {
+        this.ordersClient = ordersClient;
     }
 
     @PostMapping("/buy")
@@ -26,7 +26,7 @@ public class TradingController {
         log.info("📥 Получен запрос на покупку: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
-        OrderExecutionResult result = exchangeClient.placeMarketBuy(symbol, request.quantity());
+        OrderExecutionResult result = ordersClient.placeMarketBuy(symbol, request.quantity());
         log.info("✅ Покупка выполнена: {}", result);
         return result;
     }
@@ -36,7 +36,7 @@ public class TradingController {
         log.info("📥 Получен запрос на продажу: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
-        OrderExecutionResult result = exchangeClient.placeMarketSell(symbol, request.quantity());
+        OrderExecutionResult result = ordersClient.placeMarketSell(symbol, request.quantity());
         log.info("✅ Продажа выполнена: {}", result);
         return result;
     }

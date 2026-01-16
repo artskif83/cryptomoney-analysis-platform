@@ -1,4 +1,4 @@
-package artskif.trader.executor.bot;
+package artskif.trader.executor.telegram;
 
 import lombok.Getter;
 import org.slf4j.Logger;

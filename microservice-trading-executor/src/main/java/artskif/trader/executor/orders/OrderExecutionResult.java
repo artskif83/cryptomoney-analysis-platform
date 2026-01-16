@@ -1,4 +1,4 @@
-package artskif.trader.executor.orders.positions;
+package artskif.trader.executor.orders;
 
 import java.math.BigDecimal;
 
