@@ -2,7 +2,7 @@ package artskif.trader.executor.okx;
 
 import artskif.trader.executor.orders.positions.ExchangeClient;
 import artskif.trader.executor.orders.positions.OrderExecutionResult;
-import artskif.trader.executor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.model.Symbol;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import okhttp3.*;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class OkxOrderService implements ExchangeClient {
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(2000);
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(200000);
 
     private final ObjectMapper mapper = new ObjectMapper();
 

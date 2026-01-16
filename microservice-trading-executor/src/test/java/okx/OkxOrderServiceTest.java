@@ -3,7 +3,7 @@ package okx;
 
 import artskif.trader.executor.okx.OkxOrderService;
 import artskif.trader.executor.orders.positions.OrderExecutionResult;
-import artskif.trader.executor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.model.Symbol;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;

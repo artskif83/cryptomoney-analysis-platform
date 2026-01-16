@@ -1,6 +1,6 @@
 package artskif.trader.executor.orders.positions;
 
-import artskif.trader.executor.orders.strategy.list.Symbol;
+import artskif.trader.executor.orders.model.Symbol;
 
 import java.math.BigDecimal;
 
