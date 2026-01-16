@@ -95,7 +95,8 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
             }
 
             if (ordId == null) {
-                throw new RuntimeException("Order placed but ordId not received: " + safeJson(response));
+                log.error("❌ Ордер размещен, но ordId не получен: {}", ordId);
+                throw new RuntimeException("Ордер размещен, но ordId не получен: " + safeJson(response));
             }
 
             log.info("✅ Ордер размещен, ordId: {}", ordId);
@@ -129,7 +130,8 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
                             break;
                         }
                     } else if ("canceled".equals(state) || "rejected".equals(state)) {
-                        throw new RuntimeException("Order was " + state + ": " + safeJson(orderDetails));
+                        log.error("❌ Ордер был: {}", state + ": " + safeJson(orderDetails));
+                        throw new RuntimeException("Ордер был " + state + ": " + safeJson(orderDetails));
                     }
                 }
             }
@@ -137,8 +139,9 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
             return new OrderExecutionResult(ordId, avgPrice, execBase);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to place spot market order", e);
+            log.error("❌ Не удалось разместить ордер на спотовом рынке");
         }
+        return null;
     }
 
     // Получение деталей ордера
@@ -148,7 +151,7 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
             Map<String, Object> response = executeRestRequest("GET", endpoint, null);
 
             if (!isSuccessResponse(response)) {
-                log.error("❌ Failed to get order details. {}", getErrorMessage(response));
+                log.error("❌ Не удалось получить информацию о заказе. {}", getErrorMessage(response));
                 return null;
             }
 
@@ -163,7 +166,7 @@ public class OkxOrderService extends OkxApiClient implements OrdersClient {
 
             return null;
         } catch (Exception e) {
-            log.error("❌ Error getting order details: {}", e.getMessage(), e);
+            log.error("❌ Ошибка получения информации о заказе: {}", e.getMessage(), e);
             return null;
         }
     }
