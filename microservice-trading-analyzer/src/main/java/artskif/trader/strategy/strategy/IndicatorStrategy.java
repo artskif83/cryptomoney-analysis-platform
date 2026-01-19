@@ -4,6 +4,8 @@ import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.ContractMetadata;
+import artskif.trader.events.regime.RegimeChangeEvent;
+import artskif.trader.events.regime.RegimeChangeEventBus;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.contract.ContractDataService;
@@ -15,7 +17,7 @@ import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEvent;
 import artskif.trader.strategy.event.EventModel;
 import artskif.trader.strategy.regime.common.MarketRegime;
-import artskif.trader.strategy.regime.impl.IndicatorMarketRegimeModel;
+import artskif.trader.strategy.regime.impl.indicator.IndicatorMarketRegimeModel;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -23,7 +25,6 @@ import jakarta.inject.Inject;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeries;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,8 @@ public class IndicatorStrategy extends AbstractStrategy {
     private final BarSeries series;
     private final BarSeries series5m;
     private final TradeEventBus tradeEventBus;
+    private final RegimeChangeEventBus regimeChangeEventBus;
+    private MarketRegime previousRegime = null;
 
     // Конструктор без параметров для CDI proxy
     protected IndicatorStrategy() {
@@ -47,6 +50,7 @@ public class IndicatorStrategy extends AbstractStrategy {
         this.series = null;
         this.series5m = null;
         this.tradeEventBus = null;
+        this.regimeChangeEventBus = null;
     }
 
     @Inject
@@ -54,7 +58,7 @@ public class IndicatorStrategy extends AbstractStrategy {
                              Instance<EventModel> eventModelsInstance,
                              ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService,
                              Schema4HBase schema4hBase, Schema5MBase schema5mBase,
-                             TradeEventBus tradeEventBus) {
+                             TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus) {
         // CDI автоматически инжектирует все EventModel (TrendUpEventModel, TrendDownEventModel, FlatEventModel, etc.)
         // Для добавления новой модели просто:
         // 1. Создайте новый класс, реализующий EventModel с аннотацией @ApplicationScoped
@@ -68,6 +72,7 @@ public class IndicatorStrategy extends AbstractStrategy {
         this.series = candle.getInstance(CandleTimeframe.CANDLE_4H).getLiveBarSeries();
         this.series5m = candle.getInstance(CandleTimeframe.CANDLE_5M).getLiveBarSeries();
         this.tradeEventBus = tradeEventBus;
+        this.regimeChangeEventBus = regimeChangeEventBus;
 
         // Логирование всех найденных EventModel
         Log.infof("📦 Загружено EventModel: %d", eventModels.size());
@@ -97,6 +102,22 @@ public class IndicatorStrategy extends AbstractStrategy {
                 snapshotBuilder.build(schema4hBase, lastIndex, true);
         MarketRegime regime =
                 regimeModel.classify(snapshot4h);
+
+        // Проверяем смену режима и публикуем событие
+        if (previousRegime != null && previousRegime != regime) {
+            Log.infof("🔄 Смена режима: %s -> %s [Инструмент: %s]",
+                    previousRegime, regime, candle.getInstrument());
+
+            regimeChangeEventBus.publish(new RegimeChangeEvent(
+                    candle.getInstrument(),
+                    previousRegime,
+                    regime,
+                    snapshot4h.getTimestamp()
+            ));
+        }
+
+        // Сохраняем текущий режим для следующего сравнения
+        previousRegime = regime;
 
         // 2. Собираем снапшот для событий рынка в текущем режиме
         if (series5m.isEmpty()) {

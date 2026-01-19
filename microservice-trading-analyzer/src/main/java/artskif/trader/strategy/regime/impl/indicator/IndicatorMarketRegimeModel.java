@@ -1,4 +1,4 @@
-package artskif.trader.strategy.regime.impl;
+package artskif.trader.strategy.regime.impl.indicator;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
