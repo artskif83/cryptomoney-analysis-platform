@@ -1,12 +1,6 @@
 package artskif.trader.ai;
 
-import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.events.CandleEvent;
-import artskif.trader.events.CandleEventBus;
-import artskif.trader.events.CandleEventListener;
 import my.signals.v1.StrategyKind;
-
-import java.util.List;
 
 
 public abstract class AbstractAI {

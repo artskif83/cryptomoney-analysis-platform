@@ -1,6 +1,6 @@
 package artskif.trader.candle;
 
-import artskif.trader.events.CandleEventBus;
+import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.repository.CandleRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;

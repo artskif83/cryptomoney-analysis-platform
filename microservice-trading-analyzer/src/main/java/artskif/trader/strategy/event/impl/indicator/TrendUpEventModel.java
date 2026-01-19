@@ -1,4 +1,4 @@
-package artskif.trader.strategy.event.impl;
+package artskif.trader.strategy.event.impl.indicator;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
@@ -12,7 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Optional;
 
 @ApplicationScoped
-public class IndicatorEventModel implements EventModel {
+public class TrendUpEventModel implements EventModel {
     @Override
     public Optional<TradeEvent> detect(ContractSnapshot snapshot) {
         return Optional.of(new TradeEvent(TradeEventType.BREAKOUT, Direction.LONG, Confidence.HIGH));

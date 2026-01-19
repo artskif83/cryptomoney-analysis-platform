@@ -2,7 +2,7 @@ package artskif.trader.candle;
 
 import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.dto.CandlestickDto;
-import artskif.trader.events.CandleEventBus;
+import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.repository.BufferRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import org.jboss.logging.Logger;

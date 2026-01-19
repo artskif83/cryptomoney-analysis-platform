@@ -1,4 +1,4 @@
-package artskif.trader.events;
+package artskif.trader.events.candle;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;

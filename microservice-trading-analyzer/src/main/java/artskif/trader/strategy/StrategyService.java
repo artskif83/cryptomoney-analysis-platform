@@ -1,6 +1,6 @@
 package artskif.trader.strategy;
 
-import artskif.trader.events.CandleEventBus;
+import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.strategy.contract.ContractRegistry;
 import artskif.trader.strategy.contract.schema.AbstractSchema;
 import io.quarkus.logging.Log;

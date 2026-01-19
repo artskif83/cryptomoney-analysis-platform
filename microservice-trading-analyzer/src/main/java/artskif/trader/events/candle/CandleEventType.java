@@ -1,6 +1,4 @@
-package artskif.trader.events;
-
-import java.time.Duration;
+package artskif.trader.events.candle;
 
 public enum CandleEventType {
     CANDLE_TICK("Candle Tick"),

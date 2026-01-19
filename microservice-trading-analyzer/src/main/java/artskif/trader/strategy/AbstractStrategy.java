@@ -1,11 +1,15 @@
 package artskif.trader.strategy;
 
+import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
-import artskif.trader.events.CandleEvent;
-import artskif.trader.events.CandleEventListener;
-import artskif.trader.events.CandleEventType;
-import io.quarkus.logging.Log;
+import artskif.trader.events.candle.CandleEvent;
+import artskif.trader.events.candle.CandleEventListener;
+import artskif.trader.events.candle.CandleEventType;
+import artskif.trader.strategy.contract.ContractDataService;
+import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
+import artskif.trader.strategy.event.EventModel;
+import artskif.trader.strategy.regime.MarketRegimeModel;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -16,6 +20,22 @@ public abstract class AbstractStrategy implements CandleEventListener {
      *  Проверить, запущена ли стратегия
      */
     private final AtomicBoolean running = new AtomicBoolean(false);
+
+    // Общие зависимости для всех стратегий
+    protected final Candle candle;
+    protected final MarketRegimeModel regimeModel;
+    protected final EventModel eventModel;
+    protected final ContractSnapshotBuilder snapshotBuilder;
+    protected final ContractDataService dataService;
+
+    protected AbstractStrategy(Candle candle, MarketRegimeModel regimeModel, EventModel eventModel,
+                                ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService) {
+        this.candle = candle;
+        this.regimeModel = regimeModel;
+        this.eventModel = eventModel;
+        this.snapshotBuilder = snapshotBuilder;
+        this.dataService = dataService;
+    }
 
     public abstract String getName();
 

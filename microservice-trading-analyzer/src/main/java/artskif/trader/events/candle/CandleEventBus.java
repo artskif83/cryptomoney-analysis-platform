@@ -1,4 +1,4 @@
-package artskif.trader.events;
+package artskif.trader.events.candle;
 
 import jakarta.enterprise.context.ApplicationScoped;
 

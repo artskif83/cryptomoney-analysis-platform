@@ -11,11 +11,9 @@ import artskif.trader.strategy.contract.schema.impl.Schema4HBase;
 import artskif.trader.strategy.contract.schema.impl.Schema5MBase;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
-import artskif.trader.strategy.event.EventModel;
 import artskif.trader.strategy.event.common.TradeEvent;
-import artskif.trader.strategy.event.impl.IndicatorEventModel;
+import artskif.trader.strategy.event.impl.indicator.TrendUpEventModel;
 import artskif.trader.strategy.regime.common.MarketRegime;
-import artskif.trader.strategy.regime.MarketRegimeModel;
 import artskif.trader.strategy.regime.impl.IndicatorMarketRegimeModel;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,25 +28,20 @@ import java.util.Optional;
 @ApplicationScoped
 public class IndicatorStrategy extends AbstractStrategy {
 
-    private final MarketRegimeModel regimeModel;
-    private final EventModel eventModel;
-    private final Candle candle;
-    private final ContractSnapshotBuilder snapshotBuilder;
     private final AbstractSchema schema4hBase;
     private final AbstractSchema schema5mBase;
-    private final ContractDataService dataService;
+    private final BarSeries series;
+    private final BarSeries series5m;
 
     @Inject
-    public IndicatorStrategy(IndicatorMarketRegimeModel regimeModel, IndicatorEventModel eventModel, Candle candle,
-                             ContractSnapshotBuilder snapshotBuilder, Schema4HBase schema4hBase, Schema5MBase schema5mBase,
-                             ContractDataService dataService) {
-        this.regimeModel = regimeModel;
-        this.eventModel = eventModel;
-        this.candle = candle;
-        this.snapshotBuilder = snapshotBuilder;
+    public IndicatorStrategy(Candle candle, IndicatorMarketRegimeModel regimeModel, TrendUpEventModel eventModel,
+                             ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService,
+                             Schema4HBase schema4hBase, Schema5MBase schema5mBase) {
+        super(candle, regimeModel, eventModel, snapshotBuilder, dataService);
         this.schema4hBase = schema4hBase;
         this.schema5mBase = schema5mBase;
-        this.dataService = dataService;
+        this.series = candle.getInstance(CandleTimeframe.CANDLE_4H).getLiveBarSeries();
+        this.series5m = candle.getInstance(CandleTimeframe.CANDLE_5M).getLiveBarSeries();
     }
 
     @Override
@@ -59,45 +52,28 @@ public class IndicatorStrategy extends AbstractStrategy {
     @Override
     public void onBar(CandlestickDto candle) {
 
-        // 1. Получаем live BarSeries
-        BarSeries series = this.candle
-                .getInstance(CandleTimeframe.CANDLE_4H)
-                .getLiveBarSeries();
-
         if (series.isEmpty()) {
             Log.debug("Нет HTF баров для анализа");
             return;
         }
 
+        // 1. Определяем режим рынка
         int lastIndex = series.getEndIndex();
-
-        // 2. Собираем snapshot по последнему бару
-        ContractSnapshot snapshot =
+        ContractSnapshot snapshot4h =
                 snapshotBuilder.build(schema4hBase, lastIndex, true);
-
-        // 3. Определяем режим рынка
         MarketRegime regime =
-                regimeModel.classify(snapshot);
+                regimeModel.classify(snapshot4h);
 
-        // 4. Получаем live BarSeries для 5m
-        BarSeries series5m = this.candle
-                .getInstance(CandleTimeframe.CANDLE_5M)
-                .getLiveBarSeries();
-
+        // 2. Собираем события рынка в текущем режиме
         if (series5m.isEmpty()) {
             Log.debug("Нет LTF баров для анализа");
             return;
         }
-
         int lastIndex5m = series5m.getEndIndex();
-
         // Проверяем, обрабатывали ли мы уже этот бар
         if (lastProcessedBarIndex != null && lastProcessedBarIndex == lastIndex5m) {
             return; // Пропускаем дубликаты
         }
-
-
-        // 2. Собираем snapshot по последнему бару
         ContractSnapshot snapshot5m =
                 snapshotBuilder.build(schema5mBase, lastIndex5m, true);
 

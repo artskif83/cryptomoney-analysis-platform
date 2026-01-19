@@ -2,9 +2,9 @@ package artskif.trader.strategy;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
-import artskif.trader.events.CandleEvent;
-import artskif.trader.events.CandleEventBus;
-import artskif.trader.events.CandleEventType;
+import artskif.trader.events.candle.CandleEvent;
+import artskif.trader.events.candle.CandleEventBus;
+import artskif.trader.events.candle.CandleEventType;
 import artskif.trader.strategy.contract.ContractDataService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
