@@ -12,11 +12,12 @@ import artskif.trader.strategy.contract.schema.impl.Schema5MBase;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshot;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEvent;
-import artskif.trader.strategy.event.impl.indicator.TrendUpEventModel;
+import artskif.trader.strategy.event.EventModel;
 import artskif.trader.strategy.regime.common.MarketRegime;
 import artskif.trader.strategy.regime.impl.IndicatorMarketRegimeModel;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeries;
@@ -24,6 +25,8 @@ import org.ta4j.core.BaseBarSeries;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @ApplicationScoped
 public class IndicatorStrategy extends AbstractStrategy {
@@ -33,15 +36,40 @@ public class IndicatorStrategy extends AbstractStrategy {
     private final BarSeries series;
     private final BarSeries series5m;
 
+    // Конструктор без параметров для CDI proxy
+    protected IndicatorStrategy() {
+        super(null, null, null, null, null);
+        this.schema4hBase = null;
+        this.schema5mBase = null;
+        this.series = null;
+        this.series5m = null;
+    }
+
     @Inject
-    public IndicatorStrategy(Candle candle, IndicatorMarketRegimeModel regimeModel, TrendUpEventModel eventModel,
+    public IndicatorStrategy(Candle candle, IndicatorMarketRegimeModel regimeModel,
+                             Instance<EventModel> eventModelsInstance,
                              ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService,
                              Schema4HBase schema4hBase, Schema5MBase schema5mBase) {
-        super(candle, regimeModel, eventModel, snapshotBuilder, dataService);
+        // CDI автоматически инжектирует все EventModel (TrendUpEventModel, TrendDownEventModel, FlatEventModel, etc.)
+        // Для добавления новой модели просто:
+        // 1. Создайте новый класс, реализующий EventModel с аннотацией @ApplicationScoped
+        // 2. Модель автоматически будет подхвачена CDI и добавлена в список
+        super(candle, regimeModel, 
+              StreamSupport.stream(eventModelsInstance.spliterator(), false)
+                      .collect(Collectors.toList()), 
+              snapshotBuilder, dataService);
         this.schema4hBase = schema4hBase;
         this.schema5mBase = schema5mBase;
         this.series = candle.getInstance(CandleTimeframe.CANDLE_4H).getLiveBarSeries();
         this.series5m = candle.getInstance(CandleTimeframe.CANDLE_5M).getLiveBarSeries();
+        
+        // Логирование всех найденных EventModel
+        Log.infof("📦 Загружено EventModel: %d", eventModels.size());
+        eventModels.forEach(model -> 
+            Log.infof("  ✓ %s → режим: %s", 
+                model.getClass().getSimpleName(), 
+                model.getSupportedRegime())
+        );
     }
 
     @Override
@@ -77,24 +105,26 @@ public class IndicatorStrategy extends AbstractStrategy {
         ContractSnapshot snapshot5m =
                 snapshotBuilder.build(schema5mBase, lastIndex5m, true);
 
-        Optional<TradeEvent> tradeEvent = Optional.empty();
-        if (regime == MarketRegime.TREND_UP) {
-            // 4. Детектим событие с учётом режима
-            tradeEvent = eventModel.detect(snapshot5m);
-            tradeEvent.ifPresent(event -> {
+        // 3. Проверяем все eventModels и ищем подходящую для текущего режима
+        for (EventModel eventModel : eventModels) {
+            Optional<TradeEvent> tradeEvent = eventModel.detect(snapshot5m, regime);
+
+            if (tradeEvent.isPresent()) {
+                TradeEvent event = tradeEvent.get();
                 Log.infof(
-                        "✅ TradeEvent: %s %s (%s)",
+                        "✅ TradeEvent: %s %s (%s) [Режим: %s, Модель: %s]",
                         event.type(),
                         event.direction(),
-                        event.confidence()
+                        event.confidence(),
+                        regime,
+                        eventModel.getClass().getSimpleName()
                 );
                 // дальше: передача в TradeManager / Executor
-            });
-        }
 
-        if (tradeEvent.isPresent()) {
-            // Обновляем индекс
-            lastProcessedBarIndex = lastIndex5m;
+                // Обновляем индекс после успешного детектирования
+                lastProcessedBarIndex = lastIndex5m;
+                break; // Обрабатываем только первое найденное событие
+            }
         }
     }
 

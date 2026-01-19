@@ -11,6 +11,7 @@ import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
 import artskif.trader.strategy.event.EventModel;
 import artskif.trader.strategy.regime.MarketRegimeModel;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractStrategy implements CandleEventListener {
@@ -24,15 +25,15 @@ public abstract class AbstractStrategy implements CandleEventListener {
     // Общие зависимости для всех стратегий
     protected final Candle candle;
     protected final MarketRegimeModel regimeModel;
-    protected final EventModel eventModel;
+    protected final List<EventModel> eventModels;
     protected final ContractSnapshotBuilder snapshotBuilder;
     protected final ContractDataService dataService;
 
-    protected AbstractStrategy(Candle candle, MarketRegimeModel regimeModel, EventModel eventModel,
+    protected AbstractStrategy(Candle candle, MarketRegimeModel regimeModel, List<EventModel> eventModels,
                                 ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService) {
         this.candle = candle;
         this.regimeModel = regimeModel;
-        this.eventModel = eventModel;
+        this.eventModels = eventModels;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
     }
