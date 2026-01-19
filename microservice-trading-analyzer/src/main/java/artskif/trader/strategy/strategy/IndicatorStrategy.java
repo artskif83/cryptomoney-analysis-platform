@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.ContractMetadata;
+import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.contract.ContractDataService;
 import artskif.trader.strategy.contract.schema.AbstractSchema;
@@ -22,6 +23,7 @@ import jakarta.inject.Inject;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeries;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +37,7 @@ public class IndicatorStrategy extends AbstractStrategy {
     private final AbstractSchema schema5mBase;
     private final BarSeries series;
     private final BarSeries series5m;
+    private final TradeEventBus tradeEventBus;
 
     // Конструктор без параметров для CDI proxy
     protected IndicatorStrategy() {
@@ -43,13 +46,15 @@ public class IndicatorStrategy extends AbstractStrategy {
         this.schema5mBase = null;
         this.series = null;
         this.series5m = null;
+        this.tradeEventBus = null;
     }
 
     @Inject
     public IndicatorStrategy(Candle candle, IndicatorMarketRegimeModel regimeModel,
                              Instance<EventModel> eventModelsInstance,
                              ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService,
-                             Schema4HBase schema4hBase, Schema5MBase schema5mBase) {
+                             Schema4HBase schema4hBase, Schema5MBase schema5mBase,
+                             TradeEventBus tradeEventBus) {
         // CDI автоматически инжектирует все EventModel (TrendUpEventModel, TrendDownEventModel, FlatEventModel, etc.)
         // Для добавления новой модели просто:
         // 1. Создайте новый класс, реализующий EventModel с аннотацией @ApplicationScoped
@@ -62,7 +67,8 @@ public class IndicatorStrategy extends AbstractStrategy {
         this.schema5mBase = schema5mBase;
         this.series = candle.getInstance(CandleTimeframe.CANDLE_4H).getLiveBarSeries();
         this.series5m = candle.getInstance(CandleTimeframe.CANDLE_5M).getLiveBarSeries();
-        
+        this.tradeEventBus = tradeEventBus;
+
         // Логирование всех найденных EventModel
         Log.infof("📦 Загружено EventModel: %d", eventModels.size());
         eventModels.forEach(model -> 
@@ -92,7 +98,7 @@ public class IndicatorStrategy extends AbstractStrategy {
         MarketRegime regime =
                 regimeModel.classify(snapshot4h);
 
-        // 2. Собираем события рынка в текущем режиме
+        // 2. Собираем снапшот для событий рынка в текущем режиме
         if (series5m.isEmpty()) {
             Log.debug("Нет LTF баров для анализа");
             return;
@@ -119,6 +125,17 @@ public class IndicatorStrategy extends AbstractStrategy {
                         regime,
                         eventModel.getClass().getSimpleName()
                 );
+
+                // Публикуем событие TradeEvent
+                tradeEventBus.publish(new artskif.trader.events.trade.TradeEvent(
+                        event.type(),
+                        candle.getInstrument(),
+                        event.direction(),
+                        event.confidence(),
+                        regime,
+                        snapshot5m.getTimestamp()
+                ));
+
                 // дальше: передача в TradeManager / Executor
 
                 // Обновляем индекс после успешного детектирования
