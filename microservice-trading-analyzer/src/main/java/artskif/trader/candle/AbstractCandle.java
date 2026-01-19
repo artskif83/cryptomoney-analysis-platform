@@ -7,7 +7,6 @@ import artskif.trader.dto.CandlestickHistoryDto;
 import artskif.trader.dto.CandlestickPayloadDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventBus;
-import artskif.trader.events.candle.CandleEventType;
 import artskif.trader.mapper.CandlestickMapper;
 import artskif.trader.repository.BufferRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
@@ -365,7 +364,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
             copyLiveBufferToSeries();
 
             initSaveHistoricalBuffer();
-            getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null));
+            getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_HISTORY, getCandleTimeframe(), historyDto.getInstId(), null, null, null, false));
         } catch (Exception e) {
             log().errorf(e, "❌ [%s] Не удалось обработать элементы для истории: %s", getName(), e.getMessage());
         }
@@ -401,7 +400,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live candle") &&
                         addBarToLiveSeries(candle)) {
                     initSaveLiveBuffer();
-                    getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed()));
+                    getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed(), false));
                     log().infof("✅ [%s] Свеча успешно добавлена в live серию: bucket=%s, close=%s", getName(), bucket, candle.getClose());
 
                 } else {

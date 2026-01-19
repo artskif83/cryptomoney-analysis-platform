@@ -1,4 +1,4 @@
-package artskif.trader.events.candle;
+package artskif.trader.candle;
 
 public enum CandleEventType {
     CANDLE_TICK("Candle Tick"),

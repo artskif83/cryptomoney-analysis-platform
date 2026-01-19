@@ -8,11 +8,12 @@ public record RegimeChangeEvent(
         String instrument,
         MarketRegime previousRegime,
         MarketRegime currentRegime,
-        Instant timestamp
+        Instant timestamp,
+        Boolean isTest
 ) {
     @Override
     public String toString() {
-        return "RegimeChangeEvent{" + instrument + ", " + previousRegime + " -> " + currentRegime + ", " + timestamp + "}";
+        return "RegimeChangeEvent{" + instrument + ", " + previousRegime + " -> " + currentRegime + ", " + timestamp + ", isTest=" + isTest + "}";
     }
 }
 

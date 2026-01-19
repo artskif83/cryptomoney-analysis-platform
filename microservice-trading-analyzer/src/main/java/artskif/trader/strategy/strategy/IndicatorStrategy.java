@@ -112,7 +112,8 @@ public class IndicatorStrategy extends AbstractStrategy {
                     candle.getInstrument(),
                     previousRegime,
                     regime,
-                    snapshot4h.getTimestamp()
+                    snapshot4h.getTimestamp(),
+                    false
             ));
         }
 
@@ -154,7 +155,8 @@ public class IndicatorStrategy extends AbstractStrategy {
                         event.direction(),
                         event.confidence(),
                         regime,
-                        snapshot5m.getTimestamp()
+                        snapshot5m.getTimestamp(),
+                        false
                 ));
 
                 // дальше: передача в TradeManager / Executor

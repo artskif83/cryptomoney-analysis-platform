@@ -5,7 +5,7 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventListener;
-import artskif.trader.events.candle.CandleEventType;
+import artskif.trader.candle.CandleEventType;
 import artskif.trader.strategy.contract.ContractDataService;
 import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
 import artskif.trader.strategy.event.EventModel;

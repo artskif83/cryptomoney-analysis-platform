@@ -1,10 +1,19 @@
-package artskif.trader.strategy;
+package artskif.trader.resource;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventBus;
-import artskif.trader.events.candle.CandleEventType;
+import artskif.trader.candle.CandleEventType;
+import artskif.trader.events.regime.RegimeChangeEvent;
+import artskif.trader.events.regime.RegimeChangeEventBus;
+import artskif.trader.events.trade.TradeEvent;
+import artskif.trader.events.trade.TradeEventBus;
+import artskif.trader.strategy.event.common.Confidence;
+import artskif.trader.strategy.event.common.Direction;
+import artskif.trader.strategy.event.common.TradeEventType;
+import artskif.trader.strategy.regime.common.MarketRegime;
+import artskif.trader.strategy.StrategyService;
 import artskif.trader.strategy.contract.ContractDataService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
@@ -33,6 +42,12 @@ public class StrategyResource {
 
     @Inject
     CandleEventBus candleEventBus;
+
+    @Inject
+    RegimeChangeEventBus regimeChangeEventBus;
+
+    @Inject
+    TradeEventBus tradeEventBus;
 
     /**
      * Запустить стратегию по имени
@@ -401,12 +416,13 @@ public class StrategyResource {
                     instrument,
                     bucket,
                     candlestickDto,
-                    confirmed
+                    confirmed,
+                    true // Тестовое событие
             );
 
             candleEventBus.publish(event);
 
-            Log.infof("📊 Событие CANDLE_TICK симулировано: %s %s O=%s H=%s L=%s C=%s V=%s confirmed=%s",
+            Log.infof("📊 Событие CANDLE_TICK симулировано: %s %s O=%s H=%s L=%s C=%s V=%s confirmed=%s (TEST)",
                     instrument, timeframe, open, high, low, close, volume, confirmed);
 
             return Response.ok()
@@ -431,6 +447,158 @@ public class StrategyResource {
                     .build();
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при симуляции события CANDLE_TICK");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Симулировать событие REGIME_CHANGE
+     *
+     * @param instrument инструмент (например, BTC-USDT)
+     * @param previousRegime предыдущий режим рынка
+     * @param currentRegime текущий режим рынка
+     * @return ответ с результатом симуляции
+     */
+    @POST
+    @Path("/simulate/regime-change")
+    public Response simulateRegimeChange(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
+            @QueryParam("previousRegime") @DefaultValue("FLAT") String previousRegime,
+            @QueryParam("currentRegime") @DefaultValue("TREND_UP") String currentRegime
+    ) {
+        try {
+            // Парсинг режимов
+            MarketRegime prevRegime = MarketRegime.valueOf(previousRegime);
+            MarketRegime currRegime = MarketRegime.valueOf(currentRegime);
+
+            Instant timestamp = Instant.now();
+
+            // Создание и публикация события
+            RegimeChangeEvent event = new RegimeChangeEvent(
+                    instrument,
+                    prevRegime,
+                    currRegime,
+                    timestamp,
+                    true // Тестовое событие
+            );
+
+            regimeChangeEventBus.publish(event);
+
+            Log.infof("🔄 Событие REGIME_CHANGE симулировано: %s %s -> %s timestamp=%s (TEST)",
+                    instrument, previousRegime, currentRegime, timestamp);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Событие REGIME_CHANGE успешно опубликовано",
+                            "event", Map.of(
+                                    "type", "REGIME_CHANGE",
+                                    "instrument", instrument,
+                                    "previousRegime", previousRegime,
+                                    "currentRegime", currentRegime,
+                                    "timestamp", timestamp.toString()
+                            )
+                    ))
+                    .build();
+        } catch (IllegalArgumentException e) {
+            Log.errorf(e, "❌ Неверные параметры для симуляции REGIME_CHANGE");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", "Неверные параметры. Доступные значения для режима: FLAT, TREND_UP, TREND_DOWN",
+                            "previousRegime", previousRegime,
+                            "currentRegime", currentRegime
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при симуляции события REGIME_CHANGE");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Симулировать событие TRADE
+     *
+     * @param instrument инструмент (например, BTC-USDT)
+     * @param type тип торгового события
+     * @param direction направление (LONG/SHORT)
+     * @param confidence уровень уверенности (LOW/MEDIUM/HIGH)
+     * @param regime текущий режим рынка
+     * @return ответ с результатом симуляции
+     */
+    @POST
+    @Path("/simulate/trade-event")
+    public Response simulateTradeEvent(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
+            @QueryParam("type") @DefaultValue("BREAKOUT") String type,
+            @QueryParam("direction") @DefaultValue("LONG") String direction,
+            @QueryParam("confidence") @DefaultValue("MEDIUM") String confidence,
+            @QueryParam("regime") @DefaultValue("TREND_UP") String regime
+    ) {
+        try {
+            // Парсинг параметров
+            TradeEventType eventType = TradeEventType.valueOf(type);
+            Direction eventDirection = Direction.valueOf(direction);
+            Confidence eventConfidence = Confidence.valueOf(confidence);
+            MarketRegime marketRegime = MarketRegime.valueOf(regime);
+
+            Instant timestamp = Instant.now();
+
+            // Создание и публикация события
+            TradeEvent event = new TradeEvent(
+                    eventType,
+                    instrument,
+                    eventDirection,
+                    eventConfidence,
+                    marketRegime,
+                    timestamp,
+                    true // Тестовое событие
+            );
+
+            tradeEventBus.publish(event);
+
+            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s режим=%s timestamp=%s (TEST)",
+                    instrument, type, direction, confidence, regime, timestamp);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Событие TRADE успешно опубликовано",
+                            "event", Map.of(
+                                    "type", "TRADE",
+                                    "instrument", instrument,
+                                    "tradeEventType", type,
+                                    "direction", direction,
+                                    "confidence", confidence,
+                                    "regime", regime,
+                                    "timestamp", timestamp.toString()
+                            )
+                    ))
+                    .build();
+        } catch (IllegalArgumentException e) {
+            Log.errorf(e, "❌ Неверные параметры для симуляции TRADE");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", "Неверные параметры. Доступные значения: type=[PULLBACK,BREAKOUT,FALSE_BREAKOUT,EVENT_CANCELLED], direction=[LONG,SHORT], confidence=[LOW,MEDIUM,HIGH], regime=[FLAT,TREND_UP,TREND_DOWN]",
+                            "type", type,
+                            "direction", direction,
+                            "confidence", confidence,
+                            "regime", regime
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при симуляции события TRADE");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",

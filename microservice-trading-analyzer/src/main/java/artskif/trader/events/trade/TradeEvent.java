@@ -13,11 +13,12 @@ public record TradeEvent(
         Direction direction,
         Confidence confidence,
         MarketRegime regime,
-        Instant timestamp
+        Instant timestamp,
+        Boolean isTest
 ) {
     @Override
     public String toString() {
-        return "TradeEvent{" + type + ", " + instrument + ", " + direction + ", " + confidence + ", " + regime + ", " + timestamp + "}";
+        return "TradeEvent{" + type + ", " + instrument + ", " + direction + ", " + confidence + ", " + regime + ", " + timestamp + ", isTest=" + isTest + "}";
     }
 }
 
