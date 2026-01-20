@@ -1,7 +1,5 @@
 package artskif.trader.ai;
 
-import my.signals.v1.StrategyKind;
-
 
 public abstract class AbstractAI {
 

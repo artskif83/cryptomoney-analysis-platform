@@ -9,10 +9,6 @@ version = '1.0.0'
 
 dependencies {
     implementation(enforcedPlatform("io.quarkus:quarkus-bom:3.23.3"))
-    implementation "io.quarkus:quarkus-avro"   // включает кодоген Avro в Quarkus
-    // Это библиотека Avro. Указываем версию явно для совместимости с не-Quarkus модулями.
-    // Помечаем как api, чтобы зависимые модули видели SpecificRecordBase.
-    api "org.apache.avro:avro:1.11.3"
 
     // Lombok (для автогенерации геттеров/сеттеров и т.д.)
     compileOnly 'org.projectlombok:lombok:1.18.30'
