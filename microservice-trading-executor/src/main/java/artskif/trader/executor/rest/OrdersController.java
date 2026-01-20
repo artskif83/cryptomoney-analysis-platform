@@ -1,7 +1,6 @@
 package artskif.trader.executor.rest;
 
 import artskif.trader.executor.orders.OrderManagerService;
-import artskif.trader.executor.orders.OrderExecutionResult;
 import artskif.trader.executor.common.Symbol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

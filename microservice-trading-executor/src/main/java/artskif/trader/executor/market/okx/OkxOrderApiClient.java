@@ -1,7 +1,7 @@
 package artskif.trader.executor.market.okx;
 
 import artskif.trader.executor.orders.OrdersClient;
-import artskif.trader.executor.orders.OrderExecutionResult;
+import artskif.trader.executor.rest.OrderExecutionResult;
 import artskif.trader.executor.common.Symbol;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;

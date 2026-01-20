@@ -2,6 +2,7 @@ package artskif.trader.executor.orders;
 
 
 import artskif.trader.executor.common.Symbol;
+import artskif.trader.executor.rest.OrderExecutionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
