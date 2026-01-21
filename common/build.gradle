@@ -10,6 +10,12 @@ version = '1.0.0'
 dependencies {
     implementation(enforcedPlatform("io.quarkus:quarkus-bom:3.23.3"))
 
+    // JAX-RS API для общих интерфейсов
+    api 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+
+    // Jackson для сериализации/десериализации
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+
     // Lombok (для автогенерации геттеров/сеттеров и т.д.)
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'

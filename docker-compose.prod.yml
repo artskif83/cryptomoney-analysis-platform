@@ -102,10 +102,12 @@ services:
     depends_on:
       - redpanda-prod
       - timescaledb-prod
+      - okx-executor-prod
     environment:
       QUARKUS_PROFILE: prod
       QUARKUS_KAFKA_BOOTSTRAP_SERVERS: redpanda-prod:9092
       QUARKUS_KAFKA_SCHEMA_REGISTRY_URL: http://redpanda-prod:8081
+      EXECUTOR_URL: http://okx-executor-prod:8082
     networks:
       - net-prod
   okx-executor-prod:

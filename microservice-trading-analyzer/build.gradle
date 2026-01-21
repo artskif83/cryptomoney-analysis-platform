@@ -27,9 +27,11 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:3.10.0'
     implementation 'io.quarkus:quarkus-arc'
 
-    // REST
-    implementation 'io.quarkus:quarkus-resteasy'
-    implementation 'io.quarkus:quarkus-resteasy-jackson'
+    // REST (Quarkus REST / RESTEasy Reactive)
+    implementation 'io.quarkus:quarkus-rest-client-jackson'
+    implementation 'io.quarkus:quarkus-rest'
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-rest-client'
 
     // Database
     implementation "io.quarkus:quarkus-hibernate-orm"

@@ -1,5 +1,8 @@
 package artskif.trader.executor.rest;
 
+import artskif.trader.api.TradingExecutorApi;
+import artskif.trader.api.dto.MarketOrderRequest;
+import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.executor.orders.OrderManagerService;
 import artskif.trader.executor.common.Symbol;
 import org.slf4j.Logger;
@@ -9,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/trading")
-public class OrdersController {
+public class OrdersController implements TradingExecutorApi {
 
     private static final Logger log = LoggerFactory.getLogger(OrdersController.class);
 
@@ -19,24 +22,27 @@ public class OrdersController {
         this.orderManagerService = orderManagerService;
     }
 
+    @Override
     @PostMapping("/buy")
     public OrderExecutionResult placeMarketBuy(@RequestBody MarketOrderRequest request) {
         log.info("📥 Получен запрос на покупку: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
-        OrderExecutionResult result = orderManagerService.executeMarketBuy(symbol, request.quantity());
-        log.info("✅ Покупка выполне��а: {}", result);
+//        OrderExecutionResult result = orderManagerService.executeMarketBuy(symbol, request.quantity());
+        OrderExecutionResult result = new OrderExecutionResult("test-order-id-buy", request.quantity(), request.quantity());
+        log.info("✅ Покупка выполнена: {}", result);
         return result;
     }
 
+    @Override
     @PostMapping("/sell")
     public OrderExecutionResult placeMarketSell(@RequestBody MarketOrderRequest request) {
         log.info("📥 Получен запрос на продажу: {} - {}, количество: {}",
                 request.base(), request.quote(), request.quantity());
         Symbol symbol = new Symbol(request.base(), request.quote());
-        OrderExecutionResult result = orderManagerService.executeMarketSell(symbol, request.quantity());
+//        OrderExecutionResult result = orderManagerService.executeMarketSell(symbol, request.quantity());
+        OrderExecutionResult result = new OrderExecutionResult("test-order-id-sell", request.quantity(), request.quantity());
         log.info("✅ Продажа выполнена: {}", result);
         return result;
     }
 }
-

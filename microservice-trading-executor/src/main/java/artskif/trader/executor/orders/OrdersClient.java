@@ -1,7 +1,7 @@
 package artskif.trader.executor.orders;
 
+import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.executor.common.Symbol;
-import artskif.trader.executor.rest.OrderExecutionResult;
 
 import java.math.BigDecimal;
 

@@ -1,4 +1,4 @@
-package artskif.trader.position;
+package artskif.trader.broker;
 
 import artskif.trader.events.regime.RegimeChangeEvent;
 import artskif.trader.events.regime.RegimeChangeEventBus;
@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 @Startup
 @ApplicationScoped
-public class PositionManager implements TradeEventListener, RegimeChangeEventListener {
+public class BrokerManager implements TradeEventListener, RegimeChangeEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(PositionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(BrokerManager.class);
 
     private final TradeEventBus tradeEventBus;
     private final RegimeChangeEventBus regimeChangeEventBus;
@@ -36,7 +36,7 @@ public class PositionManager implements TradeEventListener, RegimeChangeEventLis
     private volatile boolean running = true;
 
     @Inject
-    public PositionManager(TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus) {
+    public BrokerManager(TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus) {
         this.tradeEventBus = tradeEventBus;
         this.regimeChangeEventBus = regimeChangeEventBus;
         this.eventProcessor = Executors.newSingleThreadExecutor(r -> {
