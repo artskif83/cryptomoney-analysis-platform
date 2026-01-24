@@ -28,7 +28,7 @@ public final class OrderManagerService {
         lock.lock();
         try {
             log.debug("💰 Выполняется рыночная покупка: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
-            return exchange.placeMarketBuy(symbol, quoteSz);
+            return exchange.placeSpotMarketBuy(symbol, quoteSz);
         } finally {
             lock.unlock();
         }
@@ -39,7 +39,7 @@ public final class OrderManagerService {
         lock.lock();
         try {
             log.debug("💰 Выполняется рыночная продажа: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
-            return exchange.placeMarketSell(symbol, quoteSz);
+            return exchange.placeSpotMarketSell(symbol, quoteSz);
         } finally {
             lock.unlock();
         }

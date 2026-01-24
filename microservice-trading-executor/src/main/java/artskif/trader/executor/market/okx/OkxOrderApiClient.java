@@ -38,14 +38,14 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     // ==== ExchangeClient ====
 
     @Override
-    public OrderExecutionResult placeMarketBuy(Symbol symbol, BigDecimal quoteSz) {
+    public OrderExecutionResult placeSpotMarketBuy(Symbol symbol, BigDecimal quoteSz) {
         var result = placeSpotMarket(symbol, "buy", quoteSz);
         log.info("📊 Результат покупки: {}", result);
         return result;
     }
 
     @Override
-    public OrderExecutionResult placeMarketSell(Symbol symbol, BigDecimal quoteSz) {
+    public OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal quoteSz) {
         var result = placeSpotMarket(symbol, "sell", quoteSz);
         log.info("📊 Результат продажи: {}", result);
         return result;
