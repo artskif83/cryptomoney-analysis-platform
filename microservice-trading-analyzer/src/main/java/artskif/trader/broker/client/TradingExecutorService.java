@@ -2,6 +2,7 @@ package artskif.trader.broker.client;
 
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
+import artskif.trader.api.dto.TradingResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -25,13 +26,20 @@ public class TradingExecutorService {
 
     /**
      * открыть лонг позицию
+     * @throws TradingExecutionException если произошла ошибка при выполнении ордера
      */
     public OrderExecutionResult openLong(String instrument, BigDecimal persentOfDeposit) {
         log.info("🔄 Отправка запроса на покупку: {} процент от депозита: {}", instrument, persentOfDeposit);
 
-        MarketOrderRequest request = new MarketOrderRequest(instrument,  persentOfDeposit);
-        OrderExecutionResult result = executorClient.placeMarketBuy(request);
+        MarketOrderRequest request = new MarketOrderRequest(instrument, persentOfDeposit);
+        TradingResponse response = executorClient.placeSpotMarketBuy(request);
 
+        if (!response.success()) {
+            log.error("❌ Ошибка при покупке: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        OrderExecutionResult result = response.result();
         log.info("✅ Покупка выполнена: orderId={}, avgPrice={}, executedQty={}",
                 result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
 
@@ -40,13 +48,20 @@ public class TradingExecutorService {
 
     /**
      * открыть шорт позицию
+     * @throws TradingExecutionException если произошла ошибка при выполнении ордера
      */
     public OrderExecutionResult openShort(String instrument, BigDecimal persentOfDeposit) {
         log.info("🔄 Отправка запроса на продажу: {} процент от депозита: {}", instrument, persentOfDeposit);
 
         MarketOrderRequest request = new MarketOrderRequest(instrument, persentOfDeposit);
-        OrderExecutionResult result = executorClient.placeMarketSell(request);
+        TradingResponse<OrderExecutionResult> response = executorClient.placeSpotMarketSell(request);
 
+        if (!response.success()) {
+            log.error("❌ Ошибка при продаже: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        OrderExecutionResult result = response.result();
         log.info("✅ Продажа выполнена: orderId={}, avgPrice={}, executedQty={}",
                 result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
 

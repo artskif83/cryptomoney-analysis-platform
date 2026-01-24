@@ -23,25 +23,33 @@ public final class OrderManagerService {
         this.exchange = exchange;
     }
 
-    public OrderExecutionResult executeMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OperationResult executeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
             log.debug("💰 Выполняется рыночная покупка: {}, процент от депозита в {}: {}%",
                     symbol.asPair(), symbol.quote(), percentOfDeposit);
-            return exchange.placeSpotMarketBuy(symbol, percentOfDeposit);
+            OrderExecutionResult result = exchange.placeSpotMarketBuy(symbol, percentOfDeposit);
+            return OperationResult.success(result);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при выполнении покупки: {}", e.getMessage(), e);
+            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }
     }
 
-    public OrderExecutionResult executeMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OperationResult executeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
             log.debug("💰 Выполняется рыночная продажа: {}, процент от депозита в {}: {}%",
                     symbol.asPair(), symbol.base(), percentOfDeposit);
-            return exchange.placeSpotMarketSell(symbol, percentOfDeposit);
+            OrderExecutionResult result = exchange.placeSpotMarketSell(symbol, percentOfDeposit);
+            return OperationResult.success(result);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при выполнении продажи: {}", e.getMessage(), e);
+            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }

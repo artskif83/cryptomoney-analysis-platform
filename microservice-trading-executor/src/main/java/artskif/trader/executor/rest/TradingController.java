@@ -3,7 +3,9 @@ package artskif.trader.executor.rest;
 import artskif.trader.api.TradingExecutorApi;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
+import artskif.trader.api.dto.TradingResponse;
 import artskif.trader.executor.orders.AccountManagerService;
+import artskif.trader.executor.orders.OperationResult;
 import artskif.trader.executor.orders.OrderManagerService;
 import artskif.trader.executor.common.Symbol;
 import org.slf4j.Logger;
@@ -29,34 +31,75 @@ public class TradingController implements TradingExecutorApi {
 
     @Override
     @PostMapping("/buy")
-    public OrderExecutionResult placeMarketBuy(@RequestBody MarketOrderRequest request) {
+    public TradingResponse<OrderExecutionResult> placeSpotMarketBuy(@RequestBody MarketOrderRequest request) {
         log.info("📥 Получен запрос на покупку: инструмент {}, процент депозита: {}",
                 request.instrument(), request.persentOfDeposit());
-        Symbol symbol = Symbol.fromInstrument(request.instrument());
-        OrderExecutionResult result = orderManagerService.executeMarketBuy(symbol, request.persentOfDeposit());
-//        OrderExecutionResult result = new OrderExecutionResult("test-order-id-buy", request.persentOfDeposit(), request.persentOfDeposit());
-        log.info("✅ Покупка выполнена: {}", result);
-        return result;
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeSpotMarketBuy(symbol, request.persentOfDeposit());
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Покупка выполнена: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при покупке: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при обработке запроса на покупку: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
     }
 
     @Override
     @PostMapping("/sell")
-    public OrderExecutionResult placeMarketSell(@RequestBody MarketOrderRequest request) {
+    public TradingResponse<OrderExecutionResult> placeSpotMarketSell(@RequestBody MarketOrderRequest request) {
         log.info("📥 Получен запрос на продажу: инструмент {}, процент депозита: {}",
                 request.instrument(), request.persentOfDeposit());
-        Symbol symbol = Symbol.fromInstrument(request.instrument());
-        OrderExecutionResult result = orderManagerService.executeMarketSell(symbol, request.persentOfDeposit());
-//        OrderExecutionResult result = new OrderExecutionResult("test-order-id-sell", request.persentOfDeposit(), request.persentOfDeposit());
-        log.info("✅ Продажа выполнена: {}", result);
-        return result;
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeSpotMarketSell(symbol, request.persentOfDeposit());
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Продажа выполнена: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при продаже: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при обработке запроса на продажу: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
     }
 
+    @Override
     @GetMapping("/balance/usdt")
-    public BigDecimal getUsdtBalance() {
+    public TradingResponse<BigDecimal> getUsdtBalance() {
         log.info("📥 Получен запрос на получение баланса USDT");
-        BigDecimal balance = accountManagerService.getUsdtBalance();
-        log.info("✅ Баланс USDT: {}", balance);
-        return balance;
+
+        try {
+            BigDecimal balance = accountManagerService.getUsdtBalance();
+
+            if (balance != null) {
+                log.info("✅ Баланс USDT: {}", balance);
+                return TradingResponse.success(balance);
+            } else {
+                log.error("❌ Не удалось получить баланс USDT");
+                return TradingResponse.error("BALANCE_RETRIEVAL_FAILED", "Не удалось получить баланс USDT");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении баланса USDT: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
     }
 }
 
