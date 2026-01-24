@@ -33,6 +33,11 @@ public class OkxAccountApiClient extends OkxApiClient implements AccountClient {
 
     @Override
     public BigDecimal getUsdtBalance() {
+        return getCurrencyBalance("USDT");
+    }
+
+    @Override
+    public BigDecimal getCurrencyBalance(String currency) {
         try {
             // Запрос баланса по API OKX: /api/v5/account/balance
             String endpoint = "/api/v5/account/balance";
@@ -53,12 +58,12 @@ public class OkxAccountApiClient extends OkxApiClient implements AccountClient {
                     if (detailsObj instanceof List<?> details) {
                         for (Object detailObj : details) {
                             if (detailObj instanceof Map<?, ?> detail) {
-                                String currency = String.valueOf(detail.get("ccy"));
-                                if ("USDT".equals(currency)) {
+                                String ccy = String.valueOf(detail.get("ccy"));
+                                if (currency.equals(ccy)) {
                                     // availBal - доступный баланс для торговли
                                     BigDecimal availBalance = parseBigDec(detail.get("availBal"));
                                     if (availBalance != null) {
-                                        log.info("💰 Доступный баланс USDT: {}", availBalance);
+                                        log.info("💰 Доступный баланс {}: {}", currency, availBalance);
                                         return availBalance;
                                     }
                                 }
@@ -68,11 +73,11 @@ public class OkxAccountApiClient extends OkxApiClient implements AccountClient {
                 }
             }
 
-            log.warn("⚠️ USDT баланс не найден в ответе API");
+            log.warn("⚠️ {} баланс не найден в ответе API", currency);
             return BigDecimal.ZERO;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при получении баланса USDT: {}", e.getMessage(), e);
+            log.error("❌ Ошибка при получении баланса {}: {}", currency, e.getMessage(), e);
             return null;
         }
     }

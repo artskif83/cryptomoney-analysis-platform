@@ -1,6 +1,7 @@
 package artskif.trader.executor.market.okx;
 
 import artskif.trader.api.dto.OrderExecutionResult;
+import artskif.trader.executor.orders.AccountClient;
 import artskif.trader.executor.orders.OrdersClient;
 import artskif.trader.executor.common.Symbol;
 import okhttp3.OkHttpClient;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -20,10 +22,13 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
+    private final AccountClient accountClient;
+
     // основной прод-конструктор (через Spring)
     @Autowired
-    public OkxOrderApiClient(OkxConfig config) {
+    public OkxOrderApiClient(OkxConfig config, AccountClient accountClient) {
         super(config.getRestApiUrl(), config.getApiKey(), config.getApiSecret(), config.getPassphrase());
+        this.accountClient = accountClient;
     }
 
     // доп. конструктор для тестов (без Spring)
@@ -31,29 +36,81 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                              String apiKey,
                              String apiSecret,
                              String passphrase,
-                             OkHttpClient httpClient) {
+                             OkHttpClient httpClient,
+                             AccountClient accountClient) {
         super(restApiUrl, apiKey, apiSecret, passphrase, httpClient);
+        this.accountClient = accountClient;
     }
 
     // ==== ExchangeClient ====
 
+    /**
+     * Покупка по рынку на спотовом рынке.
+     * @param symbol Торговая пара
+     * @param percentOfDeposit Процент от депозита в квотируемой валюте (от 0 до 100)
+     * @return Результат исполнения ордера
+     */
     @Override
-    public OrderExecutionResult placeSpotMarketBuy(Symbol symbol, BigDecimal quoteSz) {
-        var result = placeSpotMarket(symbol, "buy", quoteSz);
+    public OrderExecutionResult placeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
+        // Получаем баланс квотируемой валюты (например, USDT)
+        BigDecimal quoteBalance = accountClient.getCurrencyBalance(symbol.quote());
+        if (quoteBalance == null || quoteBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("❌ Недостаточный баланс {} для покупки", symbol.quote());
+            return null;
+        }
+
+        // Вычисляем размер ордера как процент от баланса
+        BigDecimal orderSize = quoteBalance
+                .multiply(percentOfDeposit)
+                .divide(BigDecimal.valueOf(100), 8, RoundingMode.DOWN);
+
+        log.info("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
+                symbol.quote(), quoteBalance, percentOfDeposit, orderSize);
+
+        var result = placeSpotMarket(symbol, "buy", orderSize, true);
         log.info("📊 Результат покупки: {}", result);
         return result;
     }
 
+    /**
+     * Продажа по рынку на спотовом рынке.
+     * @param symbol Торговая пара
+     * @param percentOfDeposit Процент от депозита в базовой валюте (от 0 до 100)
+     * @return Результат исполнения ордера
+     */
     @Override
-    public OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal quoteSz) {
-        var result = placeSpotMarket(symbol, "sell", quoteSz);
+    public OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
+        // Получаем баланс базовой валюты (например, BTC)
+        BigDecimal baseBalance = accountClient.getCurrencyBalance(symbol.base());
+        if (baseBalance == null || baseBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("❌ Недостаточный баланс {} для продажи", symbol.base());
+            return null;
+        }
+
+        // Вычисляем размер ордера как процент от баланса
+        BigDecimal orderSize = baseBalance
+                .multiply(percentOfDeposit)
+                .divide(BigDecimal.valueOf(100), 8, RoundingMode.DOWN);
+
+        log.info("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
+                symbol.base(), baseBalance, percentOfDeposit, orderSize);
+
+        var result = placeSpotMarket(symbol, "sell", orderSize, false);
         log.info("📊 Результат продажи: {}", result);
         return result;
     }
 
     // ==== Основная логика размещения ордеров через REST API ====
 
-    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal quoteSz) {
+    /**
+     * Размещает рыночный ордер на спотовом рынке.
+     * @param symbol Торговая пара
+     * @param side "buy" или "sell"
+     * @param size Размер ордера
+     * @param isQuoteCurrency true - размер указан в квотируемой валюте, false - в базовой валюте
+     * @return Результат исполнения ордера
+     */
+    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal size, boolean isQuoteCurrency) {
         final String clientId = UUID.randomUUID().toString().replace("-", "");
         final String instId = symbol.base() + "-" + symbol.quote();
 
@@ -63,8 +120,16 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
         orderBody.put("tdMode", "cash");
         orderBody.put("side", side);  // buy | sell
         orderBody.put("ordType", "market");
-        orderBody.put("sz", quoteSz.stripTrailingZeros().toPlainString());
-        orderBody.put("tgtCcy", "quote_ccy");  // размер ордера указывается в quote-валюте (например, USDT)
+        orderBody.put("sz", size.stripTrailingZeros().toPlainString());
+
+        // Для покупки указываем размер в квотируемой валюте (например, USDT)
+        // Для продажи указываем размер в базовой валюте (например, BTC)
+        if (isQuoteCurrency) {
+            orderBody.put("tgtCcy", "quote_ccy");  // размер ордера в quote-валюте
+        } else {
+            orderBody.put("tgtCcy", "base_ccy");  // размер ордера в base-валюте
+        }
+
         orderBody.put("clOrdId", clientId);
 
         try {

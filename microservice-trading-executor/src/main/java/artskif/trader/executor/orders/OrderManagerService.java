@@ -23,23 +23,25 @@ public final class OrderManagerService {
         this.exchange = exchange;
     }
 
-    public OrderExecutionResult executeMarketBuy(Symbol symbol, BigDecimal quoteSz) {
+    public OrderExecutionResult executeMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("💰 Выполняется рыночная покупка: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
-            return exchange.placeSpotMarketBuy(symbol, quoteSz);
+            log.debug("💰 Выполняется рыночная покупка: {}, процент от депозита в {}: {}%",
+                    symbol.asPair(), symbol.quote(), percentOfDeposit);
+            return exchange.placeSpotMarketBuy(symbol, percentOfDeposit);
         } finally {
             lock.unlock();
         }
     }
 
-    public OrderExecutionResult executeMarketSell(Symbol symbol, BigDecimal quoteSz) {
+    public OrderExecutionResult executeMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("💰 Выполняется рыночная продажа: {}, количество в квотируемой валюте(USDT): {}", symbol.asPair(), quoteSz);
-            return exchange.placeSpotMarketSell(symbol, quoteSz);
+            log.debug("💰 Выполняется рыночная продажа: {}, процент от депозита в {}: {}%",
+                    symbol.asPair(), symbol.base(), percentOfDeposit);
+            return exchange.placeSpotMarketSell(symbol, percentOfDeposit);
         } finally {
             lock.unlock();
         }
