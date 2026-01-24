@@ -37,7 +37,7 @@ public class FlatEventModel implements EventModel {
 
     @Override
     public MarketRegime getSupportedRegime() {
-        return MarketRegime.FLAT;
+        return MarketRegime.FLAT_UP;
     }
 }
 

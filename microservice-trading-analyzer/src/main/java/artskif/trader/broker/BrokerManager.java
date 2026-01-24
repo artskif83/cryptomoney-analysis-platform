@@ -1,11 +1,15 @@
 package artskif.trader.broker;
 
+import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.events.regime.RegimeChangeEvent;
 import artskif.trader.events.regime.RegimeChangeEventBus;
 import artskif.trader.events.regime.RegimeChangeEventListener;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.events.trade.TradeEventListener;
+import artskif.trader.strategy.event.common.Direction;
+import artskif.trader.strategy.event.common.TradeEventType;
+import artskif.trader.strategy.regime.common.MarketRegime;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.Startup;
 import io.quarkus.runtime.StartupEvent;
@@ -15,6 +19,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -33,12 +38,14 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
     // Внутренняя асинхронная шина событий
     private final BlockingQueue<Object> eventQueue = new ArrayBlockingQueue<>(1000);
     private final ExecutorService eventProcessor;
+    private final TradingExecutorService tradingExecutorService;
     private volatile boolean running = true;
 
     @Inject
-    public BrokerManager(TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus) {
+    public BrokerManager(TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus, TradingExecutorService tradingExecutorService) {
         this.tradeEventBus = tradeEventBus;
         this.regimeChangeEventBus = regimeChangeEventBus;
+        this.tradingExecutorService = tradingExecutorService;
         this.eventProcessor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "PositionManager-EventProcessor");
             t.setDaemon(false);
@@ -139,12 +146,13 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
     private void handleTradeEvent(TradeEvent event) {
         log.info("🔄 Обработка TradeEvent: {}", event);
 
-        // TODO: Реализация обработки торгового сигнала:
-        // 1. Проверка риск-менеджмента
-        // 2. Проверка текущих позиций
-        // 3. Проверка состояния счета
-        // 4. Принятие решения об открытии/закрытии позиции
-        // 5. Отправка ордера в microservice-executor
+        if (event.type() == TradeEventType.PULLBACK && event.direction() == Direction.LONG && event.regime() == MarketRegime.TREND_UP) {
+            log.info("📈 Получен сигнал на открытие ЛОНГ позиции в режиме TREND_UP");
+            tradingExecutorService.openLong(event.instrument(), BigDecimal.valueOf(10));
+        } else if (event.type() == TradeEventType.PULLBACK && event.direction() == Direction.SHORT && event.regime() == MarketRegime.TREND_DOWN) {
+            log.info("📉 Получен сигнал на открытие ШОРТ позиции в режиме TREND_DOWN");
+            tradingExecutorService.openShort(event.instrument(), BigDecimal.valueOf(10));
+        }
     }
 
     /**
@@ -153,10 +161,12 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
     private void handleRegimeChangeEvent(RegimeChangeEvent event) {
         log.info("🔄 Обработка RegimeChangeEvent: {}", event);
 
-        // TODO: Реализация обработки смены режима:
-        // 1. Анализ влияния на текущие позиции
-        // 2. Корректировка стратегии риск-менеджмента
-        // 3. Возможное закрытие позиций при неблагоприятном режиме
-        // 4. Обновление параметров торговли
+        if (event.currentRegime() == MarketRegime.TREND_UP && (event.previousRegime() == MarketRegime.FLAT_DOWN || event.previousRegime() == MarketRegime.TREND_DOWN)) {
+            log.info("📈 Режим изменился на TREND_UP, закрываем шорт позиции и рассматриваем длинные позиции");
+            tradingExecutorService.closeShortPositions();
+        } else if (event.currentRegime() == MarketRegime.TREND_DOWN && (event.previousRegime() == MarketRegime.FLAT_UP || event.previousRegime() == MarketRegime.TREND_UP)) {
+            log.info("📉 Режим изменился на TREND_DOWN, закрываем лонг позиции и рассматриваем корокие позиции");
+            tradingExecutorService.closeLongPositions();
+        }
     }
 }

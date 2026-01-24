@@ -301,20 +301,18 @@ public class TestResource {
     /**
      * Тестовый endpoint для выполнения рыночной покупки
      *
-     * @param base базовая валюта (например, BTC)
-     * @param quote валюта котировки (например, USDT)
+     * @param instrument валютная пара (например, BTC-USDT)
      * @param quantity количество базовой валюты для покупки
      * @return результат выполнения ордера
      */
     @POST
     @Path("/execute-buy")
     public Response testExecuteBuy(
-            @QueryParam("base") @DefaultValue("BTC") String base,
-            @QueryParam("quote") @DefaultValue("USDT") String quote,
+            @QueryParam("base") @DefaultValue("BTC-USDT") String instrument,
             @QueryParam("quantity") @DefaultValue("0.001") BigDecimal quantity
     ) {
         try {
-            Log.infof("🧪 Тестовый запрос на покупку: %s/%s количество: %s", base, quote, quantity);
+            Log.infof("🧪 Тестовый запрос на покупку: %s количество: %s", instrument, quantity);
 
             // Валидация параметров
             if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
@@ -328,7 +326,7 @@ public class TestResource {
             }
 
             // Выполнение покупки
-            OrderExecutionResult result = tradingExecutorService.executeBuy(base, quote, quantity);
+            OrderExecutionResult result = tradingExecutorService.openLong(instrument, quantity);
 
             Log.infof("✅ Покупка выполнена: orderId=%s, avgPrice=%s, executedQty=%s",
                     result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
@@ -341,21 +339,19 @@ public class TestResource {
                                     "exchangeOrderId", result.exchangeOrderId(),
                                     "avgPrice", result.avgPrice().toString(),
                                     "executedBaseQty", result.executedBaseQty().toString(),
-                                    "base", base,
-                                    "quote", quote,
+                                    "instrument", instrument,
                                     "requestedQuantity", quantity.toString()
                             )
                     ))
                     .build();
         } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при выполнении тестовой покупки %s/%s количество: %s",
-                    base, quote, quantity);
+            Log.errorf(e, "❌ Ошибка при выполнении тестовой покупки %s количество: %s",
+                    instrument, quantity);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",
                             "message", e.getMessage(),
-                            "base", base,
-                            "quote", quote,
+                            "instrument", instrument,
                             "quantity", quantity != null ? quantity.toString() : "null"
                     ))
                     .build();
@@ -365,20 +361,18 @@ public class TestResource {
     /**
      * Тестовый endpoint для выполнения рыночной продажи
      *
-     * @param base базовая валюта (например, BTC)
-     * @param quote валюта котировки (например, USDT)
+     * @param instrument валютная пара (например, BTC-USDT)
      * @param quantity количество базовой валюты для продажи
      * @return результат выполнения ордера
      */
     @POST
     @Path("/execute-sell")
     public Response testExecuteSell(
-            @QueryParam("base") @DefaultValue("BTC") String base,
-            @QueryParam("quote") @DefaultValue("USDT") String quote,
+            @QueryParam("instrument") @DefaultValue("BTC") String instrument,
             @QueryParam("quantity") @DefaultValue("0.001") BigDecimal quantity
     ) {
         try {
-            Log.infof("🧪 Тестовый запрос на продажу: %s/%s количество: %s", base, quote, quantity);
+            Log.infof("🧪 Тестовый запрос на продажу: %s количество: %s", instrument, quantity);
 
             // Валидация параметров
             if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
@@ -392,7 +386,7 @@ public class TestResource {
             }
 
             // Выполнение продажи
-            OrderExecutionResult result = tradingExecutorService.executeSell(base, quote, quantity);
+            OrderExecutionResult result = tradingExecutorService.openShort(instrument, quantity);
 
             Log.infof("✅ Продажа выполнена: orderId=%s, avgPrice=%s, executedQty=%s",
                     result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
@@ -405,21 +399,19 @@ public class TestResource {
                                     "exchangeOrderId", result.exchangeOrderId(),
                                     "avgPrice", result.avgPrice().toString(),
                                     "executedBaseQty", result.executedBaseQty().toString(),
-                                    "base", base,
-                                    "quote", quote,
+                                    "instrument", instrument,
                                     "requestedQuantity", quantity.toString()
                             )
                     ))
                     .build();
         } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при выполнении тестовой продажи %s/%s количество: %s",
-                    base, quote, quantity);
+            Log.errorf(e, "❌ Ошибка при выполнении тестовой продажи %s количество: %s",
+                    instrument, quantity);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",
                             "message", e.getMessage(),
-                            "base", base,
-                            "quote", quote,
+                            "base", instrument,
                             "quantity", quantity != null ? quantity.toString() : "null"
                     ))
                     .build();

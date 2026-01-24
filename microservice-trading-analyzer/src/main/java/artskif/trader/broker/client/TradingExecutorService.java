@@ -24,12 +24,12 @@ public class TradingExecutorService {
     TradingExecutorClient executorClient;
 
     /**
-     * Выполнить рыночную покупку
+     * открыть лонг позицию
      */
-    public OrderExecutionResult executeBuy(String base, String quote, BigDecimal quantity) {
-        log.info("🔄 Отправка запроса на покупку: {}/{} количество: {}", base, quote, quantity);
+    public OrderExecutionResult openLong(String instrument, BigDecimal persentOfDeposit) {
+        log.info("🔄 Отправка запроса на покупку: {} процент от депозита: {}", instrument, persentOfDeposit);
 
-        MarketOrderRequest request = new MarketOrderRequest(base, quote, quantity);
+        MarketOrderRequest request = new MarketOrderRequest(instrument,  persentOfDeposit);
         OrderExecutionResult result = executorClient.placeMarketBuy(request);
 
         log.info("✅ Покупка выполнена: orderId={}, avgPrice={}, executedQty={}",
@@ -39,18 +39,25 @@ public class TradingExecutorService {
     }
 
     /**
-     * Выполнить рыночную продажу
+     * открыть шорт позицию
      */
-    public OrderExecutionResult executeSell(String base, String quote, BigDecimal quantity) {
-        log.info("🔄 Отправка запроса на продажу: {}/{} количество: {}", base, quote, quantity);
+    public OrderExecutionResult openShort(String instrument, BigDecimal persentOfDeposit) {
+        log.info("🔄 Отправка запроса на продажу: {} процент от депозита: {}", instrument, persentOfDeposit);
 
-        MarketOrderRequest request = new MarketOrderRequest(base, quote, quantity);
+        MarketOrderRequest request = new MarketOrderRequest(instrument, persentOfDeposit);
         OrderExecutionResult result = executorClient.placeMarketSell(request);
 
         log.info("✅ Продажа выполнена: orderId={}, avgPrice={}, executedQty={}",
                 result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
 
         return result;
+    }
+
+    public void closeShortPositions() {
+        
+    }
+
+    public void closeLongPositions() {
     }
 }
 
