@@ -21,4 +21,11 @@ public interface OrdersClient {
      * @return Результат исполнения ордера
      */
     OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit);
+
+    /**
+     * Получает текущую цену символа в квотируемой валюте
+     * @param symbol Торговая пара
+     * @return Текущая цена символа или null в случае ошибки
+     */
+    BigDecimal getCurrentPrice(Symbol symbol);
 }

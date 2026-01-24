@@ -42,4 +42,13 @@ public interface TradingExecutorApi {
     @GET
     @Path("/balance/usdt")
     TradingResponse<BigDecimal> getUsdtBalance();
+
+    /**
+     * Получить текущую цену символа в квотируемой валюте
+     * @param instrument Инструмент в формате BASE-QUOTE (например, BTC-USDT)
+     * @return текущая цена или ошибка
+     */
+    @GET
+    @Path("/price/{instrument}")
+    TradingResponse<BigDecimal> getCurrentPrice(@PathParam("instrument") String instrument);
 }

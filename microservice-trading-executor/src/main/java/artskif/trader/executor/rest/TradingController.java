@@ -101,5 +101,30 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }
+
+    @Override
+    @GetMapping("/price/{instrument}")
+    public TradingResponse<BigDecimal> getCurrentPrice(@PathVariable("instrument") String instrument) {
+        log.info("📥 Получен запрос на получение текущей цены для инструмента: {}", instrument);
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(instrument);
+            BigDecimal price = orderManagerService.getCurrentPrice(symbol);
+
+            if (price != null) {
+                log.info("✅ Текущая цена {} = {}", symbol.asPair(), price);
+                return TradingResponse.success(price);
+            } else {
+                log.error("❌ Не удалось получить текущую цену для {}", instrument);
+                return TradingResponse.error("PRICE_RETRIEVAL_FAILED", "Не удалось получить текущую цену для " + instrument);
+            }
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Неверный формат инструмента: {}", instrument);
+            return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении текущей цены: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
 }
 

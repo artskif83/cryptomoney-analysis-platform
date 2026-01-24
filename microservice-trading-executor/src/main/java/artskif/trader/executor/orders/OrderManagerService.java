@@ -54,4 +54,19 @@ public final class OrderManagerService {
             lock.unlock();
         }
     }
+
+    /**
+     * Получает текущую цену символа в квотируемой валюте
+     * @param symbol Торговая пара
+     * @return Текущая цена или null в случае ошибки
+     */
+    public BigDecimal getCurrentPrice(Symbol symbol) {
+        try {
+            log.debug("💹 Получение текущей цены для: {}", symbol.asPair());
+            return exchange.getCurrentPrice(symbol);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении цены: {}", e.getMessage(), e);
+            return null;
+        }
+    }
 }

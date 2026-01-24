@@ -100,6 +100,45 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
         return result;
     }
 
+    /**
+     * Получает текущую цену символа в квотируемой валюте.
+     * @param symbol Торговая пара
+     * @return Текущая цена символа или null в случае ошибки
+     */
+    @Override
+    public BigDecimal getCurrentPrice(Symbol symbol) {
+        final String instId = symbol.base() + "-" + symbol.quote();
+
+        try {
+            String endpoint = "/api/v5/market/ticker?instId=" + instId;
+            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+
+            if (!isSuccessResponse(response)) {
+                log.error("❌ Не удалось получить текущую цену для {}. {}", instId, getErrorMessage(response));
+                return null;
+            }
+
+            if (response.containsKey("data") && response.get("data") instanceof List<?> list && !list.isEmpty()) {
+                Object first = list.getFirst();
+                if (first instanceof Map<?, ?> m) {
+                    // Используем last price как текущую цену
+                    Object lastPrice = m.get("last");
+                    if (lastPrice != null) {
+                        BigDecimal price = parseBigDec(lastPrice);
+                        log.debug("💹 Текущая цена для {}: {}", instId, price);
+                        return price;
+                    }
+                }
+            }
+
+            log.warn("⚠️ Не удалось извлечь цену из ответа для {}", instId);
+            return null;
+        } catch (Exception e) {
+            log.error("❌ Ошибка получения текущей цены для {}: {}", instId, e.getMessage(), e);
+            return null;
+        }
+    }
+
     // ==== Основная логика размещения ордеров через REST API ====
 
     /**
