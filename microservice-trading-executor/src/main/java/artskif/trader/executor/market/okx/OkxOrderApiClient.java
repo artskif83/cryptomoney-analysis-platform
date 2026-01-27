@@ -224,51 +224,100 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             log.info("🎯 Размещение фьючерсного {} ордера: instId={}, price={}, size={} контрактов (volumeInBase={}, lotSz={})",
                     side, instId, limitPrice, contractSize, volumeInBase, lotSz);
 
-            // 3. Вычисляем цены stop-loss и take-profit
-            // Для Фазы 1 используем только один уровень TP (полный процент)
+            // 3. Вычисляем цену stop-loss
             BigDecimal stopLossPrice;
-            BigDecimal takeProfitPrice1;
 
             if ("buy".equals(side)) {
-                // Для лонга: SL ниже цены входа, TP выше
+                // Для лонга: SL ниже цены входа
                 stopLossPrice = limitPrice.multiply(
                         BigDecimal.ONE.subtract(stopLossPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP))
                 );
-                BigDecimal tpPercentDiv100 = takeProfitPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
-                takeProfitPrice1 = limitPrice.multiply(BigDecimal.ONE.add(tpPercentDiv100));
             } else {
-                // Для шорта: SL выше цены входа, TP ниже
+                // Для шорта: SL выше цены входа
                 stopLossPrice = limitPrice.multiply(
                         BigDecimal.ONE.add(stopLossPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP))
                 );
-                BigDecimal tpPercentDiv100 = takeProfitPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
-                takeProfitPrice1 = limitPrice.multiply(BigDecimal.ONE.subtract(tpPercentDiv100));
             }
 
-            log.info("💰 Цены: Entry={}, SL={}, TP={}", limitPrice, stopLossPrice, takeProfitPrice1);
+            log.info("💰 Цены: Entry={}, SL={}", limitPrice, stopLossPrice);
 
-            // 4. Формируем attached algo orders для гарантированной защиты
-            // Используем только один TP для первой фазы (детерминированный вход)
-            // attachAlgoClOrdId должен быть одинаковым для всех привязанных ордеров
-            String attachAlgoClOrdId = UUID.randomUUID().toString().replace("-", "");
-            if (attachAlgoClOrdId.length() > 32) {
-                attachAlgoClOrdId = attachAlgoClOrdId.substring(0, 32);
+            // 4. Вычисляем цены для 3 уровней TP
+            BigDecimal[] tpPercentages = {
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.5)),  // TP1: 50% от целевого профита
+                takeProfitPercent,                                      // TP2: 100% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(1.5))   // TP3: 150% от целевого профита
+            };
+
+            BigDecimal[] sizePercentages = {
+                BigDecimal.valueOf(0.5),   // TP1: 50% позиции
+                BigDecimal.valueOf(0.3),   // TP2: 30% позиции
+                BigDecimal.valueOf(0.2)    // TP3: 20% позиции
+            };
+
+            // 5. Формируем массив attachAlgoOrds со всеми SL и TP
+            List<Map<String, Object>> attachAlgoOrds = new ArrayList<>();
+
+            // 5.1. Добавляем Stop-Loss ордер
+            Map<String, Object> slOrder = new LinkedHashMap<>();
+            slOrder.put("slTriggerPxType", "last");  // триггер по последней цене для SL
+            slOrder.put("slTriggerPx", stopLossPrice.stripTrailingZeros().toPlainString());
+            slOrder.put("slOrdPx", "-1");  // market order при срабатывании SL
+            attachAlgoOrds.add(slOrder);
+
+            log.info("🛡️ Добавлен SL ордер: triggerPx={}, sz={}", stopLossPrice, contractSize);
+
+            // 5.2. Добавляем 3 Take-Profit ордера
+            BigDecimal totalTpSize = BigDecimal.ZERO;
+            for (int i = 0; i < 3; i++) {
+                BigDecimal tpPrice = calculateTakeProfitPrice(limitPrice, tpPercentages[i], side);
+
+                // Вычисляем размер с учетом lotSz
+                BigDecimal tpSize = contractSize
+                        .multiply(sizePercentages[i])
+                        .divide(lotSz, 0, RoundingMode.DOWN)
+                        .multiply(lotSz);
+
+                // Проверяем, что размер не нулевой
+                if (tpSize.compareTo(BigDecimal.ZERO) <= 0) {
+                    log.warn("⚠️ TP{}: размер слишком мал после округления, используем минимальный lotSz", i + 1);
+                    tpSize = lotSz;
+                }
+
+                totalTpSize = totalTpSize.add(tpSize);
+
+                Map<String, Object> tpOrder = new LinkedHashMap<>();
+                tpOrder.put("tpTriggerPxType", "last");  // триггер по последней цене для TP
+                tpOrder.put("tpTriggerPx", tpPrice.stripTrailingZeros().toPlainString());
+                tpOrder.put("tpOrdPx", "-1");  // market order при срабатывании TP
+                tpOrder.put("sz", tpSize.stripTrailingZeros().toPlainString());  // размер конкретного TP
+                attachAlgoOrds.add(tpOrder);
+
+                log.info("🎯 Добавлен TP{} ордер: triggerPx={}, sz={} ({}% от позиции)",
+                        i + 1, tpPrice, tpSize, sizePercentages[i].multiply(BigDecimal.valueOf(100)));
             }
 
-            // Формируем один объект, содержащий и SL, и TP параметры
-            Map<String, Object> attachedOrder = new LinkedHashMap<>();
-            attachedOrder.put("attachAlgoClOrdId", attachAlgoClOrdId);
-            attachedOrder.put("tpTriggerPxType", "last");  // триггер по последней цене для TP
-//            attachedOrder.put("tpTriggerPx", );
-            attachedOrder.put("tpOrdKind", "limit");
-            attachedOrder.put("tpOrdPx", takeProfitPrice1.stripTrailingZeros().toPlainString());  // market order при срабатывании TP
-            attachedOrder.put("slTriggerPxType", "last");  // триггер по последней цене для SL
-            attachedOrder.put("slTriggerPx", stopLossPrice.stripTrailingZeros().toPlainString());
-            attachedOrder.put("slOrdPx", "-1");  // market order при срабатывании SL
+            // 5.3. Проверяем, что сумма TP равна размеру позиции
+            if (totalTpSize.compareTo(contractSize) != 0) {
+                log.warn("⚠️ Корректируем размер TP для соответствия позиции: totalTpSize={}, contractSize={}",
+                        totalTpSize, contractSize);
 
-            List<Map<String, Object>> attachAlgoOrds = Collections.singletonList(attachedOrder);
+                // Корректируем размер последнего TP
+                BigDecimal diff = contractSize.subtract(totalTpSize);
+                Map<String, Object> lastTp = attachAlgoOrds.getLast();
+                BigDecimal lastTpSize = parseBigDec(lastTp.get("sz"));
+                BigDecimal correctedSize = lastTpSize.add(diff);
 
-            // 5. Формируем тело основного лимитного ордера с attached orders
+                if (correctedSize.compareTo(BigDecimal.ZERO) > 0) {
+                    lastTp.put("sz", correctedSize.stripTrailingZeros().toPlainString());
+                    log.info("✅ Скорректирован размер последнего TP: {}", correctedSize);
+                } else {
+                    log.error("❌ Не удалось скорректировать размер TP");
+                }
+            }
+
+            log.info("📊 Всего создано {} защитных ордеров: 1 SL + 3 TP", attachAlgoOrds.size());
+
+            // 6. Формируем тело основного лимитного ордера со всеми защитными ордерами (SL + 3 TP)
             Map<String, Object> orderBody = new LinkedHashMap<>();
             orderBody.put("instId", instId);
             orderBody.put("tdMode", "cross");  // cross margin mode
@@ -277,14 +326,13 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             orderBody.put("px", limitPrice.stripTrailingZeros().toPlainString());
             orderBody.put("sz", contractSize.stripTrailingZeros().toPlainString());
             orderBody.put("clOrdId", clientId);
-            orderBody.put("attachAlgoOrds", attachAlgoOrds);  // Привязываем SL и TP
+            orderBody.put("attachAlgoOrds", attachAlgoOrds);  // Привязываем SL + 3 TP сразу
 
             String requestBody = mapper.writeValueAsString(orderBody);
 
-            log.info("🔐 Размещение защищённого ордера с attachAlgoOrds: SL={}, TP={}",
-                    stopLossPrice, takeProfitPrice1);
+            log.info("🔐 Размещение ордера с защитой: 1 SL + 3 split TP");
 
-            // 6. Размещаем основной лимитный ордер с защитой
+            // 7. Размещаем основной лимитный ордер со всеми защитными ордерами
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
 
             if (!isSuccessResponse(response)) {
@@ -307,16 +355,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 throw new RuntimeException("Ордер размещен, но ordId не получен: " + safeJson(response));
             }
 
-            log.info("✅ Лимитный фьючерсный ордер размещен с защитой, ordId: {}", ordId);
-
-            // 7. Проверяем исполнение и наличие защитных ордеров
-            boolean orderCreate = waitForOrderCreate(ordId, instId);
-
-            if (orderCreate) {
-                log.info("✅ Позиция открыта с активной защитой (SL и TP)");
-            } else {
-                log.info("⏳ Ордер не исполнен или частично исполнен");
-            }
+            log.info("✅ Лимитный фьючерсный ордер размещен с полной защитой (SL + 3 split TP), ordId: {}", ordId);
 
             // 8. Возвращаем результат основного ордера
             return new OrderExecutionResult(ordId, limitPrice, contractSize);
@@ -360,76 +399,24 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
         }
     }
 
-    /**
-     * Ожидает исполнения ордера с повторными проверками.
-     * @param ordId Идентификатор ордера
-     * @param instId Идентификатор инструмента
-     * @return true если ордер полностью исполнен, false в противном случае
-     */
-    private boolean waitForOrderCreate(String ordId, String instId) {
-        int attempts = 0;
-        int maxAttempts = 10;
-        long delayMs = 500;
-
-        while (attempts < maxAttempts) {
-            try {
-                Thread.sleep(delayMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-
-            Map<String, Object> orderDetails = getOrderDetails(ordId, instId);
-            if (orderDetails != null) {
-                String state = String.valueOf(orderDetails.getOrDefault("state", ""));
-                log.debug("🔍 Проверка статуса ордера {}: state={}", ordId, state);
-
-                if ("live".equals(state) || "partially_filled".equals(state) || "filled".equals(state)) {
-                    log.info("✅ Ордер {} создан", ordId);
-                    return true;
-                } else if ("canceled".equals(state) || "rejected".equals(state) || "mmp_canceled".equals(state)) {
-                    log.warn("⚠️ Ордер {} отменён или отклонён: {}", ordId, state);
-                    return false;
-                }
-            }
-
-            attempts++;
-        }
-
-        log.warn("⏳ Превышено время ожидания исполнения ордера {}", ordId);
-        return false;
-    }
 
     /**
-     * Экстренно закрывает позицию рыночным ордером.
-     * @param instId Идентификатор инструмента
-     * @param originalSide Направление основного ордера ("buy" или "sell")
-     * @param size Размер позиции для закрытия
+     * Вычисляет цену тейк-профита на основе процента и направления позиции.
+     *
+     * @param entryPrice Цена входа
+     * @param profitPercent Процент профита
+     * @param side Направление позиции ("buy" для лонг, "sell" для шорт)
+     * @return Цена тейк-профита
      */
-    private void emergencyClosePosition(String instId, String originalSide, BigDecimal size) {
-        try {
-            // Для закрытия позиции: если основной ордер "buy" (лонг), то закрытие будет "sell"
-            String closeSide = "buy".equals(originalSide) ? "sell" : "buy";
+    private BigDecimal calculateTakeProfitPrice(BigDecimal entryPrice, BigDecimal profitPercent, String side) {
+        BigDecimal percentDiv100 = profitPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
 
-            Map<String, Object> closeOrder = new LinkedHashMap<>();
-            closeOrder.put("instId", instId);
-            closeOrder.put("tdMode", "cross");
-            closeOrder.put("side", closeSide);
-            closeOrder.put("ordType", "market");
-            closeOrder.put("sz", size.stripTrailingZeros().toPlainString());
-            closeOrder.put("reduceOnly", true);  // только закрытие позиции
-
-            String requestBody = mapper.writeValueAsString(closeOrder);
-            Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
-
-            if (!isSuccessResponse(response)) {
-                log.error("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось экстренно закрыть позицию {}: {}",
-                        instId, getErrorMessage(response));
-            } else {
-                log.info("✅ Позиция {} экстренно закрыта рыночным ордером", instId);
-            }
-        } catch (Exception e) {
-            log.error("❌ КРИТИЧЕСКАЯ ОШИБКА при экстренном закрытии позиции {}: {}", instId, e.getMessage(), e);
+        if ("buy".equals(side)) {
+            // Для лонга: TP выше цены входа
+            return entryPrice.multiply(BigDecimal.ONE.add(percentDiv100));
+        } else {
+            // Для шорта: TP ниже цены входа
+            return entryPrice.multiply(BigDecimal.ONE.subtract(percentDiv100));
         }
     }
 
