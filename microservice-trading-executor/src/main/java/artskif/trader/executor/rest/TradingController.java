@@ -1,6 +1,7 @@
 package artskif.trader.executor.rest;
 
 import artskif.trader.api.TradingExecutorApi;
+import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.api.dto.TradingResponse;
@@ -123,6 +124,78 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
         } catch (Exception e) {
             log.error("❌ Ошибка при получении текущей цены: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @PostMapping("/futures/limit/long")
+    public TradingResponse<OrderExecutionResult> placeFuturesLimitLong(@RequestBody FuturesLimitOrderRequest request) {
+        log.info("📥 Получен запрос на фьючерсный лимитный лонг: инструмент {}, цена: {}, размер: {} USDT, SL: {}%, TP: {}%",
+                request.instrument(), request.limitPrice(), request.positionSizeUsdt(),
+                request.stopLossPercent(), request.takeProfitPercent());
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeFuturesLimitLong(
+                    symbol,
+                    request.limitPrice(),
+                    request.positionSizeUsdt(),
+                    request.stopLossPercent(),
+                    request.takeProfitPercent()
+            );
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Фьючерсный лонг-ордер размещен: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при размещении фьючерсного лонг-ордера: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Неверный формат инструмента: {}", request.instrument());
+            return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при размещении фьючерсного лонг-ордера: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @PostMapping("/futures/limit/short")
+    public TradingResponse<OrderExecutionResult> placeFuturesLimitShort(@RequestBody FuturesLimitOrderRequest request) {
+        log.info("📥 Получен запрос на фьючерсный лимитный шорт: инструмент {}, цена: {}, размер: {} USDT, SL: {}%, TP: {}%",
+                request.instrument(), request.limitPrice(), request.positionSizeUsdt(),
+                request.stopLossPercent(), request.takeProfitPercent());
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeFuturesLimitShort(
+                    symbol,
+                    request.limitPrice(),
+                    request.positionSizeUsdt(),
+                    request.stopLossPercent(),
+                    request.takeProfitPercent()
+            );
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Фьючерсный шорт-ордер размещен: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при размещении фьючерсного шорт-ордера: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Неверный формат инструмента: {}", request.instrument());
+            return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при размещении фьючерсного шорт-ордера: {}", e.getMessage(), e);
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }

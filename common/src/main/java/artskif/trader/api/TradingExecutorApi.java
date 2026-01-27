@@ -1,5 +1,6 @@
 package artskif.trader.api;
 
+import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.api.dto.TradingResponse;
@@ -51,4 +52,22 @@ public interface TradingExecutorApi {
     @GET
     @Path("/price/{instrument}")
     TradingResponse<BigDecimal> getCurrentPrice(@PathParam("instrument") String instrument);
+
+    /**
+     * Разместить лимитный лонг-ордер на фьючерсном рынке
+     * @param request запрос с параметрами фьючерсного ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/limit/long")
+    TradingResponse<OrderExecutionResult> placeFuturesLimitLong(FuturesLimitOrderRequest request);
+
+    /**
+     * Разместить лимитный шорт-ордер на фьючерсном рынке
+     * @param request запрос с параметрами фьючерсного ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/limit/short")
+    TradingResponse<OrderExecutionResult> placeFuturesLimitShort(FuturesLimitOrderRequest request);
 }

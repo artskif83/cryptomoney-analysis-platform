@@ -69,4 +69,60 @@ public final class OrderManagerService {
             return null;
         }
     }
+
+    /**
+     * Размещает лимитный лонг-ордер на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param limitPrice Лимитная цена входа
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса
+     * @param takeProfitPercent Процент отклонения для тейк-профита
+     * @return Результат операции
+     */
+    public OperationResult executeFuturesLimitLong(Symbol symbol, BigDecimal limitPrice,
+                                                   BigDecimal positionSizeUsdt,
+                                                   BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+        var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
+        lock.lock();
+        try {
+            log.debug("📈 Выполняется фьючерсный лимитный лонг: {}, цена: {}, размер: {} USDT",
+                    symbol.asPair(), limitPrice, positionSizeUsdt);
+            OrderExecutionResult result = exchange.placeFuturesLimitLong(
+                    symbol, limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
+            return OperationResult.success(result);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при размещении фьючерсного лонг-ордера: {}", e.getMessage(), e);
+            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Размещает лимитный шорт-ордер на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param limitPrice Лимитная цена входа
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса
+     * @param takeProfitPercent Процент отклонения для тейк-профита
+     * @return Результат операции
+     */
+    public OperationResult executeFuturesLimitShort(Symbol symbol, BigDecimal limitPrice,
+                                                    BigDecimal positionSizeUsdt,
+                                                    BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+        var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
+        lock.lock();
+        try {
+            log.debug("📉 Выполняется фьючерсный лимитный шорт: {}, цена: {}, размер: {} USDT",
+                    symbol.asPair(), limitPrice, positionSizeUsdt);
+            OrderExecutionResult result = exchange.placeFuturesLimitShort(
+                    symbol, limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
+            return OperationResult.success(result);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при размещении фьючерсного шорт-ордера: {}", e.getMessage(), e);
+            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+    }
 }

@@ -28,4 +28,28 @@ public interface OrdersClient {
      * @return Текущая цена символа или null в случае ошибки
      */
     BigDecimal getCurrentPrice(Symbol symbol);
+
+    /**
+     * Размещает лимитный лонг-ордер на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param limitPrice Лимитная цена входа
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса (например, 2.0 для 2%)
+     * @param takeProfitPercent Процент отклонения для тейк-профита (например, 5.0 для 5%)
+     * @return Результат размещения ордера
+     */
+    OrderExecutionResult placeFuturesLimitLong(Symbol symbol, BigDecimal limitPrice, BigDecimal positionSizeUsdt,
+                                               BigDecimal stopLossPercent, BigDecimal takeProfitPercent);
+
+    /**
+     * Размещает лимитный шорт-ордер на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param limitPrice Лимитная цена входа
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса (например, 2.0 для 2%)
+     * @param takeProfitPercent Процент отклонения для тейк-профита (например, 5.0 для 5%)
+     * @return Результат размещения ордера
+     */
+    OrderExecutionResult placeFuturesLimitShort(Symbol symbol, BigDecimal limitPrice, BigDecimal positionSizeUsdt,
+                                                BigDecimal stopLossPercent, BigDecimal takeProfitPercent);
 }
