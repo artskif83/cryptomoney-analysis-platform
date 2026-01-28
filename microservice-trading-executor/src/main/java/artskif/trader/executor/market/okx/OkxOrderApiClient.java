@@ -241,17 +241,17 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
             log.info("💰 Цены: Entry={}, SL={}", limitPrice, stopLossPrice);
 
-            // 4. Вычисляем цены для 3 уровней TP
+            // 4. Вычисляем цены для 3 уровней TP (10%, 50%, 100% от целевого профита)
             BigDecimal[] tpPercentages = {
-                takeProfitPercent.multiply(BigDecimal.valueOf(0.5)),  // TP1: 50% от целевого профита
-                takeProfitPercent,                                      // TP2: 100% от целевого профита
-                takeProfitPercent.multiply(BigDecimal.valueOf(1.5))   // TP3: 150% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.2)),      // TP1: 10% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.5)),      // TP2: 50% от целевого профита
+                takeProfitPercent                                         // TP3: 100% от целевого профита
             };
 
             BigDecimal[] sizePercentages = {
-                BigDecimal.valueOf(0.5),   // TP1: 50% позиции
+                BigDecimal.valueOf(0.5),   // TP1: 60% позиции
                 BigDecimal.valueOf(0.3),   // TP2: 30% позиции
-                BigDecimal.valueOf(0.2)    // TP3: 20% позиции
+                BigDecimal.valueOf(0.2)    // TP3: 10% позиции
             };
 
             // 5. Формируем массив attachAlgoOrds со всеми SL и TP
@@ -262,6 +262,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             slOrder.put("slTriggerPxType", "last");  // триггер по последней цене для SL
             slOrder.put("slTriggerPx", stopLossPrice.stripTrailingZeros().toPlainString());
             slOrder.put("slOrdPx", "-1");  // market order при срабатывании SL
+            slOrder.put("amendPxOnTriggerType", "1");  // SL на цену открытия позиции при срабатывании первого TP
             attachAlgoOrds.add(slOrder);
 
             log.info("🛡️ Добавлен SL ордер: triggerPx={}, sz={}", stopLossPrice, contractSize);
@@ -287,12 +288,12 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
                 Map<String, Object> tpOrder = new LinkedHashMap<>();
                 tpOrder.put("tpTriggerPxType", "last");  // триггер по последней цене для TP
-                tpOrder.put("tpTriggerPx", tpPrice.stripTrailingZeros().toPlainString());
-                tpOrder.put("tpOrdPx", "-1");  // market order при срабатывании TP
+                tpOrder.put("tpOrdPx", tpPrice.stripTrailingZeros().toPlainString());  // market order при срабатывании TP
+                tpOrder.put("tpOrdKind", "limit");  // limit order TP
                 tpOrder.put("sz", tpSize.stripTrailingZeros().toPlainString());  // размер конкретного TP
                 attachAlgoOrds.add(tpOrder);
 
-                log.info("🎯 Добавлен TP{} ордер: triggerPx={}, sz={} ({}% от позиции)",
+                log.info("🎯 Добавлен TP{} ордер: tpOrdPx={}, sz={} ({}% от позиции)",
                         i + 1, tpPrice, tpSize, sizePercentages[i].multiply(BigDecimal.valueOf(100)));
             }
 
