@@ -38,6 +38,13 @@ public class Candle {
     @ConfigProperty(name = "analysis.candle5m.max-historical-buffer-size", defaultValue = "1000000")
     int candle5mMaxHistoricalBufferSize;
 
+    @ConfigProperty(name = "analysis.candle1h.enabled", defaultValue = "true")
+    boolean candle1hEnabled;
+    @ConfigProperty(name = "analysis.candle1h.max-live-buffer-size", defaultValue = "10000")
+    int candle1hMaxLiveBufferSize;
+    @ConfigProperty(name = "analysis.candle1h.max-historical-buffer-size", defaultValue = "1000000")
+    int candle1hMaxHistoricalBufferSize;
+
     @ConfigProperty(name = "analysis.candle4h.enabled", defaultValue = "true")
     boolean candle4hEnabled;
     @ConfigProperty(name = "analysis.candle4h.max-live-buffer-size", defaultValue = "10000")
@@ -73,6 +80,12 @@ public class Candle {
             instances.put(CandleTimeframe.CANDLE_5M, new CandleInstance(
                     CandleTimeframe.CANDLE_5M, "CANDLE-5m",
                     candle5mMaxLiveBufferSize, candle5mMaxHistoricalBufferSize, bus, candleRepository
+            ));
+        }
+        if (candle1hEnabled) {
+            instances.put(CandleTimeframe.CANDLE_1H, new CandleInstance(
+                    CandleTimeframe.CANDLE_1H, "CANDLE-1H",
+                    candle1hMaxLiveBufferSize, candle1hMaxHistoricalBufferSize, bus, candleRepository
             ));
         }
         if (candle4hEnabled) {

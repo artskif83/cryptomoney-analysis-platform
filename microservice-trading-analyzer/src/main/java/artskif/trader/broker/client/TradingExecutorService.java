@@ -32,7 +32,7 @@ public class TradingExecutorService {
         log.info("🔄 Отправка запроса на покупку: {} процент от депозита: {}", instrument, persentOfDeposit);
 
         MarketOrderRequest request = new MarketOrderRequest(instrument, persentOfDeposit);
-        TradingResponse response = executorClient.placeSpotMarketBuy(request);
+        TradingResponse<OrderExecutionResult> response = executorClient.placeSpotMarketBuy(request);
 
         if (!response.success()) {
             log.error("❌ Ошибка при покупке: {} - {}", response.errorCode(), response.errorMessage());

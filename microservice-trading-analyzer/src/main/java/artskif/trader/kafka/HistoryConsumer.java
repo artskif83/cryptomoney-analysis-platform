@@ -37,6 +37,11 @@ public class HistoryConsumer {
         candle.restoreFromHistory(CandleTimeframe.CANDLE_5M, message);
     }
 
+    @Incoming("candle-1h-history")
+    public void consume1hHistory(String message) {
+        candle.restoreFromHistory(CandleTimeframe.CANDLE_1H, message);
+    }
+
     @Incoming("candle-4h-history")
     public void consume4hHistory(String message) {
         candle.restoreFromHistory(CandleTimeframe.CANDLE_4H, message);

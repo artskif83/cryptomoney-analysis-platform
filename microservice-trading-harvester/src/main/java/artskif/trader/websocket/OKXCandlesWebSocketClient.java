@@ -62,6 +62,7 @@ public class OKXCandlesWebSocketClient {
 
         queues.put("okx-candle-1m", new LinkedBlockingQueue<>(10_000));
         queues.put("okx-candle-5m", new LinkedBlockingQueue<>(10_000));
+        queues.put("okx-candle-1h", new LinkedBlockingQueue<>(10_000));
         queues.put("okx-candle-4h", new LinkedBlockingQueue<>(10_000));
         queues.put("okx-candle-1w", new LinkedBlockingQueue<>(10_000));
 
@@ -155,6 +156,7 @@ public class OKXCandlesWebSocketClient {
           "args": [
             {"channel":"candle1m","instId":"BTC-USDT"},
             {"channel":"candle5m","instId":"BTC-USDT"},
+            {"channel":"candle1H","instId":"BTC-USDT"},
             {"channel":"candle4H","instId":"BTC-USDT"},
             {"channel":"candle1W","instId":"BTC-USDT"}
           ]
@@ -189,6 +191,7 @@ public class OKXCandlesWebSocketClient {
     private String determineTopic(String message) {
         if (message.contains("\"channel\":\"candle1m\"")) return "okx-candle-1m";
         if (message.contains("\"channel\":\"candle5m\"")) return "okx-candle-5m";
+        if (message.contains("\"channel\":\"candle1H\"")) return "okx-candle-1h";
         if (message.contains("\"channel\":\"candle4H\"")) return "okx-candle-4h";
         if (message.contains("\"channel\":\"candle1W\"")) return "okx-candle-1w";
         return null;

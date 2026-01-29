@@ -33,6 +33,11 @@ public class CandleConsumer {
         candle.handleTick(CandleTimeframe.CANDLE_5M, message);
     }
 
+    @Incoming("candle-1h")
+    public void consume1h(String message) {
+        candle.handleTick(CandleTimeframe.CANDLE_1H, message);
+    }
+
     @Incoming("candle-4h")
     public void consume4H(String message) {
         candle.handleTick(CandleTimeframe.CANDLE_4H, message);
