@@ -21,7 +21,6 @@ import java.util.Map;
 @ApplicationScoped
 public class CloseFeature extends AbstractFeature<ClosePriceIndicator> {
     private final Candle candle;
-    private final Map<CandleTimeframe, List<CandlestickDto>> candlestickDtos = new HashMap<>();
 
     /**
      * Перечислимый тип для различных значений ADX фичи
@@ -77,9 +76,9 @@ public class CloseFeature extends AbstractFeature<ClosePriceIndicator> {
 
     @Override
     public Num getValueByName(String valueName, int index) {
-        CloseFeatureType adxType = FeatureTypeMetadata.findByName(CloseFeatureType.values(), valueName);
+        CloseFeatureType closeFeatureType = FeatureTypeMetadata.findByName(CloseFeatureType.values(), valueName);
 
-        return switch (adxType) {
+        return switch (closeFeatureType) {
             case BASE_5M -> indicators.get(CandleTimeframe.CANDLE_5M).getValue(index);
             case BASE_4H -> indicators.get(CandleTimeframe.CANDLE_4H).getValue(index);
         };
