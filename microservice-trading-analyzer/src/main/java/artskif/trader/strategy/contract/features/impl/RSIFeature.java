@@ -1,10 +1,10 @@
 package artskif.trader.strategy.contract.features.impl;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.dto.CandlestickDto;
 import artskif.trader.strategy.contract.features.FeatureMetadata;
 import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
 import artskif.trader.strategy.contract.features.AbstractFeature;
+import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.indicators.RSIIndicator;
@@ -13,7 +13,7 @@ import org.ta4j.core.num.Num;
 import java.util.List;
 
 @ApplicationScoped
-public class RSIFeature extends AbstractFeature<RSIIndicator> {
+public class RSIFeature extends AbstractFeature<RSIIndicatorM> {
 
     public static final int RSI_PERIOD = 14;
 
@@ -37,13 +37,18 @@ public class RSIFeature extends AbstractFeature<RSIIndicator> {
             "feature_rsi_14_5m_on_4h",
             "RSI индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
             "numeric(5, 2)",
-            CandleTimeframe.CANDLE_5M
+            CandleTimeframe.CANDLE_5M,
+            CandleTimeframe.CANDLE_4H  // higher timeframe
         );
 
         private final FeatureMetadata metadata;
 
         RSIFeatureType(String name, String description, String dataType, CandleTimeframe timeframe) {
             this.metadata = new FeatureMetadata(name, description, dataType, timeframe);
+        }
+
+        RSIFeatureType(String name, String description, String dataType, CandleTimeframe timeframe, CandleTimeframe higherTimeframe) {
+            this.metadata = new FeatureMetadata(name, description, dataType, timeframe, higherTimeframe);
         }
 
         @Override
@@ -58,23 +63,14 @@ public class RSIFeature extends AbstractFeature<RSIIndicator> {
     }
 
     @Inject
-    public RSIFeature(CloseFeature closeFeature) {
-        super(closeFeature);
-        this.indicators.put(CandleTimeframe.CANDLE_5M, new RSIIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_5M), RSI_PERIOD));
-        this.indicators.put(CandleTimeframe.CANDLE_4H, new RSIIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_4H), RSI_PERIOD));
+    public RSIFeature(RSIIndicatorM rsiIndicatorM) {
+        super(rsiIndicatorM);
     }
 
     @Override
-    public Num getValueByName(String valueName, int index) {
-        RSIFeatureType rsiType = FeatureTypeMetadata.findByName(RSIFeatureType.values(), valueName);
-
-        return switch (rsiType) {
-            case RSI_5M -> indicators.get(CandleTimeframe.CANDLE_5M).getValue(index);
-            case RSI_4H -> indicators.get(CandleTimeframe.CANDLE_4H).getValue(index);
-            case RSI_5M_ON_4H -> getHigherTimeframeValue(index, CandleTimeframe.CANDLE_5M, CandleTimeframe.CANDLE_4H);
-        };
+    public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
+        return getValueByNameGeneric(isLiveSeries, valueName, index, RSIFeatureType.values());
     }
-
 
     @Override
     public List<String> getFeatureValueNames() {

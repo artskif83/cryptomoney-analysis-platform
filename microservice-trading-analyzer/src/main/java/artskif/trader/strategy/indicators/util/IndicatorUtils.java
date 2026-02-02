@@ -1,11 +1,11 @@
-package artskif.trader.strategy.contract.util;
+package artskif.trader.strategy.indicators.util;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 import java.time.Instant;
 
-public final class FeaturesUtils {
+public final class IndicatorUtils {
 
     /**
      * Маппинг индекса свечи на нижнем таймфрейме к индексу свечи на старшем таймфрейме

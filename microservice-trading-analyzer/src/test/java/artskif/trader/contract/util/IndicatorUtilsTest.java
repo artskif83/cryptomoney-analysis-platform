@@ -1,6 +1,6 @@
 package artskif.trader.contract.util;
 
-import artskif.trader.strategy.contract.util.FeaturesUtils;
+import artskif.trader.strategy.indicators.util.IndicatorUtils;
 import org.junit.jupiter.api.Test;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
@@ -14,7 +14,7 @@ import java.time.ZonedDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FeaturesUtilsTest {
+class IndicatorUtilsTest {
 
     @Test
     void mapToHigherTfIndex_shouldReturnCorrectIndex_whenLowerTfBarMapsToHigherTfBar() {
@@ -38,7 +38,7 @@ class FeaturesUtilsTest {
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
         // When: маппим свечу нижнего таймфрейма на индекс старшего
-        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+        int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
         // Then: должны получить индекс 0 (первая часовая свеча, которая заканчивается в 11:00)
         assertEquals(0, result);
@@ -64,7 +64,7 @@ class FeaturesUtilsTest {
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
         // When
-        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+        int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
         // Then: должны получить индекс 1 (вторая часовая свеча)
         assertEquals(1, result);
@@ -91,7 +91,7 @@ class FeaturesUtilsTest {
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
         // When
-        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+        int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
         // Then: должны получить индекс последней свечи (2), которая закончилась в 13:00
         assertEquals(2, result);
@@ -117,7 +117,7 @@ class FeaturesUtilsTest {
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
         // When
-        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+        int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
         // Then: должно быть возвращено -1
         assertEquals(-1, result);
@@ -148,7 +148,7 @@ class FeaturesUtilsTest {
             Bar lowerTfBar = createBar(startTime, endTime, Duration.ofMinutes(15));
 
             // When
-            int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+            int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
             // Then: для свечей 11:00-11:15, 11:15-11:30, 11:30-11:45, 11:45-12:00
             // должны мапиться на часовую свечу, закончившуюся в 11:00 (индекс 0)
@@ -180,7 +180,7 @@ class FeaturesUtilsTest {
         Bar lowerTfBar = createBar(lowerBarStartTime, lowerBarEndTime, Duration.ofMinutes(15));
 
         // When
-        int result = FeaturesUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
+        int result = IndicatorUtils.mapToHigherTfIndex(lowerTfBar, higherSeries);
 
         // Then: должна мапиться на вторую часовую свечу (индекс 1)
         assertEquals(1, result);

@@ -74,7 +74,7 @@ public class ContractSnapshotBuilder {
                     if (feature != null) {
                         FeatureTypeMetadata featureTypeMetadataByValueName = feature.getFeatureTypeMetadataByValueName(metadata.name);
                         if (featureTypeMetadataByValueName != null && featureTypeMetadataByValueName.getTimeframe().equals(timeframe)) {
-                            row.addFeature(metadata.name, feature.getValueByName(metadata.name, barIndex).bigDecimalValue());
+                            row.addFeature(metadata.name, feature.getValueByName(isLive, metadata.name, barIndex).bigDecimalValue());
                         } else {
                             Log.debugf("⚠️ Фича %s не поддерживает таймфрейм %s",
                                     metadata.name, timeframe);

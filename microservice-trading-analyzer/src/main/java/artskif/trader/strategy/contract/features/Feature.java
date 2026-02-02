@@ -1,8 +1,7 @@
 package artskif.trader.strategy.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.strategy.contract.util.FeaturesUtils;
-import artskif.trader.dto.CandlestickDto;
+import artskif.trader.strategy.indicators.util.IndicatorUtils;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.num.NaN;
 import org.ta4j.core.num.Num;
@@ -17,24 +16,11 @@ public interface Feature {
 
 
     /**
-     * Получить значение фичи на старшем таймфрейме
-     * Реализация по умолчанию использует FeaturesUtils для маппинга индексов
-     *
-     * @return значение фичи
-     */
-    default Num getHigherTimeframeValue(int index, CandleTimeframe lowerTimeframe, CandleTimeframe higherTimeframe) {
-        AbstractIndicator<Num> lowerTfIndicator = getIndicator(lowerTimeframe);
-        AbstractIndicator<Num> higherTfIndicator = getIndicator(higherTimeframe);
-        int higherTfIndex = FeaturesUtils.mapToHigherTfIndex(lowerTfIndicator.getBarSeries().getBar(index), higherTfIndicator.getBarSeries());
-        return higherTfIndex == -1 ? NaN.NaN : higherTfIndicator.getValue(higherTfIndex);
-    }
-
-    /**
      * Получить индикатор TA4J для расчета фичи
      *
      * @return индикатор TA4J
      */
-    AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe);
+    AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe, boolean isLiveSeries);
 
     /**
      * Получить имена значений фичи для сохранения в БД
@@ -48,7 +34,7 @@ public interface Feature {
      *
      * @return значение фичи
      */
-    Num getValueByName(String valueName, int index);
+    Num getValueByName(boolean isLiveSeries, String valueName, int index);
 
     /**
      * Получить тип данных фичи

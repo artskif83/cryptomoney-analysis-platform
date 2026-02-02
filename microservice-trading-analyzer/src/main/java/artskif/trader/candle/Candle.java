@@ -113,6 +113,13 @@ public class Candle {
     }
 
     /**
+     * Проверить существование экземпляра для указанного таймфрейма
+     */
+    public boolean hasInstance(CandleTimeframe timeframe) {
+        return instances.containsKey(timeframe);
+    }
+
+    /**
      * Получить все экземпляры свечей
      */
     public Map<CandleTimeframe, CandleInstance> getAllInstances() {

@@ -1,16 +1,14 @@
 package artskif.trader.strategy.contract.features;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.strategy.contract.features.impl.CloseFeature;
-import artskif.trader.dto.CandlestickDto;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import artskif.trader.entity.MetadataType;
+import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.num.Num;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,20 +16,14 @@ import java.util.Map;
  * Абстрактный базовый класс для фич
  * Содержит общую логику для создания метаданных и делегирования базовых методов
  *
- * @param <T> тип индикатора, наследующийся от AbstractIndicator
+ * @param <T> тип индикатора, наследующийся от MultiAbstractIndicator
  */
-public abstract class AbstractFeature<T extends AbstractIndicator<Num>> implements Feature {
+public abstract class AbstractFeature<T extends MultiAbstractIndicator<? extends AbstractIndicator<Num>>> implements Feature {
 
-    protected final CloseFeature closeFeature;
-    protected final Map<CandleTimeframe, T> indicators = new HashMap<>();
+    protected final T indicatorM;
 
-    /**
-     * Конструктор для фич, которые используют BaseFeature
-     *
-     * @param closeFeature базовая фича с OHLCV данными
-     */
-    protected AbstractFeature(CloseFeature closeFeature) {
-        this.closeFeature = closeFeature;
+    protected AbstractFeature(T indicatorM) {
+        this.indicatorM = indicatorM;
     }
 
     /**
@@ -62,14 +54,39 @@ public abstract class AbstractFeature<T extends AbstractIndicator<Num>> implemen
     }
 
     /**
-     * Получить индикатор для указанного таймфрейма
+     * Получить индикатор для указанного таймфрейма с выбором типа серии
      *
      * @param timeframe таймфрейм
+     * @param isLiveSeries использовать live серию или historical
      * @return индикатор TA4J
      */
-    @Override
-    public AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe) {
-        return indicators.get(timeframe);
+    public AbstractIndicator<Num> getIndicator(CandleTimeframe timeframe, boolean isLiveSeries) {
+        return indicatorM.getIndicator(timeframe, isLiveSeries);
+    }
+
+    public Num getHigherTimeframeValue(int index, CandleTimeframe lowerTimeframe, CandleTimeframe higherTimeframe, boolean isLifeSeries){
+        return indicatorM.getHigherTimeframeValue(index, lowerTimeframe, higherTimeframe, isLifeSeries);
+    }
+
+    /**
+     * Обобщенная реализация получения значения по имени фичи
+     * Использует метаданные enum для определения стратегии получения значения
+     *
+     * @param isLiveSeries использовать live серию или historical
+     * @param valueName имя значения фичи
+     * @param index индекс в серии
+     * @param featureTypes массив enum значений, реализующих FeatureTypeMetadata
+     * @return значение индикатора
+     */
+    protected Num getValueByNameGeneric(boolean isLiveSeries, String valueName, int index, FeatureTypeMetadata[] featureTypes) {
+        FeatureTypeMetadata featureType = FeatureTypeMetadata.findByName(featureTypes, valueName);
+        FeatureMetadata metadata = featureType.getMetadata();
+
+        if (metadata.usesHigherTimeframe()) {
+            return getHigherTimeframeValue(index, metadata.timeframe(), metadata.higherTimeframe(), isLiveSeries);
+        } else {
+            return getIndicator(metadata.timeframe(), isLiveSeries).getValue(index);
+        }
     }
 }
 

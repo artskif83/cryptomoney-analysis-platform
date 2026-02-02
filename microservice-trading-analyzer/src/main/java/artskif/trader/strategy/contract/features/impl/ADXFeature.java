@@ -4,15 +4,15 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.contract.features.FeatureMetadata;
 import artskif.trader.strategy.contract.features.FeatureTypeMetadata;
 import artskif.trader.strategy.contract.features.AbstractFeature;
+import artskif.trader.strategy.indicators.multi.ADXIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.ta4j.core.indicators.adx.ADXIndicator;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
 
 @ApplicationScoped
-public class ADXFeature extends AbstractFeature<ADXIndicator> {
+public class ADXFeature extends AbstractFeature<ADXIndicatorM> {
 
     public static final int ADX_PERIOD = 14;
 
@@ -36,13 +36,18 @@ public class ADXFeature extends AbstractFeature<ADXIndicator> {
                 "feature_adx_14_5m_on_4h",
                 "ADX индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
                 "numeric(5, 2)",
-                CandleTimeframe.CANDLE_5M
+                CandleTimeframe.CANDLE_5M,
+                CandleTimeframe.CANDLE_4H  // higher timeframe
         );
 
         private final FeatureMetadata metadata;
 
         ADXFeatureType(String name, String description, String dataType, CandleTimeframe timeframe) {
             this.metadata = new FeatureMetadata(name, description, dataType, timeframe);
+        }
+
+        ADXFeatureType(String name, String description, String dataType, CandleTimeframe timeframe, CandleTimeframe higherTimeframe) {
+            this.metadata = new FeatureMetadata(name, description, dataType, timeframe, higherTimeframe);
         }
 
         @Override
@@ -58,23 +63,14 @@ public class ADXFeature extends AbstractFeature<ADXIndicator> {
     }
 
     @Inject
-    public ADXFeature(CloseFeature closeFeature) {
-        super(closeFeature);
-        this.indicators.put(CandleTimeframe.CANDLE_5M, new ADXIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_5M).getBarSeries(), ADX_PERIOD));
-        this.indicators.put(CandleTimeframe.CANDLE_4H, new ADXIndicator(closeFeature.getIndicator(CandleTimeframe.CANDLE_4H).getBarSeries(), ADX_PERIOD));
+    public ADXFeature(ADXIndicatorM adxIndicatorM) {
+        super(adxIndicatorM);
     }
 
     @Override
-    public Num getValueByName(String valueName, int index) {
-        ADXFeatureType adxType = FeatureTypeMetadata.findByName(ADXFeatureType.values(), valueName);
-
-        return switch (adxType) {
-            case ADX_5M -> indicators.get(CandleTimeframe.CANDLE_5M).getValue(index);
-            case ADX_4H -> indicators.get(CandleTimeframe.CANDLE_4H).getValue(index);
-            case ADX_5M_ON_4H -> getHigherTimeframeValue(index, CandleTimeframe.CANDLE_5M, CandleTimeframe.CANDLE_4H);
-        };
+    public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
+        return getValueByNameGeneric(isLiveSeries, valueName, index, ADXFeatureType.values());
     }
-
 
     @Override
     public List<String> getFeatureValueNames() {

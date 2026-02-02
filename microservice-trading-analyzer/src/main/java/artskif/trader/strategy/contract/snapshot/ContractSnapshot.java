@@ -13,10 +13,7 @@ public interface ContractSnapshot {
     /** Идентификатор схемы (Contract.contractHash) */
     String contractHash();
 
-    /** Значение фичи по имени из ContractMetadata */
-    Object getFeature(String name);
-
-    /** Все фичи в виде мапы */
+       /** Все фичи в виде мапы */
     Map<String, Object> getAllFeatures();
 
     Duration getTimeframe();
