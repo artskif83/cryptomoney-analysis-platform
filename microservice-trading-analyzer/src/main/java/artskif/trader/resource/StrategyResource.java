@@ -279,6 +279,47 @@ public class StrategyResource {
     }
 
     /**
+     * Запустить бэктест для стратегии
+     * @param strategyName имя стратегии для запуска бэктеста
+     */
+    @POST
+    @Path("/backtest/{strategyName}")
+    public Response runBacktest(@PathParam("strategyName") String strategyName) {
+        try {
+            Log.infof("📊 Запрос на запуск бэктеста для стратегии: %s", strategyName);
+
+            boolean success = strategyService.runBacktest(strategyName);
+
+            if (success) {
+                return Response.ok()
+                        .entity(Map.of(
+                                "status", "success",
+                                "message", "Бэктест успешно выполнен",
+                                "strategyName", strategyName
+                        ))
+                        .build();
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Не удалось запустить бэктест (стратегия не найдена)",
+                                "strategyName", strategyName
+                        ))
+                        .build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при запуске бэктеста для стратегии: %s", strategyName);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "strategyName", strategyName
+                    ))
+                    .build();
+        }
+    }
+
+    /**
      * Удалить контракт со всеми его метаданными и зависимыми фичами по ID
      * @param contractId ID контракта для удаления
      * @return ответ с результатом удаления

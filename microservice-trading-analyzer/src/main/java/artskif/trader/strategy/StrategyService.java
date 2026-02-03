@@ -202,5 +202,31 @@ public class StrategyService {
     public void generatePredict() {
         Log.debug("🔴 Получить текущее предсказание");
     }
+
+    /**
+     * Запустить бэктест для стратегии по имени
+     *
+     * @param strategyName имя стратегии
+     * @return true если бэктест успешно запущен
+     */
+    public boolean runBacktest(String strategyName) {
+        AbstractStrategy strategy = strategyMap.get(strategyName);
+
+        if (strategy == null) {
+            Log.warnf("⚠️ Стратегия не найдена: %s", strategyName);
+            return false;
+        }
+
+        try {
+            Log.infof("📊 Запуск бэктеста для стратегии: %s", strategyName);
+            strategy.backtest();
+            Log.infof("✅ Бэктест завершен для стратегии: %s", strategyName);
+            return true;
+
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при выполнении бэктеста для стратегии: %s", strategyName);
+            return false;
+        }
+    }
 }
 
