@@ -12,8 +12,8 @@ import java.util.Map;
  * Содержит базовые поля из candles и динамически добавляемые фичи из индикаторов
  */
 @Entity
-@Table(name = "features")
-public class Feature extends PanacheEntityBase {
+@Table(name = "wide_candles")
+public class WideCandle extends PanacheEntityBase {
 
     @EmbeddedId
     public CandleId id;
@@ -44,11 +44,11 @@ public class Feature extends PanacheEntityBase {
     @Transient
     private Map<String, Object> features = new HashMap<>();
 
-    public Feature() {
+    public WideCandle() {
     }
 
-    public Feature(CandleId id, BigDecimal open, BigDecimal high,
-                    BigDecimal low, BigDecimal close, BigDecimal volume, boolean confirmed) {
+    public WideCandle(CandleId id, BigDecimal open, BigDecimal high,
+                      BigDecimal low, BigDecimal close, BigDecimal volume, boolean confirmed) {
         this.id = id;
         this.open = open;
         this.high = high;

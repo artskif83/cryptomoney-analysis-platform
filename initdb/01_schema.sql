@@ -37,8 +37,8 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_candles
     confirmed      boolean DEFAULT false
 );
 
--- 3) Таблица контрактов (Wide Table для ML)
-CREATE TABLE IF NOT EXISTS features
+-- 3) Таблица широких свечей (Wide Table для ML, тестирования и отладки)
+CREATE TABLE IF NOT EXISTS wide_candles
 (
     tf             varchar(10)    NOT NULL,
     ts             timestamp      NOT NULL,
@@ -52,11 +52,11 @@ CREATE TABLE IF NOT EXISTS features
     PRIMARY KEY (tf, ts)
 );
 
-SELECT create_hypertable('features', 'ts', if_not_exists => TRUE);
-CREATE INDEX features_symbol_tf_ts_idx ON features (tf, ts DESC);
+SELECT create_hypertable('wide_candles', 'ts', if_not_exists => TRUE);
+CREATE INDEX wide_candles_symbol_tf_ts_idx ON wide_candles (tf, ts DESC);
 
--- Staging таблица для COPY features (UNLOGGED для скорости)
-CREATE UNLOGGED TABLE IF NOT EXISTS stage_features
+-- Staging таблица для COPY wide_candles (UNLOGGED для скорости)
+CREATE UNLOGGED TABLE IF NOT EXISTS stage_wide_candles
 (
     tf             varchar(10),
     ts             timestamp,

@@ -20,9 +20,9 @@ import java.util.Optional;
  * Сервис для работы с данными стратегий и фичами в базе данных.
  *
  * Основные функции:
- * - Сохранение и управление строками фич (DatabaseSnapshotRow) в таблице features
- * - Пакетная загрузка данных через промежуточную таблицу stage_features с использованием PostgreSQL COPY
- * - Управление динамическими колонками в таблицах features и stage_features
+ * - Сохранение и управление строками фич (DatabaseSnapshotRow) в таблице wide_candles
+ * - Пакетная загрузка данных через промежуточную таблицу stage_wide_candles с использованием PostgreSQL COPY
+ * - Управление динамическими колонками в таблицах wide_candles и stage_wide_candles
  * - CRUD операции для контрактов (Contract) и их метаданных
  * - Удаление контрактов со всеми зависимыми данными (фичи, метаданные)
  *
@@ -54,7 +54,7 @@ public class StrategyDataService {
             values.append(", :").append(featureName);
         }
 
-        String sql = String.format("INSERT INTO features (%s) VALUES (%s)", columns, values);
+        String sql = String.format("INSERT INTO wide_candles (%s) VALUES (%s)", columns, values);
 
         var query = entityManager.createNativeQuery(sql)
                 .setParameter("tf", formatDuration(row.getTimeframe()))
@@ -72,7 +72,7 @@ public class StrategyDataService {
     }
 
     /**
-     * Пакетное сохранение строк фич через промежуточную таблицу stage_features
+     * Пакетное сохранение строк фич через промежуточную таблицу stage_wide_candles
      * Использует PostgreSQL COPY для быстрой загрузки данных
      */
     @Transactional
@@ -86,7 +86,7 @@ public class StrategyDataService {
         DatabaseSnapshot firstRow = iterator.next();
 
         // Проверяем, существует ли запись для этого контракта
-        String checkSql = "SELECT COUNT(*) FROM features WHERE contract_hash = :contract_hash";
+        String checkSql = "SELECT COUNT(*) FROM wide_candles WHERE contract_hash = :contract_hash";
         Long existingCount = (Long) entityManager.createNativeQuery(checkSql)
                 .setParameter("contract_hash", firstRow.contractHash())
                 .getSingleResult();
@@ -116,14 +116,14 @@ public class StrategyDataService {
             session.doWork(conn -> {
                 try (java.sql.Statement stmt = conn.createStatement()) {
                     // Очищаем staging таблицу
-                    stmt.execute("TRUNCATE TABLE stage_features");
+                    stmt.execute("TRUNCATE TABLE stage_wide_candles");
 
                     org.postgresql.PGConnection pgConn = conn.unwrap(org.postgresql.PGConnection.class);
                     org.postgresql.copy.CopyManager cm = pgConn.getCopyAPI();
 
                     // Формируем список колонок для COPY
                     String columnList = buildCopyColumnList(firstRow);
-                    String copySql = "COPY stage_features(" + columnList + ") " +
+                    String copySql = "COPY stage_wide_candles(" + columnList + ") " +
                             "FROM STDIN WITH (FORMAT csv, DELIMITER ',', NULL '', HEADER false)";
 
                     long copied = cm.copyIn(copySql, new java.io.StringReader(csv));
@@ -135,7 +135,7 @@ public class StrategyDataService {
                     Log.debugf("💾 Upsert затронул строк: %d", affected[0]);
 
                     // Очищаем staging таблицу
-                    stmt.execute("TRUNCATE TABLE stage_features");
+                    stmt.execute("TRUNCATE TABLE stage_wide_candles");
 
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -145,8 +145,8 @@ public class StrategyDataService {
             Log.infof("✅ Завершено пакетное сохранение: %d строк", affected[0]);
 
         } catch (RuntimeException ex) {
-            Log.errorf(ex, "❌ Ошибка при сохранении фич через COPY -> stage_features");
-            throw new RuntimeException("Не удалось сохранить фичи через stage_features", ex);
+            Log.errorf(ex, "❌ Ошибка при сохранении фич через COPY -> stage_wide_candles");
+            throw new RuntimeException("Не удалось сохранить фичи через stage_wide_candles", ex);
         }
     }
 
@@ -228,7 +228,7 @@ public class StrategyDataService {
         }
 
         return String.format(
-                "INSERT INTO features(%s) SELECT %s FROM stage_features " +
+                "INSERT INTO wide_candles(%s) SELECT %s FROM stage_wide_candles " +
                         "ON CONFLICT (tf, ts) DO UPDATE SET %s",
                 columns, selectColumns, updateSet
         );
@@ -291,21 +291,21 @@ public class StrategyDataService {
     }
 
     /**
-     * Проверить существование колонки в таблицах features и stage_features
+     * Проверить существование колонки в таблицах wide_candles и stage_wide_candles
      */
     private boolean columnExists(String columnName) {
         try {
-            // Проверяем существование колонки в таблице features
+            // Проверяем существование колонки в таблице wide_candles
             String sqlFeatures = "SELECT column_name FROM information_schema.columns " +
-                    "WHERE table_name = 'features' AND column_name = :columnName";
+                    "WHERE table_name = 'wide_candles' AND column_name = :columnName";
 
             var resultFeatures = entityManager.createNativeQuery(sqlFeatures)
                     .setParameter("columnName", columnName)
                     .getResultList();
 
-            // Проверяем существование колонки в таблице stage_features
+            // Проверяем существование колонки в таблице stage_wide_candles
             String sqlStageFeatures = "SELECT column_name FROM information_schema.columns " +
-                    "WHERE table_name = 'stage_features' AND column_name = :columnName";
+                    "WHERE table_name = 'stage_wide_candles' AND column_name = :columnName";
 
             var resultStageFeatures = entityManager.createNativeQuery(sqlStageFeatures)
                     .setParameter("columnName", columnName)
@@ -321,21 +321,21 @@ public class StrategyDataService {
 
     /**
      * Создать колонку (вызывается из transactional метода)
-     * Создает колонку как в основной таблице features, так и в промежуточной stage_features
+     * Создает колонку как в основной таблице wide_candles, так и в промежуточной stage_wide_candles
      */
     private void createColumn(String columnName, String dataType) {
         try {
-            // Создаем колонку в основной таблице features
-            String sqlFeatures = String.format("ALTER TABLE features ADD COLUMN IF NOT EXISTS %s %s",
+            // Создаем колонку в основной таблице wide_candles
+            String sqlFeatures = String.format("ALTER TABLE wide_candles ADD COLUMN IF NOT EXISTS %s %s",
                     columnName, dataType);
             entityManager.createNativeQuery(sqlFeatures).executeUpdate();
-            Log.infof("✅ Создана колонка %s с типом %s в таблице features", columnName, dataType);
+            Log.infof("✅ Создана колонка %s с типом %s в таблице wide_candles", columnName, dataType);
 
-            // Создаем колонку в промежуточной таблице stage_features
-            String sqlStageFeatures = String.format("ALTER TABLE stage_features ADD COLUMN IF NOT EXISTS %s %s",
+            // Создаем колонку в промежуточной таблице stage_wide_candles
+            String sqlStageFeatures = String.format("ALTER TABLE stage_wide_candles ADD COLUMN IF NOT EXISTS %s %s",
                     columnName, dataType);
             entityManager.createNativeQuery(sqlStageFeatures).executeUpdate();
-            Log.infof("✅ Создана колонка %s с типом %s в таблице stage_features", columnName, dataType);
+            Log.infof("✅ Создана колонка %s с типом %s в таблице stage_wide_candles", columnName, dataType);
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при создании колонки: %s", columnName);
             throw new RuntimeException("Не удалось создать колонку: " + columnName, e);
@@ -411,8 +411,8 @@ public class StrategyDataService {
             String contractName = contract.name;
             String contractHash = contract.contractHash;
 
-            // 1. Удаляем все строки фич из таблицы features
-            String deleteFeaturesSql = "DELETE FROM features WHERE contract_hash = :contractHash";
+            // 1. Удаляем все строки фич из таблицы wide_candles
+            String deleteFeaturesSql = "DELETE FROM wide_candles WHERE contract_hash = :contractHash";
             int deletedFeatures = entityManager.createNativeQuery(deleteFeaturesSql)
                     .setParameter("contractHash", contractHash)
                     .executeUpdate();
