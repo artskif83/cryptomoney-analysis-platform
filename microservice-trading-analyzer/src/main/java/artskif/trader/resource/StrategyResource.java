@@ -1,7 +1,7 @@
 package artskif.trader.resource;
 
 import artskif.trader.strategy.StrategyService;
-import artskif.trader.strategy.contract.ContractDataService;
+import artskif.trader.strategy.StrategyDataService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -23,7 +23,7 @@ public class StrategyResource {
     StrategyService strategyService;
 
     @Inject
-    ContractDataService contractDataService;
+    StrategyDataService strategyDataService;
 
 
     /**
@@ -289,7 +289,7 @@ public class StrategyResource {
         try {
             Log.infof("🗑️ Получен запрос на удаление контракта с ID: %d", contractId);
 
-            boolean deleted = contractDataService.deleteContractById(contractId);
+            boolean deleted = strategyDataService.deleteContractById(contractId);
 
             if (deleted) {
                 return Response.ok()

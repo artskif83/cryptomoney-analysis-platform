@@ -4,5 +4,7 @@ public enum MarketRegime {
     FLAT_DOWN,
     FLAT_UP,
     TREND_UP,
-    TREND_DOWN
+    TREND_DOWN,
+    CHANGE_TREND_DOWN,
+    CHANGE_TREND_UP
 }

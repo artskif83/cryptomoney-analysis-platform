@@ -6,10 +6,10 @@ import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventListener;
 import artskif.trader.candle.CandleEventType;
-import artskif.trader.strategy.contract.ContractDataService;
-import artskif.trader.strategy.contract.snapshot.ContractSnapshotBuilder;
-import artskif.trader.strategy.event.EventModel;
-import artskif.trader.strategy.regime.MarketRegimeModel;
+import artskif.trader.strategy.regime.common.MarketRegime;
+import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
+import artskif.trader.strategy.event.TradeEventProcessor;
+import artskif.trader.strategy.regime.MarketRegimeProcessor;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,16 +24,16 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     // Общие зависимости для всех стратегий
     protected final Candle candle;
-    protected final MarketRegimeModel regimeModel;
-    protected final List<EventModel> eventModels;
-    protected final ContractSnapshotBuilder snapshotBuilder;
-    protected final ContractDataService dataService;
+    protected final MarketRegimeProcessor regimeModel;
+    protected final TradeEventProcessor tradeEventProcessor;
+    protected final StrategyDataService dataService;
+    protected final DatabaseSnapshotBuilder snapshotBuilder;
 
-    protected AbstractStrategy(Candle candle, MarketRegimeModel regimeModel, List<EventModel> eventModels,
-                                ContractSnapshotBuilder snapshotBuilder, ContractDataService dataService) {
+    protected AbstractStrategy(Candle candle, MarketRegimeProcessor regimeModel, TradeEventProcessor tradeEventProcessor,
+                               DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService) {
         this.candle = candle;
         this.regimeModel = regimeModel;
-        this.eventModels = eventModels;
+        this.tradeEventProcessor = tradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
     }
@@ -68,18 +68,27 @@ public abstract class AbstractStrategy implements CandleEventListener {
     public abstract void onBar(CandlestickDto candle);
 
     /**
+     * Метод для проведения бэктеста стратегии
+     */
+    public abstract void backtest();
+
+    /**
      * Получить таймфрейм на котором работает стратегия
      */
     protected abstract CandleTimeframe getTimeframe();
 
-    public abstract void generateHistoricalFeatures();
+    /**
+     * Получить режим рынка, за который отвечает данная стратегия
+     */
+    protected abstract List<MarketRegime> getSupportedRegimes();
 
     /**
-     * Обработать событие свечи
-     * @param event событие свечи
+     * Получить количество нестабильных баров для стратегии
      */
-    public void handleCandleEvent(CandleEvent event) {
+    protected abstract Integer getUnstableBars();
 
+    public boolean isUnstableAt(int index) {
+        return index < getUnstableBars();
     }
 
     /**

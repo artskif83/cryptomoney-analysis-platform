@@ -1,8 +1,8 @@
 package artskif.trader.strategy;
 
 import artskif.trader.events.candle.CandleEventBus;
-import artskif.trader.strategy.contract.ContractRegistry;
-import artskif.trader.strategy.contract.schema.AbstractSchema;
+import artskif.trader.strategy.database.ColumnsRegistry;
+import artskif.trader.strategy.database.schema.AbstractSchema;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -18,13 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class StrategyService {
 
-    ContractRegistry registry;
+    ColumnsRegistry registry;
     private final Map<String, AbstractSchema> contractMap = new HashMap<>();
     private final Map<String, AbstractStrategy> strategyMap = new ConcurrentHashMap<>();
     private final CandleEventBus eventBus;
 
     @Inject
-    public StrategyService(ContractRegistry registry,
+    public StrategyService(ColumnsRegistry registry,
                            Instance<AbstractSchema> contractInstances,
                            Instance<AbstractStrategy> strategyInstances,
                            CandleEventBus eventBus) {

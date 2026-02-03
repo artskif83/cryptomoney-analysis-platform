@@ -1,9 +1,6 @@
 package artskif.trader.broker;
 
 import artskif.trader.broker.client.TradingExecutorService;
-import artskif.trader.events.regime.RegimeChangeEvent;
-import artskif.trader.events.regime.RegimeChangeEventBus;
-import artskif.trader.events.regime.RegimeChangeEventListener;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.events.trade.TradeEventListener;
@@ -28,12 +25,11 @@ import java.util.concurrent.TimeUnit;
 
 @Startup
 @ApplicationScoped
-public class BrokerManager implements TradeEventListener, RegimeChangeEventListener {
+public class BrokerManager implements TradeEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(BrokerManager.class);
 
     private final TradeEventBus tradeEventBus;
-    private final RegimeChangeEventBus regimeChangeEventBus;
 
     // Внутренняя асинхронная шина событий
     private final BlockingQueue<Object> eventQueue = new ArrayBlockingQueue<>(1000);
@@ -42,9 +38,8 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
     private volatile boolean running = true;
 
     @Inject
-    public BrokerManager(TradeEventBus tradeEventBus, RegimeChangeEventBus regimeChangeEventBus, TradingExecutorService tradingExecutorService) {
+    public BrokerManager(TradeEventBus tradeEventBus, TradingExecutorService tradingExecutorService) {
         this.tradeEventBus = tradeEventBus;
-        this.regimeChangeEventBus = regimeChangeEventBus;
         this.tradingExecutorService = tradingExecutorService;
         this.eventProcessor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "PositionManager-EventProcessor");
@@ -58,7 +53,6 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
 
         // Подписываемся на события
         tradeEventBus.subscribe(this);
-        regimeChangeEventBus.subscribe(this);
 
         // Запускаем обработчик событий в отдельном потоке
         eventProcessor.submit(this::processEvents);
@@ -73,7 +67,6 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
 
         // Отписываемся от событий
         tradeEventBus.unsubscribe(this);
-        regimeChangeEventBus.unsubscribe(this);
 
         // Останавливаем обработчик
         eventProcessor.shutdown();
@@ -97,14 +90,6 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
         }
     }
 
-    @Override
-    public void onRegimeChange(RegimeChangeEvent event) {
-        // Асинхронно добавляем событие в очередь, не блокируя вызывающий поток
-        if (!eventQueue.offer(event)) {
-            log.warn("⚠️ Очередь событий переполнена, отбрасываем RegimeChangeEvent: {}", event);
-        }
-    }
-
     /**
      * Основной цикл обработки событий в отдельном потоке
      */
@@ -122,8 +107,6 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
 
                 if (event instanceof TradeEvent tradeEvent) {
                     handleTradeEvent(tradeEvent);
-                } else if (event instanceof RegimeChangeEvent regimeChangeEvent) {
-                    handleRegimeChangeEvent(regimeChangeEvent);
                 } else {
                     log.warn("⚠️ Неизвестный тип события: {}", event.getClass());
                 }
@@ -146,27 +129,9 @@ public class BrokerManager implements TradeEventListener, RegimeChangeEventListe
     private void handleTradeEvent(TradeEvent event) {
         log.info("🔄 Обработка TradeEvent: {}", event);
 
-        if (event.type() == TradeEventType.PULLBACK && event.direction() == Direction.LONG && event.regime() == MarketRegime.TREND_UP) {
-            log.info("📈 Получен сигнал на открытие ЛОНГ позиции в режиме TREND_UP");
-            tradingExecutorService.openLong(event.instrument(), BigDecimal.valueOf(10));
-        } else if (event.type() == TradeEventType.PULLBACK && event.direction() == Direction.SHORT && event.regime() == MarketRegime.TREND_DOWN) {
-            log.info("📉 Получен сигнал на открытие ШОРТ позиции в режиме TREND_DOWN");
+        if (event.type() == TradeEventType.WATERFALL && event.direction() == Direction.SHORT) {
+            log.info("📈 Получен сигнал на открытие ШОРТ позиции");
             tradingExecutorService.openShort(event.instrument(), BigDecimal.valueOf(10));
-        }
-    }
-
-    /**
-     * Обработка события смены режима рынка
-     */
-    private void handleRegimeChangeEvent(RegimeChangeEvent event) {
-        log.info("🔄 Обработка RegimeChangeEvent: {}", event);
-
-        if (event.currentRegime() == MarketRegime.TREND_UP && (event.previousRegime() == MarketRegime.FLAT_DOWN || event.previousRegime() == MarketRegime.TREND_DOWN)) {
-            log.info("📈 Режим изменился на TREND_UP, закрываем шорт позиции и рассматриваем длинные позиции");
-            tradingExecutorService.closeShortPositions();
-        } else if (event.currentRegime() == MarketRegime.TREND_DOWN && (event.previousRegime() == MarketRegime.FLAT_UP || event.previousRegime() == MarketRegime.TREND_UP)) {
-            log.info("📉 Режим изменился на TREND_DOWN, закрываем лонг позиции и рассматриваем корокие позиции");
-            tradingExecutorService.closeLongPositions();
         }
     }
 }

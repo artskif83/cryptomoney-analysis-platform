@@ -12,6 +12,11 @@ public enum MetadataType {
     /**
      * Лейбл (целевая переменная)
      */
-    LABEL
+    LABEL,
+
+    /**
+     * Метрика для отображения
+     */
+    METRIC
 }
 

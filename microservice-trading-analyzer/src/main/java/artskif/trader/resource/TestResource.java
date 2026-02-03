@@ -7,8 +7,6 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventBus;
-import artskif.trader.events.regime.RegimeChangeEvent;
-import artskif.trader.events.regime.RegimeChangeEventBus;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.event.common.Confidence;
@@ -35,9 +33,6 @@ public class TestResource {
 
     @Inject
     CandleEventBus candleEventBus;
-
-    @Inject
-    RegimeChangeEventBus regimeChangeEventBus;
 
     @Inject
     TradeEventBus tradeEventBus;
@@ -137,76 +132,6 @@ public class TestResource {
                     .build();
         } catch (Exception e) {
             Log.errorf(e, "❌ Ошибка при симуляции события CANDLE_TICK");
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of(
-                            "status", "error",
-                            "message", e.getMessage()
-                    ))
-                    .build();
-        }
-    }
-
-    /**
-     * Симулировать событие REGIME_CHANGE
-     *
-     * @param instrument инструмент (например, BTC-USDT)
-     * @param previousRegime предыдущий режим рынка
-     * @param currentRegime текущий режим рынка
-     * @return ответ с результатом симуляции
-     */
-    @POST
-    @Path("/regime-change")
-    public Response testRegimeChange(
-            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
-            @QueryParam("previousRegime") @DefaultValue("FLAT") String previousRegime,
-            @QueryParam("currentRegime") @DefaultValue("TREND_UP") String currentRegime
-    ) {
-        try {
-            // Парсинг режимов
-            MarketRegime prevRegime = MarketRegime.valueOf(previousRegime);
-            MarketRegime currRegime = MarketRegime.valueOf(currentRegime);
-
-            Instant timestamp = Instant.now();
-
-            // Создание и публикация события
-            RegimeChangeEvent event = new RegimeChangeEvent(
-                    instrument,
-                    prevRegime,
-                    currRegime,
-                    timestamp,
-                    true // Тестовое событие
-            );
-
-            regimeChangeEventBus.publish(event);
-
-            Log.infof("🔄 Событие REGIME_CHANGE симулировано: %s %s -> %s timestamp=%s (TEST)",
-                    instrument, previousRegime, currentRegime, timestamp);
-
-            return Response.ok()
-                    .entity(Map.of(
-                            "status", "success",
-                            "message", "Событие REGIME_CHANGE успешно опубликовано",
-                            "event", Map.of(
-                                    "type", "REGIME_CHANGE",
-                                    "instrument", instrument,
-                                    "previousRegime", previousRegime,
-                                    "currentRegime", currentRegime,
-                                    "timestamp", timestamp.toString()
-                            )
-                    ))
-                    .build();
-        } catch (IllegalArgumentException e) {
-            Log.errorf(e, "❌ Неверные параметры для симуляции REGIME_CHANGE");
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of(
-                            "status", "error",
-                            "message", "Неверные параметры. Доступные значения для режима: FLAT, TREND_UP, TREND_DOWN",
-                            "previousRegime", previousRegime,
-                            "currentRegime", currentRegime
-                    ))
-                    .build();
-        } catch (Exception e) {
-            Log.errorf(e, "❌ Ошибка при симуляции события REGIME_CHANGE");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of(
                             "status", "error",
