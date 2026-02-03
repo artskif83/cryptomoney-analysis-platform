@@ -1,6 +1,7 @@
 package artskif.trader.strategy.event.impl.indicator;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.strategy.indicators.multi.CloseIndicatorM;
 import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
 import artskif.trader.strategy.event.TradeEventProcessor;
 import artskif.trader.strategy.event.common.TradeEventData;
@@ -10,6 +11,7 @@ import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
 import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
+import org.ta4j.core.rules.StopLossRule;
 
 import java.util.Optional;
 
@@ -21,14 +23,17 @@ import java.util.Optional;
 public class WaterfallEventProcessor implements TradeEventProcessor {
 
     private final RSIIndicatorM rsiIndicatorM;
+    private final CloseIndicatorM closeIndicatorM;
 
     public WaterfallEventProcessor() {
         this.rsiIndicatorM = null;
+        this.closeIndicatorM = null;
     }
 
     @Inject
-    public WaterfallEventProcessor(RSIIndicatorM rsiIndicatorM) {
+    public WaterfallEventProcessor(RSIIndicatorM rsiIndicatorM, CloseIndicatorM closeIndicatorM) {
         this.rsiIndicatorM = rsiIndicatorM;
+        this.closeIndicatorM = closeIndicatorM;
     }
 
     @Override
@@ -46,9 +51,13 @@ public class WaterfallEventProcessor implements TradeEventProcessor {
     }
 
     @Override
-    public Rule getEntryRule() {
-        RSIIndicator indicator = rsiIndicatorM.getIndicator(getTimeframe(), true);
-        return new CrossedUpIndicatorRule(indicator, 70);
+    public Rule getEntryRule(boolean isLiveSeries) {
+        return new CrossedUpIndicatorRule(rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 70);
+    }
+
+    @Override
+    public Rule getExitRule(boolean isLiveSeries) {
+        return new StopLossRule(closeIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 0.1);
     }
 
     @Override

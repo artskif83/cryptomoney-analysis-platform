@@ -19,7 +19,13 @@ public interface TradeEventProcessor {
      * Получить правило входа в позицию
      * @return правило для определения точки входа в сделку
      */
-    Rule getEntryRule();
+    Rule getEntryRule(boolean isLiveSeries);
+
+    /**
+     * Получить правило выхода из позиции
+     * @return правило для определения точки выхода
+     */
+    Rule getExitRule(boolean isLiveSeries);
 
     /**
      * Получить таймфрейм модели

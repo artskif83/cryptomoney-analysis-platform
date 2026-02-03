@@ -140,8 +140,8 @@ public class WaterfallStrategy extends AbstractStrategy {
 
         for (int index = liveBarSeries.getBeginIndex(); index <= liveBarSeries.getEndIndex(); index++) {
 
-            Rule entryRule = tradeEventProcessor.getEntryRule();
-            Rule exitRule = tradeEventProcessor.getEntryRule(); // TODO: Возможно exitRule должен браться из другого места
+            Rule entryRule = tradeEventProcessor.getEntryRule(true);
+            Rule exitRule = tradeEventProcessor.getEntryRule(true);
 
             boolean shouldOperate = false;
 
