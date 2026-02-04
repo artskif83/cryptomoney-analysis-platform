@@ -124,24 +124,23 @@ public class WaterfallStrategy extends AbstractStrategy {
         MarketRegime regime = regimeModel.classify();
 
 
-        BaseBarSeries liveBarSeries = candle.getInstance(getTimeframe()).getLiveBarSeries();
+        BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
         int processedCount = 0;
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
-        int totalBars = liveBarSeries.getBarCount();
+        int totalBars = historicalBarSeries.getBarCount();
         int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
         ZeroCostModel transactionCostModel = new ZeroCostModel();
         ZeroCostModel holdingCostModel = new ZeroCostModel();
         TradeOnCurrentCloseModel tradeExecutionModel = new TradeOnCurrentCloseModel();
 
-        TradingRecord tradingRecord = new BaseTradingRecord(Trade.TradeType.SELL, liveBarSeries.getBeginIndex(), liveBarSeries.getEndIndex(), transactionCostModel,
+        TradingRecord tradingRecord = new BaseTradingRecord(Trade.TradeType.SELL, historicalBarSeries.getBeginIndex(), historicalBarSeries.getEndIndex(), transactionCostModel,
                 holdingCostModel);
 
+        Rule entryRule = tradeEventProcessor.getEntryRule(false);
+        Rule exitRule = tradeEventProcessor.getExitRule(false);
 
-        for (int index = liveBarSeries.getBeginIndex(); index <= liveBarSeries.getEndIndex(); index++) {
-
-            Rule entryRule = tradeEventProcessor.getEntryRule(true);
-            Rule exitRule = tradeEventProcessor.getEntryRule(true);
+        for (int index = historicalBarSeries.getBeginIndex(); index <= historicalBarSeries.getEndIndex(); index++) {
 
             boolean shouldOperate = false;
 
@@ -153,12 +152,12 @@ public class WaterfallStrategy extends AbstractStrategy {
             }
 
             if (shouldOperate) {
-                tradeExecutionModel.execute(index, tradingRecord, liveBarSeries, liveBarSeries.numFactory().one());
+                tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
             }
 
-            Bar bar = liveBarSeries.getBar(index);
+            Bar bar = historicalBarSeries.getBar(index);
 
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, waterfallSchema, index, true);
+            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, waterfallSchema, index, false);
 
             dbRows.add(dbRow);
             processedCount++;

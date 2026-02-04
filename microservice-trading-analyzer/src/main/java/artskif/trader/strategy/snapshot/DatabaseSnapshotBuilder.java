@@ -23,22 +23,16 @@ import java.math.BigDecimal;
 public class DatabaseSnapshotBuilder {
 
     private final ColumnsRegistry registry;
-    private final Candle candle;
 
     @Inject
-    public DatabaseSnapshotBuilder(ColumnsRegistry registry, Candle candle) {
+    public DatabaseSnapshotBuilder(ColumnsRegistry registry) {
         this.registry = registry;
-        this.candle = candle;
     }
 
     public DatabaseSnapshot build(Bar bar, AbstractSchema schema, int barIndex, boolean isLive) {
 
         CandleTimeframe timeframe = schema.getTimeframe();
-        AbstractCandle candleInstance = candle.getInstance(timeframe);
         Contract contract = schema.getContract();
-
-
-
 
         DatabaseSnapshotRow row = new DatabaseSnapshotRow(
                 bar.getTimePeriod(),

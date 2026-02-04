@@ -143,14 +143,14 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     @Override
     @Transactional
-    public Map<Instant, CandlestickDto> restoreFromStorage(Integer size, CandleTimeframe timeframe, String symbol, boolean isLive) {
+    public Map<Instant, CandlestickDto> restoreFromStorage(Integer maxBufferSize, CandleTimeframe timeframe, String symbol, boolean isLive) {
         if (timeframe == null || symbol == null || symbol.isEmpty()) {
             LOG.warn("Неверные параметры для восстановления свечей из базы данных");
             return new LinkedHashMap<>();
         }
 
         try {
-            int limit = size != null ? size : DEFAULT_RESTORE_LIMIT;
+            int limit = maxBufferSize != null ? maxBufferSize : DEFAULT_RESTORE_LIMIT;
 
             // Для live-режима вычисляем временную границу актуальности данных
             Instant cutoffTime = null;

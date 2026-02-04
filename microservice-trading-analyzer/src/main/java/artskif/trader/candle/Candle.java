@@ -102,7 +102,7 @@ public class Candle {
         }
 
         // Инициализируем каждый экземпляр
-        instances.values().forEach(CandleInstance::init);
+        instances.values().forEach(CandleInstance::initLiveData);
     }
 
     /**

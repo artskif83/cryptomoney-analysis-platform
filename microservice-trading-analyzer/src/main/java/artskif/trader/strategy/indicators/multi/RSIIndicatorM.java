@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.ta4j.core.indicators.RSIIndicator;
 
 @ApplicationScoped
@@ -19,6 +20,7 @@ public class RSIIndicatorM extends MultiAbstractIndicator<RSIIndicator> {
         this.closeIndicator = null;
     }
 
+    @Inject
     public RSIIndicatorM(Candle candle, CloseIndicatorM closeIndicator) {
         super(candle);
         this.closeIndicator = closeIndicator;

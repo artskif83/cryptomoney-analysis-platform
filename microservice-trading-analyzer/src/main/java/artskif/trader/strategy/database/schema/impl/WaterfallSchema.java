@@ -71,6 +71,8 @@ public class WaterfallSchema extends AbstractSchema {
                 newContract
         ));
 
+        newContract.addMetadata(allMetadata);
+
         // Генерируем и сохраняем hash
         newContract.contractHash = generateContractHash(newContract);
         this.contract = dataService.saveNewContract(newContract);

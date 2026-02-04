@@ -10,7 +10,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
 import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
+import org.ta4j.core.rules.StopGainRule;
 import org.ta4j.core.rules.StopLossRule;
 
 import java.util.Optional;
@@ -57,7 +59,9 @@ public class WaterfallEventProcessor implements TradeEventProcessor {
 
     @Override
     public Rule getExitRule(boolean isLiveSeries) {
-        return new StopLossRule(closeIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 0.1);
+        ClosePriceIndicator indicator = closeIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
+        return new StopLossRule(indicator, 0.1)
+                .or(new StopGainRule(indicator, 1));
     }
 
     @Override

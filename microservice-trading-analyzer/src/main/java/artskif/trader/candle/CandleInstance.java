@@ -1,17 +1,10 @@
 package artskif.trader.candle;
 
-import artskif.trader.buffer.TimeSeriesBuffer;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.repository.BufferRepository;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import org.jboss.logging.Logger;
-import org.ta4j.core.BaseBarSeries;
-import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.num.DecimalNumFactory;
-
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Класс, представляющий экземпляр свечи для конкретного таймфрейма.
@@ -29,47 +22,23 @@ public class CandleInstance extends AbstractCandle {
     private final Logger logger;
 
     private final BufferRepository<CandlestickDto> candleBufferRepository;
-    private final TimeSeriesBuffer<CandlestickDto> liveBuffer;
-    private final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
-
-    private final BaseBarSeries liveBarSeries;
-    private final BaseBarSeries historicalBarSeries;
-
-    // ReadWriteLock для потокобезопасного доступа к серии баров
-    private final ReadWriteLock liveSeriesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock historicalSeriesLock = new ReentrantReadWriteLock();
 
 
     public CandleInstance(CandleTimeframe timeframe, String name,
                           int maxLiveBufferSize, int maxHistoricalBufferSize, CandleEventBus bus,
                           BufferRepository<CandlestickDto> candleBufferRepository) {
+        super(name, maxLiveBufferSize, maxHistoricalBufferSize);
         this.timeframe = timeframe;
         this.name = name;
         this.maxLiveBufferSize = maxLiveBufferSize;
         this.maxHistoricalBufferSize = maxHistoricalBufferSize;
         this.bus = bus;
         this.logger = Logger.getLogger(Candle.class.getName() + "." + name);
-
-        this.liveBuffer = new TimeSeriesBuffer<>(maxLiveBufferSize);
-        this.historicalBuffer = new TimeSeriesBuffer<>(maxHistoricalBufferSize);
         this.candleBufferRepository = candleBufferRepository;
-
-        // Инициализация BaseBarSeries для live и historical данных
-        this.liveBarSeries = new BaseBarSeriesBuilder()
-                .withName(name + "_live")
-                .withNumFactory(DecimalNumFactory.getInstance(2))
-                .withMaxBarCount(maxLiveBufferSize)
-                .build();
-
-        this.historicalBarSeries = new BaseBarSeriesBuilder()
-                .withName(name + "_historical")
-                .withNumFactory(DecimalNumFactory.getInstance(2))
-                .withMaxBarCount(maxHistoricalBufferSize)
-                .build();
     }
 
     @ActivateRequestContext
-    public void init() {
+    public void initLiveData() {
         logger.infof("🔌 [%s] Инициализация инстанса свечей для таймфрейма", name);
 
         // Восстанавливаем только Live буфер при старте
@@ -77,21 +46,6 @@ public class CandleInstance extends AbstractCandle {
 
         // Заполняем только Live серию из Live буфера при старте
         copyLiveBufferToSeries();
-    }
-
-    /**
-     * Инициализация исторических данных.
-     * Вызывается по требованию, не при старте проекта.
-     */
-    @ActivateRequestContext
-    public void initHistoricalData() {
-        logger.infof("📚 [%s] Инициализация исторических данных для таймфрейма", name);
-
-        // Восстанавливаем Historical буфер из базы данных
-        initRestoreHistoricalBuffer();
-
-        // Заполняем Historical серию из Historical буфера
-        copyHistoricalBufferToSeries();
     }
 
     @Override
@@ -102,16 +56,6 @@ public class CandleInstance extends AbstractCandle {
     @Override
     protected CandleTimeframe getCandleTimeframe() {
         return timeframe;
-    }
-
-    @Override
-    public TimeSeriesBuffer<CandlestickDto> getLiveBuffer() {
-        return liveBuffer;
-    }
-
-    @Override
-    public TimeSeriesBuffer<CandlestickDto> getHistoricalBuffer() {
-        return historicalBuffer;
     }
 
     @Override
@@ -138,26 +82,6 @@ public class CandleInstance extends AbstractCandle {
     @Override
     public Logger log() {
         return logger;
-    }
-
-    @Override
-    public BaseBarSeries getLiveBarSeries() {
-        return liveBarSeries;
-    }
-
-    @Override
-    public BaseBarSeries getHistoricalBarSeries() {
-        return historicalBarSeries;
-    }
-
-    @Override
-    protected ReadWriteLock getLiveSeriesLock() {
-        return liveSeriesLock;
-    }
-
-    @Override
-    protected ReadWriteLock getHistoricalSeriesLock() {
-        return historicalSeriesLock;
     }
 }
 

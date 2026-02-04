@@ -12,6 +12,6 @@ public interface BufferRepository<C> {
 
     int saveFromMap(Map<Instant, C> buffer);
 
-    Map<Instant, C> restoreFromStorage(Integer maxLiveBufferSize, CandleTimeframe timeframe, String symbol, boolean isLive);
+    Map<Instant, C> restoreFromStorage(Integer maxBufferSize, CandleTimeframe timeframe, String symbol, boolean isLive);
 
 }

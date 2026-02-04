@@ -13,12 +13,15 @@ import jakarta.enterprise.context.control.ActivateRequestContext;
 import org.jboss.logging.Logger;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBarSeries;
+import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.num.DecimalNumFactory;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
@@ -33,6 +36,42 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
     private final AtomicBoolean saveLiveEnabled = new AtomicBoolean(false);
     private final AtomicBoolean saveHistoricalEnabled = new AtomicBoolean(false);
+
+    // Буферы и серии данных
+    private final TimeSeriesBuffer<CandlestickDto> liveBuffer;
+    private final TimeSeriesBuffer<CandlestickDto> historicalBuffer;
+    private final BaseBarSeries liveBarSeries;
+    private final BaseBarSeries historicalBarSeries;
+
+    // ReadWriteLock для потокобезопасного доступа к серии баров
+    private final ReadWriteLock liveSeriesLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock historicalSeriesLock = new ReentrantReadWriteLock();
+
+    /**
+     * Конструктор для инициализации буферов и серий данных
+     *
+     * @param name                    название инстанса
+     * @param maxLiveBufferSize       максимальный размер live буфера
+     * @param maxHistoricalBufferSize максимальный размер исторического буфера
+     */
+    protected AbstractCandle(String name, int maxLiveBufferSize, int maxHistoricalBufferSize) {
+        this.liveBuffer = new TimeSeriesBuffer<>(maxLiveBufferSize);
+        this.historicalBuffer = new TimeSeriesBuffer<>(maxHistoricalBufferSize);
+
+        // Инициализация BaseBarSeries для live и historical данных
+        this.liveBarSeries = new BaseBarSeriesBuilder()
+                .withName(name + "_live")
+                .withNumFactory(DecimalNumFactory.getInstance(2))
+                .withMaxBarCount(maxLiveBufferSize)
+                .build();
+
+        this.historicalBarSeries = new BaseBarSeriesBuilder()
+                .withName(name + "_historical")
+                .withNumFactory(DecimalNumFactory.getInstance(2))
+                .withMaxBarCount(maxHistoricalBufferSize)
+                .build();
+    }
+
 
     protected abstract BufferRepository<CandlestickDto> getBufferRepository();
 
@@ -49,13 +88,39 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
     protected abstract Logger log();
 
-    public abstract BaseBarSeries getLiveBarSeries();
+    public BaseBarSeries getLiveBarSeries() {
+        return liveBarSeries;
+    }
 
-    public abstract BaseBarSeries getHistoricalBarSeries();
+    public BaseBarSeries getHistoricalBarSeries() {
+        if (historicalBarSeries.isEmpty()) {
+            initHistoricalData();
+        }
+        return historicalBarSeries;
+    }
 
-    protected abstract ReadWriteLock getLiveSeriesLock();
+    /**
+     * Инициализация исторических данных.
+     * Вызывается по требованию, не при старте проекта.
+     */
+    @ActivateRequestContext
+    protected void initHistoricalData() {
+        log().infof("📚 [%s] Инициализация исторических данных для таймфрейма", getName());
 
-    protected abstract ReadWriteLock getHistoricalSeriesLock();
+        // Восстанавливаем Historical буфер из базы данных
+        initRestoreHistoricalBuffer();
+
+        // Заполняем Historical серию из Historical буфера
+        copyHistoricalBufferToSeries();
+    }
+
+    public TimeSeriesBuffer<CandlestickDto> getLiveBuffer() {
+        return liveBuffer;
+    }
+
+    public TimeSeriesBuffer<CandlestickDto> getHistoricalBuffer() {
+        return historicalBuffer;
+    }
 
     protected String getSymbol() {
         return DEFAULT_SYMBOL;
@@ -265,7 +330,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      */
     protected void copyLiveBufferToSeries() {
         if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live")) {
-            copyBufferToSeries(getLiveBuffer(), getLiveBarSeries(), getLiveSeriesLock(), "live");
+            copyBufferToSeries(liveBuffer, liveBarSeries, liveSeriesLock, "live");
         } else {
             log().warnf("⚠️ [%s] Актуальный буфер не скопирован в live серию, т.к. буфер еще не актуален", getName());
         }
@@ -279,7 +344,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      */
     protected void copyHistoricalBufferToSeries() {
         if (isBufferActual(getHistoricalBuffer(), null, false, "historical")) {
-            copyBufferToSeries(getHistoricalBuffer(), getHistoricalBarSeries(), getHistoricalSeriesLock(), "historical");
+            copyBufferToSeries(historicalBuffer, historicalBarSeries, historicalSeriesLock, "historical");
         } else {
             log().warnf("⚠️ [%s] Исторический буфер не скопирован в historical серию, т.к. буфер еще не актуален", getName());
         }
@@ -333,7 +398,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      * @return
      */
     protected boolean addBarToLiveSeries(CandlestickDto candlestickDto) {
-        return addBarToSeries(candlestickDto, getLiveBarSeries(), getLiveSeriesLock(), "live");
+        return addBarToSeries(candlestickDto, liveBarSeries, liveSeriesLock, "live");
     }
 
 
@@ -392,9 +457,9 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 getLiveBuffer().putItem(bucket, candle);
                 getLiveBuffer().incrementVersion();
 
-                if (getLiveBarSeries().getBarCount() < getMaxLiveBufferSize()) {
+                if (liveBarSeries.getBarCount() < getMaxLiveBufferSize()) {
                     log().debugf("⏳ [%s] Live серия еще не заполнена: %d/%d элементов. Ожидаем добавления элементов",
-                            getName(), getLiveBarSeries().getBarCount(), getMaxLiveBufferSize());
+                            getName(), liveBarSeries.getBarCount(), getMaxLiveBufferSize());
                 }
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
                 if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live candle") &&
