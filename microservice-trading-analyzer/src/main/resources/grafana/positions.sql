@@ -4,12 +4,13 @@ SELECT
     high,
     low,
     close,
-    feature_adx_14_4h,
-    feature_rsi_14_4h
-FROM
-    features
+    metric_rsi_14_5m,
+    additional_position_price_5m,
+    additional_takeprofit_5m,
+    additional_stoploss_5m
+FROM wide_candles
 WHERE
-    tf = '4h'
-  AND contract_hash = '29d46bbc0cf396221255dde2ce1304efdc0e34022ffcd12d696a0675c3b49c3b'
-ORDER BY
-    ts
+    tf = '5m'
+  AND contract_hash = '4ff4cf87a222e7a7e14aea3cc81e1468edb6d95279c919909cb840a8b68b057e'
+  AND confirmed = true
+ORDER BY ts;

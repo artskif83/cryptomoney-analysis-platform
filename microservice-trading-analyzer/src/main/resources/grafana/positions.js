@@ -13,8 +13,11 @@ const highs = col("high");
 const lows = col("low");
 const closes = col("close");
 
-const adxRaw = col("feature_adx_14_4h");
-const rsiRaw = col("feature_rsi_14_4h");
+const rsiRaw = col("metric_rsi_14_5m");
+
+const posPrice = col("additional_position_price_5m");
+const tpPrice = col("additional_takeprofit_5m");
+const slPrice = col("additional_stoploss_5m");
 
 if (!times.length) return {};
 
@@ -27,8 +30,6 @@ const candles = times.map((t, i) => [
     highs[i]
 ]);
 
-// ===== ADX / RSI =====
-const adx = times.map((t, i) => [t, adxRaw[i]]);
 const rsi = times.map((t, i) => [t, rsiRaw[i]]);
 
 // ===== Цвета =====
@@ -36,6 +37,37 @@ const upColor = '#00C176';
 const upBorderColor = '#00A563';
 const downColor = '#FF4D4D';
 const downBorderColor = '#CC3C3C';
+
+// Формирование позиции
+const entries = [];
+const tpLines = [];
+const slLines = [];
+
+let activeFrom = null;
+
+for (let i = 0; i < times.length; i++) {
+    if (posPrice[i] != null) {
+        // закрываем предыдущую позицию
+        if (activeFrom !== null) {
+            const endTime = times[i];
+
+            tpLines.push([[activeFrom, tpPrice[i - 1]], [endTime, tpPrice[i - 1]]]);
+            slLines.push([[activeFrom, slPrice[i - 1]], [endTime, slPrice[i - 1]]]);
+        }
+
+        // новая позиция
+        entries.push([times[i], posPrice[i]]);
+        activeFrom = times[i];
+    }
+}
+
+// если позиция активна до конца
+if (activeFrom !== null) {
+    const lastIdx = times.length - 1;
+
+    tpLines.push([[activeFrom, tpPrice[lastIdx]], [times[lastIdx], tpPrice[lastIdx]]]);
+    slLines.push([[activeFrom, slPrice[lastIdx]], [times[lastIdx], slPrice[lastIdx]]]);
+}
 
 // ===== Конфигурация =====
 return {
@@ -105,15 +137,42 @@ return {
             }
         },
 
-        // --- ADX ---
+        // Позиции
         {
-            name: 'ADX 14 (4H)',
+            name: 'Stop Loss',
             type: 'line',
-            data: adx,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
+            data: slLines.flat(),
+            xAxisIndex: 0,
+            yAxisIndex: 0,
             symbol: 'none',
-            lineStyle: { width: 1, color: '#FFD166' }
+            lineStyle: {
+                color: '#FF5252',
+                width: 2,
+                type: 'dashed'
+            }
+        },
+        {
+            name: 'Entry',
+            type: 'scatter',
+            data: entries,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'triangle',
+            symbolSize: 6,
+            itemStyle: { color: '#00E676' }
+        },
+        {
+            name: 'Take Profit',
+            type: 'line',
+            data: tpLines.flat(),
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            lineStyle: {
+                color: '#4CAF50',
+                width: 2,
+                type: 'dashed'
+            }
         },
 
         // --- RSI ---
