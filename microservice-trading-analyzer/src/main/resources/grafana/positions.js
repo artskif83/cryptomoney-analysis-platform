@@ -12,6 +12,7 @@ const opens = col("open");
 const highs = col("high");
 const lows = col("low");
 const closes = col("close");
+let basePrice = closes[closes.length - 1]; // например, последний close
 
 const rsiRaw = col("metric_rsi_14_5m");
 
@@ -33,10 +34,10 @@ const candles = times.map((t, i) => [
 const rsi = times.map((t, i) => [t, rsiRaw[i]]);
 
 // ===== Цвета =====
-const upColor = '#00C176';
-const upBorderColor = '#00A563';
+const upColor = '#4CAF50';
+const upBorderColor = '#4CAF50';
 const downColor = '#FF4D4D';
-const downBorderColor = '#CC3C3C';
+const downBorderColor = '#FF4D4D';
 
 // Формирование позиции
 const entryPoints = [];
@@ -70,7 +71,7 @@ return {
 
     grid: [
         { left: '5%', right: '5%', top: 10, height: '55%' },   // свечи
-        { left: '5%', right: '5%', top: '65%', height: '25%' }  // RSI
+        { left: '5%', right: '5%', top: '66%', height: '20%' }  // RSI
     ],
 
     xAxis: [
@@ -89,13 +90,56 @@ return {
     ],
 
     yAxis: [
-        { scale: true },
+        {
+            scale: true,
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const price = params.value;
+                        const pct = ((price - basePrice) / basePrice) * 100;
+
+                        return `${price.toFixed(1)}  (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+                    }
+                }
+            }
+        },
         { scale: true, gridIndex: 1, min: 0, max: 100 }
     ],
 
+    axisPointer: {
+        link: [{ xAxisIndex: [0, 1] }]
+    },
+
+    toolbox: {
+        feature: {
+            dataZoom: {
+                yAxisIndex: false
+            },
+            restore: {}
+        }
+    },
+
     dataZoom: [
-        { type: 'inside', xAxisIndex: [0, 1], start: 80, end: 100 },
-        { show: true, type: 'slider', bottom: 0, xAxisIndex: [0, 1], start: 80, end: 100 }
+        {
+            type: 'inside',
+            xAxisIndex: [0, 1],
+            start: 80,
+            end: 100,
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+            moveOnMouseWheel: false,
+            preventDefaultMouseMove: true
+        },
+        {
+            type: 'slider',
+            xAxisIndex: [0, 1],
+            bottom: 0,
+            height: 20,
+            backgroundColor: '#222',
+            fillerColor: 'rgba(100,100,255,0.25)',
+            borderColor: '#444',
+            handleSize: 8
+        }
     ],
 
     series: [
@@ -125,7 +169,7 @@ return {
             yAxisIndex: 0,
             symbol: 'none',
             connectNulls: false,
-            lineStyle: { width: 2, color: '#4DA3FF', type: 'dashed' },
+            lineStyle: { width: 1, color: '#4DA3FF', type: 'dashed' },
             tooltip: { show: false }
         },
 
@@ -152,7 +196,7 @@ return {
             symbol: 'none',
             tooltip: { show: false },
             connectNulls: false,
-            lineStyle: { width: 2, color: '#4CAF50', type: 'dashed' }
+            lineStyle: { width: 1, color: '#4CAF50', type: 'dashed' }
         },
 
         // --- Stop Loss ---
@@ -165,7 +209,7 @@ return {
             symbol: 'none',
             tooltip: { show: false },
             connectNulls: false,
-            lineStyle: { width: 2, color: '#FF5252', type: 'dashed' }
+            lineStyle: { width: 1, color: '#FF5252', type: 'dashed' }
         },
 
         // --- RSI ---
@@ -211,7 +255,7 @@ return {
         padding: [6, 8],
         textStyle: {
             color: '#ccc',
-            fontSize: 8
+            fontSize: 10
         },
         axisPointer: {
             link: [{ xAxisIndex: [0, 1] }],
