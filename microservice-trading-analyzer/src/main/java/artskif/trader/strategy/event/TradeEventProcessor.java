@@ -25,7 +25,7 @@ public interface TradeEventProcessor {
      * Получить правило выхода из позиции
      * @return правило для определения точки выхода
      */
-    Rule getExitRule(boolean isLiveSeries);
+    Rule getFixedExitRule(boolean isLiveSeries, Number lossPercentage, Number gainPercentage);
 
     /**
      * Получить таймфрейм модели

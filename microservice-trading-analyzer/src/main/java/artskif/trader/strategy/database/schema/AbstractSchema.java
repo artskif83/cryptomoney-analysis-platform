@@ -33,8 +33,66 @@ public abstract class AbstractSchema {
 
     public abstract String getName();
 
-
     public abstract CandleTimeframe getTimeframe();
+
+    /**
+     * Создание метаданных для конкретной схемы
+     * Этот метод должен быть реализован в наследниках для определения специфичных колонок
+     *
+     * @param contract контракт, для которого создаются метаданные
+     * @return список метаданных колонок
+     */
+    protected abstract List<ContractMetadata> createMetadata(Contract contract);
+
+    /**
+     * Получение описания контракта
+     * Может быть переопределен в наследниках для специфичного описания
+     *
+     * @return описание контракта
+     */
+    protected abstract String getContractDescription();
+
+    /**
+     * Получение версии контракта
+     * Может быть переопределен в наследниках
+     *
+     * @return версия контракта
+     */
+    protected String getContractVersion() {
+        return "V1";
+    }
+
+    /**
+     * Инициализация контракта с метаданными
+     * Общая логика для всех схем:
+     * 1. Проверка существования контракта в БД
+     * 2. Если существует - использование существующего
+     * 3. Если не существует - создание нового с метаданными
+     */
+    protected void initSchema() {
+        Log.infof("🔧 Инициализация схемы '%s'...", getName());
+        // Сначала проверяем, существует ли контракт
+        Contract existingContract = dataService.findContractByName(getName());
+        if (existingContract != null) {
+            Log.infof("📋 Схема '%s' уже существует в БД (id: %d), используем существующую",
+                    getName(), existingContract.id);
+            this.contract = existingContract;
+            this.contractHash = existingContract.contractHash;
+            return;
+        }
+
+        // Создаем контракт с метаданными
+        Contract newContract = new Contract(getName(), getContractDescription(), getContractVersion());
+
+        // Добавляем метаданные от конкретной реализации
+        List<ContractMetadata> metadata = createMetadata(newContract);
+        newContract.addMetadata(metadata);
+
+        // Генерируем и сохраняем hash
+        newContract.contractHash = generateContractHash(newContract);
+        this.contract = dataService.saveNewContract(newContract);
+        this.contractHash = this.contract.contractHash;
+    }
 
     /**
      * Сгенерировать хешкод контракта на основе всех его метаданных

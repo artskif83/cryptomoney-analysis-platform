@@ -31,10 +31,10 @@ public class ColumnsRegistry {
     }
 
     /**
-     * Получить фичу по имени
+     * Получить колонку по имени
      */
-    public Optional<Column> getColumn(String featureName) {
-        return Optional.ofNullable(columnMap.get(featureName));
+    public Optional<Column> getColumn(String columnName) {
+        return Optional.ofNullable(columnMap.get(columnName));
     }
 }
 

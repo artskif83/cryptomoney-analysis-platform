@@ -8,13 +8,14 @@ import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
+import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
+import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.RegimeSchema;
 import artskif.trader.strategy.database.schema.impl.WaterfallSchema;
 import artskif.trader.strategy.event.impl.indicator.WaterfallEventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
-import artskif.trader.strategy.event.TradeEventProcessor;
 import artskif.trader.strategy.event.common.TradeEventData;
 import artskif.trader.strategy.regime.common.MarketRegime;
 import artskif.trader.strategy.regime.impl.indicator.IndicatorMarketRegimeProcessor;
@@ -24,11 +25,13 @@ import jakarta.inject.Inject;
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
-import org.ta4j.core.backtest.TradeOnNextOpenModel;
+import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.num.Num;
+import org.ta4j.core.num.NumFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.*;
 
 @ApplicationScoped
 public class WaterfallStrategy extends AbstractStrategy {
@@ -123,7 +126,6 @@ public class WaterfallStrategy extends AbstractStrategy {
 
         MarketRegime regime = regimeModel.classify();
 
-
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
         int processedCount = 0;
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
@@ -137,8 +139,14 @@ public class WaterfallStrategy extends AbstractStrategy {
         TradingRecord tradingRecord = new BaseTradingRecord(Trade.TradeType.SELL, historicalBarSeries.getBeginIndex(), historicalBarSeries.getEndIndex(), transactionCostModel,
                 holdingCostModel);
 
+        DecimalNum one = DecimalNum.valueOf(1);
+        DecimalNum hundred = DecimalNum.valueOf(100);
+        DecimalNum lossPercentage = DecimalNum.valueOf(0.1);
+        DecimalNum gainPercentage = DecimalNum.valueOf(1);
+
         Rule entryRule = tradeEventProcessor.getEntryRule(false);
-        Rule exitRule = tradeEventProcessor.getExitRule(false);
+        Rule exitRule = tradeEventProcessor.getFixedExitRule(false, lossPercentage.bigDecimalValue(), gainPercentage.bigDecimalValue());
+        Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
 
         for (int index = historicalBarSeries.getBeginIndex(); index <= historicalBarSeries.getEndIndex(); index++) {
 
@@ -155,9 +163,21 @@ public class WaterfallStrategy extends AbstractStrategy {
                 tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
             }
 
+            if (position.isOpened()){
+                Num netPrice = position.getEntry().getNetPrice();
+                Num stopLoss = netPrice.multipliedBy(one.plus(lossPercentage.dividedBy(hundred)));
+                Num takeProfit = netPrice.multipliedBy(one.minus(gainPercentage.dividedBy(hundred)));
+
+                additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_5M, netPrice);
+                additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_5M, stopLoss);
+                additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_5M, takeProfit);
+            } else {
+                additionalColumns = new HashMap<>();
+            }
+
             Bar bar = historicalBarSeries.getBar(index);
 
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, waterfallSchema, index, false);
+            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, waterfallSchema, additionalColumns, index, false);
 
             dbRows.add(dbRow);
             processedCount++;

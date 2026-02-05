@@ -15,35 +15,33 @@ import java.util.List;
 @ApplicationScoped
 public class RSIColumn extends AbstractColumn<RSIIndicatorM> {
 
-    public static final int RSI_PERIOD = 14;
-
     /**
      * Перечислимый тип для различных значений RSI фичи
      */
     public enum RSIColumnType implements ColumnTypeMetadata {
         RSI_5M(
-                "feature_rsi_14_5m",
+                "metric_rsi_14_5m",
                 "RSI индикатор с периодом 14 на таймфрейме 5m",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_5M,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         ),
         RSI_4H(
-                "feature_rsi_14_4h",
+                "metric_rsi_14_4h",
                 "RSI индикатор с периодом 14 на таймфрейме 4h",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_4H,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         ),
         RSI_5M_ON_4H(
-                "feature_rsi_14_5m_on_4h",
+                "metric_rsi_14_5m_on_4h",
                 "RSI индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_5M,
                 CandleTimeframe.CANDLE_4H, // higher timeframe
-                MetadataType.FEATURE
+                MetadataType.METRIC
         );
 
         private final ColumnMetadata metadata;

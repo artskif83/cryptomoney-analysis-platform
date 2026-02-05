@@ -3,12 +3,12 @@ package artskif.trader.strategy.database.schema.impl;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
+import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.columns.impl.ADXColumn;
 import artskif.trader.strategy.database.columns.impl.RSIColumn;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
-import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -41,42 +41,38 @@ public class WaterfallSchema extends AbstractSchema {
     }
 
     /**
-     * Создать и инициализировать контракт с метаданными
+     * Создание метаданных для схемы Waterfall
      */
-    @PostConstruct
-    public void initContract() {
-
-        // Сначала проверяем, существует ли контракт
-        Contract existingContract = dataService.findContractByName(NAME);
-        if (existingContract != null) {
-            Log.infof("📋 Схема '%s' уже существует в БД (id: %d), используем существующую", NAME, existingContract.id);
-            this.contract = existingContract;
-            this.contractHash = existingContract.contractHash;
-            return;
-        }
-
-        // Создаем контракт с метаданными
-        Contract newContract = new Contract(NAME, "Визуализация стратегии водопад", "V1");
-
-        // Добавляем все фичи к контракту одним вызовом
+    @Override
+    protected List<ContractMetadata> createMetadata(Contract contract) {
         List<ContractMetadata> allMetadata = new ArrayList<>();
         allMetadata.addAll(RSIColumn.getColumnMetadata(
                 Map.of(1, RSIColumn.RSIColumnType.RSI_5M
-                        , 2, RSIColumn.RSIColumnType.RSI_5M_ON_4H),
-                newContract
+                ),
+                contract
         ));
-        allMetadata.addAll(ADXColumn.getColumnMetadata(
-                Map.of(3, ADXColumn.ADXColumnType.ADX_5M
-                        , 4, ADXColumn.ADXColumnType.ADX_5M_ON_4H),
-                newContract
+        allMetadata.addAll(PositionColumn.getColumnMetadata(
+                Map.of(
+                        2, PositionColumn.PositionColumnType.POSITION_PRICE_5M,
+                        3, PositionColumn.PositionColumnType.STOPLOSS_5M,
+                        4, PositionColumn.PositionColumnType.TAKEPROFIT_5M
+                ),
+                contract
         ));
+        return allMetadata;
+    }
 
-        newContract.addMetadata(allMetadata);
+    @Override
+    protected String getContractDescription() {
+        return "Визуализация стратегии водопад";
+    }
 
-        // Генерируем и сохраняем hash
-        newContract.contractHash = generateContractHash(newContract);
-        this.contract = dataService.saveNewContract(newContract);
-        this.contractHash = this.contract.contractHash;
+    /**
+     * Инициализация контракта при запуске
+     */
+    @PostConstruct
+    public void init() {
+        initSchema();
     }
 
     @Override

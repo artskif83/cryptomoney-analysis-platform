@@ -1,7 +1,5 @@
 package artskif.trader.strategy.snapshot;
 
-import artskif.trader.candle.AbstractCandle;
-import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
@@ -15,9 +13,9 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Bar;
-import org.ta4j.core.BarSeries;
+import org.ta4j.core.num.Num;
 
-import java.math.BigDecimal;
+import java.util.Map;
 
 @ApplicationScoped
 public class DatabaseSnapshotBuilder {
@@ -29,7 +27,7 @@ public class DatabaseSnapshotBuilder {
         this.registry = registry;
     }
 
-    public DatabaseSnapshot build(Bar bar, AbstractSchema schema, int barIndex, boolean isLive) {
+    public DatabaseSnapshot build(Bar bar, AbstractSchema schema, Map<ColumnTypeMetadata, Num> additionalColumns, int barIndex, boolean isLive) {
 
         CandleTimeframe timeframe = schema.getTimeframe();
         Contract contract = schema.getContract();
@@ -53,18 +51,29 @@ public class DatabaseSnapshotBuilder {
                 if (column != null) {
                     ColumnTypeMetadata columnTypeMetadataByValueName = column.getColumnTypeMetadataByName(metadata.name);
                     if (columnTypeMetadataByValueName != null && columnTypeMetadataByValueName.getTimeframe().equals(timeframe)) {
-                        row.addColumn(metadata.name, column.getValueByName(isLive, metadata.name, barIndex).bigDecimalValue());
+
+                        Num columnValue = null;
+                        if (columnTypeMetadataByValueName.getMetadataType() == MetadataType.FEATURE
+                                || columnTypeMetadataByValueName.getMetadataType() == MetadataType.METRIC) {
+                            columnValue = column.getValueByName(isLive, metadata.name, barIndex);
+                        } else if (columnTypeMetadataByValueName.getMetadataType() == MetadataType.ADDITIONAL) {
+                            columnValue = additionalColumns.get(columnTypeMetadataByValueName);
+                        }
+                        row.addColumn(metadata.name, columnValue != null ? columnValue.bigDecimalValue() : null);
                     } else {
                         Log.debugf("⚠️ Колонка %s не поддерживает таймфрейм %s",
                                 metadata.name, timeframe);
+                        throw new IllegalStateException("Колонка " + metadata.name + " не поддерживает таймфрейм " + timeframe);
                     }
                 } else {
                     Log.debugf("⚠️ Колонка %s не существует в реестре для колонок",
                             metadata.name);
+                    throw new IllegalStateException("Колонка " + metadata.name + " не существует в реестре для колонок");
                 }
             } catch (Exception e) {
                 Log.errorf(e, "❌ Ошибка при вычислении колонки %s для свечи %s",
                         metadata.name, bar.getBeginTime());
+                throw new RuntimeException("Ошибка при вычислении колонки " + metadata.name, e);
             }
         }
 

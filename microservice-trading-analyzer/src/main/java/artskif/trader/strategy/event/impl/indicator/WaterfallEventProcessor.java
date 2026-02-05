@@ -58,10 +58,10 @@ public class WaterfallEventProcessor implements TradeEventProcessor {
     }
 
     @Override
-    public Rule getExitRule(boolean isLiveSeries) {
+    public Rule getFixedExitRule(boolean isLiveSeries, Number lossPercentage, Number gainPercentage) {
         ClosePriceIndicator indicator = closeIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
-        return new StopLossRule(indicator, 0.1)
-                .or(new StopGainRule(indicator, 1));
+        return new StopLossRule(indicator, lossPercentage)
+                .or(new StopGainRule(indicator, gainPercentage));
     }
 
     @Override

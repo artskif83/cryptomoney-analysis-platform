@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS contract_metadata
     description    text           NOT NULL,
     sequence_order integer        NOT NULL,
     data_type      varchar(50)    NOT NULL,
-    metadata_type  varchar(20)    NOT NULL CHECK (metadata_type IN ('FEATURE', 'LABEL')),
+    metadata_type  varchar(20)    NOT NULL CHECK (metadata_type IN ('FEATURE', 'LABEL', 'METRIC', 'ADDITIONAL')),
     contract_id    bigint         NOT NULL,
     created_at     timestamp      NOT NULL DEFAULT NOW(),
     updated_at     timestamp      NOT NULL DEFAULT NOW(),

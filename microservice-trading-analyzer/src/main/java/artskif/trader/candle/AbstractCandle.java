@@ -61,13 +61,13 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
         // Инициализация BaseBarSeries для live и historical данных
         this.liveBarSeries = new BaseBarSeriesBuilder()
                 .withName(name + "_live")
-                .withNumFactory(DecimalNumFactory.getInstance(2))
+                .withNumFactory(DecimalNumFactory.getInstance(6))
                 .withMaxBarCount(maxLiveBufferSize)
                 .build();
 
         this.historicalBarSeries = new BaseBarSeriesBuilder()
                 .withName(name + "_historical")
-                .withNumFactory(DecimalNumFactory.getInstance(2))
+                .withNumFactory(DecimalNumFactory.getInstance(6))
                 .withMaxBarCount(maxHistoricalBufferSize)
                 .build();
     }

@@ -22,28 +22,28 @@ public class ADXColumn extends AbstractColumn<ADXIndicatorM> {
      */
     public enum ADXColumnType implements ColumnTypeMetadata {
         ADX_5M(
-                "feature_adx_14_5m",
+                "metric_adx_14_5m",
                 "ADX индикатор с периодом 14 на таймфрейме 5m",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_5M,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         ),
         ADX_4H(
-                "feature_adx_14_4h",
+                "metric_adx_14_4h",
                 "ADX индикатор с периодом 14 на таймфрейме 4h",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_4H,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         ),
         ADX_5M_ON_4H(
-                "feature_adx_14_5m_on_4h",
+                "metric_adx_14_5m_on_4h",
                 "ADX индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
                 "numeric(5, 2)",
                 CandleTimeframe.CANDLE_5M,
                 CandleTimeframe.CANDLE_4H, // higher timeframe
-                MetadataType.FEATURE
+                MetadataType.METRIC
         );
 
         private final ColumnMetadata metadata;

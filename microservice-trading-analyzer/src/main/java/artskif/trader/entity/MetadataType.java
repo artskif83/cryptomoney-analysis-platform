@@ -17,6 +17,11 @@ public enum MetadataType {
     /**
      * Метрика для отображения
      */
-    METRIC
+    METRIC,
+
+    /**
+     * Дополнительная информация
+     */
+    ADDITIONAL
 }
 

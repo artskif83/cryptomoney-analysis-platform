@@ -92,8 +92,15 @@ public class StrategyDataService {
                 .getSingleResult();
 
         if (existingCount > 0) {
-            Log.error("❌ Данные для ContractSnapshotRow контракта уже существуют. Сначала удалите контракт.");
-            return;
+            Log.infof("⚠️ Найдено %d существующих записей для контракта %s. Удаляем их...",
+                    existingCount, firstRow.contractHash());
+
+            String deleteSql = "DELETE FROM wide_candles WHERE contract_hash = :contract_hash";
+            int deleted = entityManager.createNativeQuery(deleteSql)
+                    .setParameter("contract_hash", firstRow.contractHash())
+                    .executeUpdate();
+
+            Log.infof("✅ Удалено %d записей для контракта %s", deleted, firstRow.contractHash());
         }
 
         // Собираем все строки обратно в список для формирования CSV
@@ -286,7 +293,7 @@ public class StrategyDataService {
                 createColumn(metadataName, column.get().getColumnTypeMetadataByName(metadataName).getDataType());
             }
         } else {
-            Log.warnf("❌ Фича не найдена в реестре: %s", metadataName);
+            Log.warnf("❌ Колонка не найдена в реестре: %s", metadataName);
         }
     }
 

@@ -20,20 +20,20 @@ public class CloseColumn extends AbstractColumn<CloseIndicatorM> {
      */
     public enum CloseColumnType implements ColumnTypeMetadata {
         BASE_5M(
-                "feature_close_5m",
+                "metric_close_5m",
                 "Close индикатор на таймфрейме 5m",
                 "numeric(18, 2)",
                 CandleTimeframe.CANDLE_5M,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         ),
         BASE_4H(
-                "feature_close_4h",
+                "metric_close_4h",
                 "Close индикатор на таймфрейме 4h",
                 "numeric(18, 2)",
                 CandleTimeframe.CANDLE_4H,
                 null,
-                MetadataType.FEATURE
+                MetadataType.METRIC
         );
 
         private final ColumnMetadata metadata;
