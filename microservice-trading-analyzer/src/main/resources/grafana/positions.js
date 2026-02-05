@@ -39,34 +39,29 @@ const downColor = '#FF4D4D';
 const downBorderColor = '#CC3C3C';
 
 // Формирование позиции
-const entries = [];
-const tpLines = [];
-const slLines = [];
-
-let activeFrom = null;
+const entryPoints = [];
+const posLine = [];
+const tpLine = [];
+const slLine = [];
 
 for (let i = 0; i < times.length; i++) {
-    if (posPrice[i] != null) {
-        // закрываем предыдущую позицию
-        if (activeFrom !== null) {
-            const endTime = times[i];
+    const t = times[i];
 
-            tpLines.push([[activeFrom, tpPrice[i - 1]], [endTime, tpPrice[i - 1]]]);
-            slLines.push([[activeFrom, slPrice[i - 1]], [endTime, slPrice[i - 1]]]);
-        }
+    const pos = posPrice[i];
+    const tp = tpPrice[i];
+    const sl = slPrice[i];
 
-        // новая позиция
-        entries.push([times[i], posPrice[i]]);
-        activeFrom = times[i];
+    const prevPos = i > 0 ? posPrice[i - 1] : null;
+
+    // --- entry только на первом баре позиции ---
+    if (pos != null && prevPos == null) {
+        entryPoints.push([t, pos]);
     }
-}
 
-// если позиция активна до конца
-if (activeFrom !== null) {
-    const lastIdx = times.length - 1;
-
-    tpLines.push([[activeFrom, tpPrice[lastIdx]], [times[lastIdx], tpPrice[lastIdx]]]);
-    slLines.push([[activeFrom, slPrice[lastIdx]], [times[lastIdx], slPrice[lastIdx]]]);
+    // --- линии с разрывами через null ---
+    posLine.push([t, pos == null ? null : pos]);
+    tpLine.push([t, tp == null ? null : tp]);
+    slLine.push([t, sl == null ? null : sl]);
 }
 
 // ===== Конфигурация =====
@@ -75,8 +70,7 @@ return {
 
     grid: [
         { left: '5%', right: '5%', top: 10, height: '55%' },   // свечи
-        { left: '5%', right: '5%', top: '62%', height: '18%' }, // ADX
-        { left: '5%', right: '5%', top: '82%', height: '15%' }  // RSI
+        { left: '5%', right: '5%', top: '65%', height: '25%' }  // RSI
     ],
 
     xAxis: [
@@ -89,36 +83,20 @@ return {
             type: 'time',
             gridIndex: 1,
             boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: { show: true }
-        },
-        {
-            type: 'time',
-            gridIndex: 2,
-            boundaryGap: false,
-            axisLabel: { show: false },
+            axisLabel: { show: true },
             axisPointer: { show: true }
         }
     ],
 
     yAxis: [
         { scale: true },
-        { scale: true, gridIndex: 1, min: 0 },
-        { scale: true, gridIndex: 2, min: 0, max: 100 }
+        { scale: true, gridIndex: 1, min: 0, max: 100 }
     ],
 
     dataZoom: [
-        { type: 'inside', xAxisIndex: [0, 1, 2], start: 80, end: 100 },
-        { show: true, type: 'slider', bottom: 0, xAxisIndex: [0, 1, 2], start: 80, end: 100 }
+        { type: 'inside', xAxisIndex: [0, 1], start: 80, end: 100 },
+        { show: true, type: 'slider', bottom: 0, xAxisIndex: [0, 1], start: 80, end: 100 }
     ],
-
-    axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }],   // связать все 3 панели
-        triggerTooltip: true,
-        label: {
-            backgroundColor: '#333'
-        }
-    },
 
     series: [
 
@@ -138,50 +116,65 @@ return {
         },
 
         // Позиции
+        // --- Position (blue dashed) ---
         {
-            name: 'Stop Loss',
+            name: 'Position',
             type: 'line',
-            data: slLines.flat(),
+            data: posLine,
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'none',
-            lineStyle: {
-                color: '#FF5252',
-                width: 2,
-                type: 'dashed'
-            }
+            connectNulls: false,
+            lineStyle: { width: 2, color: '#4DA3FF', type: 'dashed' },
+            tooltip: { show: false }
         },
+
+        // --- Entry (only first bar) ---
         {
             name: 'Entry',
             type: 'scatter',
-            data: entries,
+            data: entryPoints,
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'triangle',
-            symbolSize: 6,
+            tooltip: { show: false },
+            symbolSize: 8,
             itemStyle: { color: '#00E676' }
         },
+
+        // --- Take Profit ---
         {
             name: 'Take Profit',
             type: 'line',
-            data: tpLines.flat(),
+            data: tpLine,
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'none',
-            lineStyle: {
-                color: '#4CAF50',
-                width: 2,
-                type: 'dashed'
-            }
+            tooltip: { show: false },
+            connectNulls: false,
+            lineStyle: { width: 2, color: '#4CAF50', type: 'dashed' }
+        },
+
+        // --- Stop Loss ---
+        {
+            name: 'Stop Loss',
+            type: 'line',
+            data: slLine,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            tooltip: { show: false },
+            connectNulls: false,
+            lineStyle: { width: 2, color: '#FF5252', type: 'dashed' }
         },
 
         // --- RSI ---
         {
-            name: 'RSI 14 (4H)',
+            name: 'RSI 14 (5m)',
             type: 'line',
             data: rsi,
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             symbol: 'none',
             lineStyle: { width: 1, color: '#00E676' }
         },
@@ -190,8 +183,8 @@ return {
         {
             name: 'RSI 70',
             type: 'line',
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             data: times.map(t => [t, 70]),
             symbol: 'none',
             tooltip: { show: false },
@@ -202,8 +195,8 @@ return {
         {
             name: 'RSI 30',
             type: 'line',
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             data: times.map(t => [t, 30]),
             symbol: 'none',
             tooltip: { show: false },
@@ -213,8 +206,26 @@ return {
 
     tooltip: {
         trigger: 'axis',
+        backgroundColor: 'rgba(20,20,20,0.85)',
+        borderWidth: 0,
+        padding: [6, 8],
+        textStyle: {
+            color: '#ccc',
+            fontSize: 8
+        },
         axisPointer: {
-            type: 'line' // вертикальная линия
+            link: [{ xAxisIndex: [0, 1] }],
+            triggerTooltip: false,
+            type: 'cross',
+            crossStyle: {
+                color: '#888',
+                width: 1,
+                type: 'dashed'
+            },
+            label: {
+                show: true,
+                backgroundColor: '#222'
+            }
         }
-    },
+    }
 };
