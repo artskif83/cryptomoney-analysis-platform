@@ -9,7 +9,6 @@ import org.ta4j.core.num.Num;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Абстрактный базовый класс для фич
@@ -28,16 +27,16 @@ public abstract class AbstractColumn<T extends MultiAbstractIndicator<? extends 
     /**
      * Создает список метаданных для указанных типов фич
      *
-     * @param featureTypesMap мапа где ключ - sequenceOrder, значение - тип фичи
-     * @param contract        контракт, к которому относятся метаданные
+     * @param featureTypesList список типов фич (sequenceOrder определяется автоматически по порядку в списке, начиная с 1)
+     * @param contract         контракт, к которому относятся метаданные
      * @return список метаданных контракта
      */
-    public static List<ContractMetadata> getColumnMetadata(Map<Integer, ColumnTypeMetadata> featureTypesMap, Contract contract) {
+    public static List<ContractMetadata> getColumnMetadata(List<ColumnTypeMetadata> featureTypesList, Contract contract) {
         List<ContractMetadata> metadataList = new ArrayList<>();
 
-        for (Map.Entry<Integer, ColumnTypeMetadata> entry : featureTypesMap.entrySet()) {
-            Integer sequenceOrder = entry.getKey();
-            ColumnTypeMetadata featureType = entry.getValue();
+        for (int i = 0; i < featureTypesList.size(); i++) {
+            Integer sequenceOrder = i + 1; // sequenceOrder начинается с 1
+            ColumnTypeMetadata featureType = featureTypesList.get(i);
 
             metadataList.add(new ContractMetadata(
                     featureType.getName(),

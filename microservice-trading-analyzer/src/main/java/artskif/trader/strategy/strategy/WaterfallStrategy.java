@@ -14,6 +14,7 @@ import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.RegimeSchema;
 import artskif.trader.strategy.database.schema.impl.WaterfallSchema;
 import artskif.trader.strategy.event.impl.indicator.WaterfallEventProcessor;
+import artskif.trader.strategy.indicators.base.CandleResistanceStrength;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;

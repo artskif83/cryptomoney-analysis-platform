@@ -4,6 +4,7 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.schema.AbstractSchema;
+import artskif.trader.strategy.database.columns.AbstractColumn;
 import artskif.trader.strategy.database.columns.impl.ADXColumn;
 import artskif.trader.strategy.database.columns.impl.RSIColumn;
 import artskif.trader.entity.Contract;
@@ -14,7 +15,6 @@ import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @ApplicationScoped
 public class RegimeSchema extends AbstractSchema {
@@ -37,16 +37,11 @@ public class RegimeSchema extends AbstractSchema {
      */
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
-        List<ContractMetadata> allMetadata = new ArrayList<>();
-        allMetadata.addAll(RSIColumn.getColumnMetadata(
-                Map.of(1, RSIColumn.RSIColumnType.RSI_4H),
+        return new ArrayList<>(AbstractColumn.getColumnMetadata(
+                List.of(RSIColumn.RSIColumnType.RSI_4H,
+                        ADXColumn.ADXColumnType.ADX_4H),
                 contract
         ));
-        allMetadata.addAll(ADXColumn.getColumnMetadata(
-                Map.of(2, ADXColumn.ADXColumnType.ADX_4H),
-                contract
-        ));
-        return allMetadata;
     }
 
     @Override
