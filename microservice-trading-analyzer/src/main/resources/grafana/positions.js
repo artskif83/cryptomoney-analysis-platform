@@ -14,7 +14,7 @@ const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
-const rsiRaw = col("metric_rsi_14_5m");
+const resistanceStrengthRaw = col("metric_candle_resistance_strength_5m");
 
 const posPrice = col("additional_position_price_5m");
 const tpPrice = col("additional_takeprofit_5m");
@@ -31,7 +31,10 @@ const candles = times.map((t, i) => [
     highs[i]
 ]);
 
-const rsi = times.map((t, i) => [t, rsiRaw[i]]);
+const resistanceStrength = times.map((t, i) => [
+    t,
+    resistanceStrengthRaw[i] == null ? null : resistanceStrengthRaw[i]
+]);
 
 // ===== Цвета =====
 const upColor = '#4CAF50';
@@ -71,7 +74,7 @@ return {
 
     grid: [
         { left: '5%', right: '5%', top: 10, height: '55%' },   // свечи
-        { left: '5%', right: '5%', top: '66%', height: '20%' }  // RSI
+        { left: '5%', right: '5%', top: '66%', height: '20%' } // Resistance strength
     ],
 
     xAxis: [
@@ -103,7 +106,21 @@ return {
                 }
             }
         },
-        { scale: true, gridIndex: 1, min: 0, max: 100 }
+        {
+            scale: true,
+            gridIndex: 1,
+            axisLabel: {
+                formatter: (v) => `${v}`
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        }
     ],
 
     axisPointer: {
@@ -212,39 +229,16 @@ return {
             lineStyle: { width: 1, color: '#FF5252', type: 'dashed' }
         },
 
-        // --- RSI ---
+        // --- Resistance strength ---
         {
-            name: 'RSI 14 (5m)',
+            name: 'Resistance strength (5m)',
             type: 'line',
-            data: rsi,
+            data: resistanceStrength,
             xAxisIndex: 1,
             yAxisIndex: 1,
             symbol: 'none',
-            lineStyle: { width: 1, color: '#00E676' }
-        },
-
-        // --- RSI 70 ---
-        {
-            name: 'RSI 70',
-            type: 'line',
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            data: times.map(t => [t, 70]),
-            symbol: 'none',
-            tooltip: { show: false },
-            lineStyle: { width: 1, color: '#FF4D4D', type: 'dashed' }
-        },
-
-        // --- RSI 30 ---
-        {
-            name: 'RSI 30',
-            type: 'line',
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            data: times.map(t => [t, 30]),
-            symbol: 'none',
-            tooltip: { show: false },
-            lineStyle: { width: 1, color: '#4DA3FF', type: 'dashed' }
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#FFA726' }
         }
     ],
 
