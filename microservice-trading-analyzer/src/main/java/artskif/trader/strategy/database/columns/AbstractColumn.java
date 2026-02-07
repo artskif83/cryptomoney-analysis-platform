@@ -73,11 +73,11 @@ public abstract class AbstractColumn<T extends MultiAbstractIndicator<? extends 
      * @param isLiveSeries использовать live серию или historical
      * @param valueName    имя значения фичи
      * @param index        индекс в серии
-     * @param featureTypes массив enum значений, реализующих FeatureTypeMetadata
+     * @param columnTypeMetadata массив enum значений, реализующих FeatureTypeMetadata
      * @return значение индикатора
      */
-    protected Num getValueByNameGeneric(boolean isLiveSeries, String valueName, int index, ColumnTypeMetadata[] featureTypes) {
-        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(featureTypes, valueName);
+    protected Num getValueByNameGeneric(boolean isLiveSeries, String valueName, int index, ColumnTypeMetadata[] columnTypeMetadata) {
+        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(columnTypeMetadata, valueName);
         ColumnMetadata metadata = featureType.getMetadata();
 
         if (metadata.usesHigherTimeframe()) {

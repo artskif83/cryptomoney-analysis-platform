@@ -8,6 +8,7 @@ function col(name) {
 }
 
 const times = col("time");
+const candleIndexRaw = col("index_candle_5m");
 const opens = col("open");
 const highs = col("high");
 const lows = col("low");
@@ -250,6 +251,43 @@ return {
         textStyle: {
             color: '#ccc',
             fontSize: 10
+        },
+        formatter: (params) => {
+            const list = Array.isArray(params) ? params : [params];
+            const first = list[0];
+            const axisValue = first && first.axisValue;
+
+            // Пробуем найти индекс свечи по времени (как по key), с защитой от отсутствия данных
+            let candleIndex = null;
+            if (axisValue != null && times && times.length) {
+                const idx = times.indexOf(axisValue);
+                candleIndex = idx >= 0 ? candleIndexRaw[idx] : null;
+            }
+
+            // Candle series в ECharts candlestick приходит как [time, open, close, low, high]
+            const candlePoint = list.find(p => p.seriesName === 'Candles');
+            const cv = candlePoint && Array.isArray(candlePoint.data) ? candlePoint.data : null;
+
+            const o = cv ? cv[1] : null;
+            const c = cv ? cv[2] : null;
+            const l = cv ? cv[3] : null;
+            const h = cv ? cv[4] : null;
+
+            const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (5m)');
+            const sVal = strengthPoint && Array.isArray(strengthPoint.data) ? strengthPoint.data[1] : null;
+
+            const lines = [];
+            if (first && first.axisValueLabel) lines.push(first.axisValueLabel);
+            if (candleIndex != null) lines.push(`index: ${candleIndex}`);
+            if (o != null || h != null || l != null || c != null) {
+                if (o != null) lines.push(`O: ${Number(o).toFixed(4)}`);
+                if (h != null) lines.push(`H: ${Number(h).toFixed(4)}`);
+                if (l != null) lines.push(`L: ${Number(l).toFixed(4)}`);
+                if (c != null) lines.push(`C: ${Number(c).toFixed(4)}`);
+            }
+            if (sVal != null) lines.push(`resistance_strength_5m: ${sVal}`);
+
+            return lines.join('<br/>');
         },
         axisPointer: {
             link: [{ xAxisIndex: [0, 1] }],

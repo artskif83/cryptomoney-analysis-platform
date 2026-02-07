@@ -8,6 +8,7 @@ import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.indicators.multi.levels.CandleResistanceStrengthM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
@@ -22,7 +23,15 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
         RESISTANCE_5M(
                 "metric_candle_resistance_strength_5m",
                 "Сила сопротивления свечи на таймфрейме 5m",
-                "numeric(10, 4)",
+                "smallint",
+                CandleTimeframe.CANDLE_5M,
+                null,
+                MetadataType.METRIC
+        ),
+        INDEX_5M(
+                "index_candle_5m",
+                "Индекс свечи свечи на таймфрейме 5m",
+                "bigint",
                 CandleTimeframe.CANDLE_5M,
                 null,
                 MetadataType.METRIC
@@ -68,6 +77,11 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
 
     @Override
     public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
+        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(CandleResistanceStrengthColumnType.values(), valueName);
+        if (featureType == CandleResistanceStrengthColumnType.INDEX_5M) {
+            return DecimalNum.valueOf(index);
+        }
+
         return getValueByNameGeneric(isLiveSeries, valueName, index, CandleResistanceStrengthColumnType.values());
     }
 

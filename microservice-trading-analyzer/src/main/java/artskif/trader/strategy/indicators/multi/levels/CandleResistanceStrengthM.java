@@ -6,6 +6,7 @@ import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import artskif.trader.strategy.indicators.base.CandleResistanceStrength;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.ta4j.core.num.DecimalNum;
 
 @ApplicationScoped
 public class CandleResistanceStrengthM extends MultiAbstractIndicator<CandleResistanceStrength> {
@@ -22,6 +23,6 @@ public class CandleResistanceStrengthM extends MultiAbstractIndicator<CandleResi
 
     @Override
     protected CandleResistanceStrength createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
-        return new CandleResistanceStrength(getBarSeries(timeframe, isLifeSeries));
+        return new CandleResistanceStrength(getBarSeries(timeframe, isLifeSeries), DecimalNum.valueOf(0.03));
     }
 }

@@ -47,8 +47,8 @@ public class WaterfallSchema extends AbstractSchema {
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
-                List.of(RSIColumn.RSIColumnType.RSI_5M,
-                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_5M,
+                List.of(CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_5M,
+                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M,
                         PositionColumn.PositionColumnType.POSITION_PRICE_5M,
                         PositionColumn.PositionColumnType.STOPLOSS_5M,
                         PositionColumn.PositionColumnType.TAKEPROFIT_5M),

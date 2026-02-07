@@ -9,7 +9,7 @@ public class CandleResistanceStrength extends CachedIndicator<Num> {
     private final Num shadowPercentThreshold;
 
     public CandleResistanceStrength(BarSeries series) {
-        this(series, series.numFactory().numOf(0.0001)); // Default threshold of 0.01%
+        this(series, series.numFactory().numOf(0.03)); // Default threshold of 0.03%
     }
 
     public CandleResistanceStrength(BarSeries series, Num shadowPercentThreshold) {
@@ -36,8 +36,8 @@ public class CandleResistanceStrength extends CachedIndicator<Num> {
         Num previousOpen = getBarSeries().getBar(index-1).getOpenPrice();
         Num previousHigh = getBarSeries().getBar(index-1).getHighPrice();
 
-        Num currentShadowPercent = calculatePercentageChange(currentHigh, previousClose.max(currentOpen));
-        Num previousShadowPercent = calculatePercentageChange(previousHigh, currentClose.max(previousOpen));
+        Num currentShadowPercent = calculatePercentageChange(currentHigh, currentClose.max(currentOpen));
+        Num previousShadowPercent = calculatePercentageChange(previousHigh, previousClose.max(previousOpen));
 
         if (currentShadowPercent.isLessThan(shadowPercentThreshold)) {
             // Тень от текущей свечи слишком короткая. Смотрим предыдщую свечу.
@@ -48,7 +48,7 @@ public class CandleResistanceStrength extends CachedIndicator<Num> {
                 // Красная без тени, предыдущая свеча зеленая без тени значит ранг сопротивления 2
                 return getBarSeries().numFactory().two();
             } else {
-                // Красная без тени, предыдущая свеча зеленая с тенью, значит ранг 1
+                // Красная без тени, предыдущая свеча зеленая или красная с тенью, значит ранг 1
                 return getBarSeries().numFactory().one();
             }
         } else {
