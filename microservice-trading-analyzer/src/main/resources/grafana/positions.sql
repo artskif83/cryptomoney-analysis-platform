@@ -6,6 +6,7 @@ SELECT
     close,
     index_candle_5m,
     metric_candle_resistance_strength_5m,
+    metric_resistance_level_5m,
     additional_position_price_5m,
     additional_takeprofit_5m,
     additional_stoploss_5m

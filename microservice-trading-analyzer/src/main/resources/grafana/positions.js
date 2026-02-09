@@ -285,10 +285,11 @@ return {
                 if (l != null) lines.push(`L: ${Number(l).toFixed(4)}`);
                 if (c != null) lines.push(`C: ${Number(c).toFixed(4)}`);
             }
-            if (sVal != null) lines.push(`resistance_strength_5m: ${sVal}`);
+            if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
 
             return lines.join('<br/>');
         },
+
         axisPointer: {
             link: [{ xAxisIndex: [0, 1] }],
             triggerTooltip: false,

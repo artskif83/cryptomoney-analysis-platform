@@ -4,11 +4,8 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.columns.AbstractColumn;
-import artskif.trader.strategy.database.columns.impl.CandleResistanceStrengthColumn;
-import artskif.trader.strategy.database.columns.impl.PositionColumn;
+import artskif.trader.strategy.database.columns.impl.*;
 import artskif.trader.strategy.database.schema.AbstractSchema;
-import artskif.trader.strategy.database.columns.impl.ADXColumn;
-import artskif.trader.strategy.database.columns.impl.RSIColumn;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import jakarta.annotation.PostConstruct;
@@ -48,6 +45,7 @@ public class WaterfallSchema extends AbstractSchema {
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_5M,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_5M,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M,
                         PositionColumn.PositionColumnType.POSITION_PRICE_5M,
                         PositionColumn.PositionColumnType.STOPLOSS_5M,
