@@ -16,6 +16,7 @@ const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
 const resistanceStrengthRaw = col("metric_candle_resistance_strength_5m");
+const resistanceLevelRaw = col("metric_resistance_level_5m");
 
 const posPrice = col("additional_position_price_5m");
 const tpPrice = col("additional_takeprofit_5m");
@@ -35,6 +36,11 @@ const candles = times.map((t, i) => [
 const resistanceStrength = times.map((t, i) => [
     t,
     resistanceStrengthRaw[i] == null ? null : resistanceStrengthRaw[i]
+]);
+
+const resistanceLevel = times.map((t, i) => [
+    t,
+    resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i]
 ]);
 
 // ===== Цвета =====
@@ -74,8 +80,9 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '55%' },   // свечи
-        { left: '5%', right: '5%', top: '66%', height: '20%' } // Resistance strength
+        { left: '5%', right: '5%', top: 10, height: '45%' },   // свечи
+        { left: '5%', right: '5%', top: '56%', height: '15%' }, // Resistance strength
+        { left: '5%', right: '5%', top: '73%', height: '15%' }  // Resistance level
     ],
 
     xAxis: [
@@ -87,6 +94,13 @@ return {
         {
             type: 'time',
             gridIndex: 1,
+            boundaryGap: false,
+            axisLabel: { show: true },
+            axisPointer: { show: true }
+        },
+        {
+            type: 'time',
+            gridIndex: 2,
             boundaryGap: false,
             axisLabel: { show: true },
             axisPointer: { show: true }
@@ -121,11 +135,26 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 2,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1] }]
+        link: [{ xAxisIndex: [0, 1, 2] }]
     },
 
     toolbox: {
@@ -140,7 +169,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1],
+            xAxisIndex: [0, 1, 2],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -150,7 +179,7 @@ return {
         },
         {
             type: 'slider',
-            xAxisIndex: [0, 1],
+            xAxisIndex: [0, 1, 2],
             bottom: 0,
             height: 20,
             backgroundColor: '#222',
@@ -240,6 +269,18 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
+        },
+
+        // --- Resistance level ---
+        {
+            name: 'Resistance level (5m)',
+            type: 'line',
+            data: resistanceLevel,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#AB47BC' }
         }
     ],
 
@@ -276,6 +317,9 @@ return {
             const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (5m)');
             const sVal = strengthPoint && Array.isArray(strengthPoint.data) ? strengthPoint.data[1] : null;
 
+            const levelPoint = list.find(p => p.seriesName === 'Resistance level (5m)');
+            const lVal = levelPoint && Array.isArray(levelPoint.data) ? levelPoint.data[1] : null;
+
             const lines = [];
             if (first && first.axisValueLabel) lines.push(first.axisValueLabel);
             if (candleIndex != null) lines.push(`index: ${candleIndex}`);
@@ -286,12 +330,13 @@ return {
                 if (c != null) lines.push(`C: ${Number(c).toFixed(4)}`);
             }
             if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
+            if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1] }],
+            link: [{ xAxisIndex: [0, 1, 2] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {

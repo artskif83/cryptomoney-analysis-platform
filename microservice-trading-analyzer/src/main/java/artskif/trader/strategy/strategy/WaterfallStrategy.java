@@ -122,7 +122,6 @@ public class WaterfallStrategy extends AbstractStrategy {
     public void backtest() {
         Log.info("📋 Начало генерации бектеста для контракта");
 
-
         checkColumnsExist();
 
         MarketRegime regime = regimeModel.classify();
