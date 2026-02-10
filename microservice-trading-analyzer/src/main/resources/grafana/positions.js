@@ -95,14 +95,14 @@ return {
             type: 'time',
             gridIndex: 1,
             boundaryGap: false,
-            axisLabel: { show: true },
+            axisLabel: { show: false },
             axisPointer: { show: true }
         },
         {
             type: 'time',
             gridIndex: 2,
             boundaryGap: false,
-            axisLabel: { show: true },
+            axisLabel: { show: false },
             axisPointer: { show: true }
         }
     ],
