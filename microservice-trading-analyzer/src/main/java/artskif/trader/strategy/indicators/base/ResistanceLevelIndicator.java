@@ -22,7 +22,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
     public ResistanceLevelIndicator(HighPriceIndicator highPriceIndicator,
                                     ClosePriceIndicator closePriceIndicator,
                                     CandleResistanceStrength candleResistanceStrength) {
-        this(highPriceIndicator, closePriceIndicator, candleResistanceStrength, 6, DecimalNum.valueOf(0.002), DecimalNum.valueOf(0.05));
+        this(highPriceIndicator, closePriceIndicator, candleResistanceStrength, 12, DecimalNum.valueOf(0.0005), DecimalNum.valueOf(0.005));
 
     }
 
@@ -46,7 +46,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         List<PriceWithIndex> sortedPrices = sortByHighPrice(highPriceIndicator, candleResistanceStrength, index);
 
         ResistanceWindowResult result = resistancePower(sortedPrices,
-                resistanceRangePercentagesThreshold, closePriceIndicator.getValue(index));
+                resistanceRangePercentagesThreshold, highPriceIndicator.getValue(index));
 
         return result.getMaxResistancePower();
     }

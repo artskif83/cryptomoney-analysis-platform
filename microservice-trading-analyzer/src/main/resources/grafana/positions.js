@@ -320,6 +320,38 @@ return {
             const levelPoint = list.find(p => p.seriesName === 'Resistance level (5m)');
             const lVal = levelPoint && Array.isArray(levelPoint.data) ? levelPoint.data[1] : null;
 
+            // Расчет теней и изменений
+            let upperShadowPct = null;
+            let lowerShadowPct = null;
+            let candleChangePct = null;
+            let bodyChangePct = null;
+
+            if (o != null && c != null && h != null && l != null) {
+                const bodyTop = Math.max(o, c);
+                const bodyBottom = Math.min(o, c);
+                const bodySize = Math.abs(c - o);
+
+                // Верхняя тень: (high - max(close, open)) / max(close, open) * 100
+                if (h > bodyTop) {
+                    upperShadowPct = ((h - bodyTop) / bodyTop) * 100;
+                }
+
+                // Нижняя тень: (min(close, open) - low) / min(close, open) * 100
+                if (bodyBottom > l) {
+                    lowerShadowPct = ((bodyBottom - l) / bodyBottom) * 100;
+                }
+
+                // Процентное изменение всей свечи: (high - low) / low * 100
+                if (l > 0) {
+                    candleChangePct = ((h - l) / l) * 100;
+                }
+
+                // Процентное изменение тела свечи: (close - open) / open * 100
+                if (o > 0) {
+                    bodyChangePct = ((c - o) / o) * 100;
+                }
+            }
+
             const lines = [];
             if (first && first.axisValueLabel) lines.push(first.axisValueLabel);
             if (candleIndex != null) lines.push(`index: ${candleIndex}`);
@@ -329,6 +361,10 @@ return {
                 if (l != null) lines.push(`L: ${Number(l).toFixed(4)}`);
                 if (c != null) lines.push(`C: ${Number(c).toFixed(4)}`);
             }
+            if (candleChangePct != null) lines.push(`Candle change: ${candleChangePct.toFixed(2)}%`);
+            if (bodyChangePct != null) lines.push(`Body change: ${bodyChangePct >= 0 ? '+' : ''}${bodyChangePct.toFixed(2)}%`);
+            if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
+            if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
 

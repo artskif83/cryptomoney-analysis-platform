@@ -37,7 +37,7 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
                                      HighPriceIndicatorM highPriceIndicatorM,
                                      ClosePriceIndicatorM closePriceIndicatorM,
                                      CandleResistanceStrengthM candleResistanceStrengthM) {
-        this(candle, highPriceIndicatorM, closePriceIndicatorM, candleResistanceStrengthM, 6, DecimalNum.valueOf(0.0005), DecimalNum.valueOf(0.003));
+        this(candle, highPriceIndicatorM, closePriceIndicatorM, candleResistanceStrengthM, 12, DecimalNum.valueOf(0.001), DecimalNum.valueOf(0.015));
     }
 
     public ResistanceLevelIndicatorM(Candle candle,
