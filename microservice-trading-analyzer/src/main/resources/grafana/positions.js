@@ -176,16 +176,6 @@ return {
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
             preventDefaultMouseMove: true
-        },
-        {
-            type: 'slider',
-            xAxisIndex: [0, 1, 2],
-            bottom: 0,
-            height: 20,
-            backgroundColor: '#222',
-            fillerColor: 'rgba(100,100,255,0.25)',
-            borderColor: '#444',
-            handleSize: 8
         }
     ],
 
@@ -300,9 +290,11 @@ return {
 
             // Пробуем найти индекс свечи по времени (как по key), с защитой от отсутствия данных
             let candleIndex = null;
+            let currentIdx = -1;
             if (axisValue != null && times && times.length) {
                 const idx = times.indexOf(axisValue);
                 candleIndex = idx >= 0 ? candleIndexRaw[idx] : null;
+                currentIdx = idx;
             }
 
             // Candle series в ECharts candlestick приходит как [time, open, close, low, high]
@@ -313,6 +305,12 @@ return {
             const c = cv ? cv[2] : null;
             const l = cv ? cv[3] : null;
             const h = cv ? cv[4] : null;
+
+            // Получаем предыдущий high
+            let prevH = null;
+            if (currentIdx > 0 && highs && highs.length > currentIdx) {
+                prevH = highs[currentIdx - 1];
+            }
 
             const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (5m)');
             const sVal = strengthPoint && Array.isArray(strengthPoint.data) ? strengthPoint.data[1] : null;
@@ -325,6 +323,7 @@ return {
             let lowerShadowPct = null;
             let candleChangePct = null;
             let bodyChangePct = null;
+            let highChangePct = null;
 
             if (o != null && c != null && h != null && l != null) {
                 const bodyTop = Math.max(o, c);
@@ -350,6 +349,11 @@ return {
                 if (o > 0) {
                     bodyChangePct = ((c - o) / o) * 100;
                 }
+
+                // Процентное изменение high относительно предыдущего high
+                if (prevH != null && prevH > 0) {
+                    highChangePct = ((h - prevH) / prevH) * 100;
+                }
             }
 
             const lines = [];
@@ -363,6 +367,7 @@ return {
             }
             if (candleChangePct != null) lines.push(`Candle change: ${candleChangePct.toFixed(2)}%`);
             if (bodyChangePct != null) lines.push(`Body change: ${bodyChangePct >= 0 ? '+' : ''}${bodyChangePct.toFixed(2)}%`);
+            if (highChangePct != null) lines.push(`High vs Prev High: ${highChangePct >= 0 ? '+' : ''}${highChangePct.toFixed(2)}%`);
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
