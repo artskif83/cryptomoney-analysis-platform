@@ -12,7 +12,7 @@ public class RSIIndicatorM extends MultiAbstractIndicator<RSIIndicator> {
 
     public static final int RSI_PERIOD = 14;
 
-    private final CloseIndicatorM closeIndicator;
+    private final ClosePriceIndicatorM closeIndicator;
 
     // No-args constructor required by CDI
     protected RSIIndicatorM() {
@@ -21,7 +21,7 @@ public class RSIIndicatorM extends MultiAbstractIndicator<RSIIndicator> {
     }
 
     @Inject
-    public RSIIndicatorM(Candle candle, CloseIndicatorM closeIndicator) {
+    public RSIIndicatorM(Candle candle, ClosePriceIndicatorM closeIndicator) {
         super(candle);
         this.closeIndicator = closeIndicator;
     }

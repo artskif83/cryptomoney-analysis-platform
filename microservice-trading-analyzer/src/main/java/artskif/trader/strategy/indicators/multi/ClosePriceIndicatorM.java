@@ -8,15 +8,15 @@ import jakarta.inject.Inject;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 @ApplicationScoped
-public class CloseIndicatorM extends MultiAbstractIndicator<ClosePriceIndicator> {
+public class ClosePriceIndicatorM extends MultiAbstractIndicator<ClosePriceIndicator> {
 
     // No-args constructor required by CDI
-    protected CloseIndicatorM() {
+    protected ClosePriceIndicatorM() {
         super(null);
     }
 
     @Inject
-    public CloseIndicatorM(Candle candle) {
+    public ClosePriceIndicatorM(Candle candle) {
         super(candle);
     }
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
@@ -21,9 +22,11 @@ class ResistanceLevelIndicatorTest {
     void getCountOfUnstableBars_shouldReturnZero() {
         BarSeries series = seriesWithHighs(100, 101, 102);
         HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
         CandleResistanceStrength strength = new CandleResistanceStrength(series);
 
-        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, strength, 3, series.numFactory().numOf(0.10));
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 3,
+                series.numFactory().numOf(0.002), series.numFactory().numOf(0.10));
 
         assertEquals(0, indicator.getCountOfUnstableBars());
     }
@@ -32,69 +35,168 @@ class ResistanceLevelIndicatorTest {
     void sortByHighPrice_shouldSortDescending_andPreserveOriginalIndex_andRespectLookbackWindow() {
         BarSeries series = seriesWithHighs(10, 50, 30, 40, 20);
         HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
         CandleResistanceStrength strength = new CandleResistanceStrength(series);
 
-        // barCount=3 => для currentIndex=4 берём индексы [2..4]
-        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, strength, 3, series.numFactory().numOf(0.10));
+        // barCount=3 => для currentIndex=4 берём индексы [2..3] (текущий индекс 4 исключается)
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 3,
+                series.numFactory().numOf(0.002), series.numFactory().numOf(0.10));
 
         List<ResistanceLevelIndicator.PriceWithIndex> sorted = indicator.sortByHighPrice(high, strength, 4);
 
-        assertEquals(3, sorted.size());
+        assertEquals(2, sorted.size());
 
-        // highs: idx2=30, idx3=40, idx4=20 => sorted: 40(idx3),30(idx2),20(idx4)
+        // highs: idx2=30, idx3=40 (idx4=20 исключается) => sorted: 40(idx3),30(idx2)
         assertEquals(series.numFactory().numOf(40), sorted.get(0).getPrice());
         assertEquals(3, sorted.get(0).getOriginalIndex());
 
         assertEquals(series.numFactory().numOf(30), sorted.get(1).getPrice());
         assertEquals(2, sorted.get(1).getOriginalIndex());
 
-        assertEquals(series.numFactory().numOf(20), sorted.get(2).getPrice());
-        assertEquals(4, sorted.get(2).getOriginalIndex());
 
         // Плюс проверим, что у всех элементов заполнилась сила сопротивления (не null)
         assertTrue(sorted.stream().allMatch(p -> p.getResistanceStrength() != null));
     }
 
     @Test
-    void resistancePower_shouldReturnZero_whenSortedPricesEmpty() {
+    void resistancePower_shouldReturnZeroResult_whenSortedPricesEmpty() {
         BarSeries series = seriesWithHighs(100);
         HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
         CandleResistanceStrength strength = new CandleResistanceStrength(series);
-        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, strength, 32, series.numFactory().numOf(0.10));
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 32, series.numFactory().numOf(0.002), series.numFactory().numOf(0.10));
 
-        Num result = indicator.resistancePower(List.of(), series.numFactory().numOf(0.10), series.numFactory().numOf(100));
+        ResistanceLevelIndicator.ResistanceWindowResult result = indicator.resistancePower(
+                List.of(), series.numFactory().numOf(0.002), series.numFactory().numOf(100));
 
-        assertEquals(series.numFactory().zero(), result);
+        assertEquals(series.numFactory().zero(), result.getMaxResistancePower());
+        assertEquals(series.numFactory().zero(), result.getTopPrice());
+        assertEquals(series.numFactory().zero(), result.getBottomPrice());
+        assertEquals(series.numFactory().zero(), result.getResistancePowerAbove());
+        assertEquals(series.numFactory().zero(), result.getResistancePowerBelow());
     }
 
     @Test
-    void resistancePower_shouldBeInclusiveOnBounds_andChooseMaximumWindowContainingCurrentPrice() {
+    void resistancePower_shouldFilterByZone_andChooseMaximumWindow_andCalculateAboveBelowSums() {
         BarSeries series = seriesWithHighs(100); // нужен только numFactory()
         HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
         CandleResistanceStrength strength = new CandleResistanceStrength(series);
-        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, strength, 32, series.numFactory().numOf(0.10));
 
-        // threshold = 10%
-        Num threshold = series.numFactory().numOf(0.10);
+        // resistanceRangePercentagesThreshold = 2% (размер окна)
+        // resistanceZonePercentagesThreshold = 10% (фильтр по зоне вокруг currentPrice)
+        Num rangeThreshold = series.numFactory().numOf(0.02);
+        Num zoneThreshold = series.numFactory().numOf(0.10);
 
-        // Цены отсортированы по убыванию (как в sortByHighPrice)
-        // Окно для top=110: [99..110], в него попадают 110(str=2) и 100(str=5) => total=7
-        // Окно для top=100: [90..100], currentPrice=99 попадает, туда 100(str=5) и 95(str=3) => total=8 (максимум)
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 32, rangeThreshold, zoneThreshold);
+
+        // currentPrice = 100
+        // Зона фильтрации: [100*(1-0.10)..100*(1+0.10)] = [90..110]
+        // Цены отсортированы по убыванию
         List<ResistanceLevelIndicator.PriceWithIndex> sorted = List.of(
-                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(110), 0, series.numFactory().numOf(2)),
-                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(100), 1, series.numFactory().numOf(5)),
-                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(95), 2, series.numFactory().numOf(3)),
-                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(80), 3, series.numFactory().numOf(100)) // должен быть за пределами окон
+                // Цена 120 вне зоны (>110), должна быть отфильтрована
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(120), 0, series.numFactory().numOf(10)),
+                // Цена 105 в зоне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(105), 1, series.numFactory().numOf(2)),
+                // Цена 100 в зоне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(100), 2, series.numFactory().numOf(5)),
+                // Цена 98 в зоне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(98), 3, series.numFactory().numOf(3)),
+                // Цена 95 в зоне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(95), 4, series.numFactory().numOf(4)),
+                // Цена 85 вне зоны (<90), должна быть отфильтрована
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(85), 5, series.numFactory().numOf(20))
         );
 
-        Num currentPrice = series.numFactory().numOf(99); // ровно на lowerBound для top=110
-        Num result = indicator.resistancePower(sorted, threshold, currentPrice);
+        Num currentPrice = series.numFactory().numOf(100);
 
-        assertEquals(series.numFactory().numOf(8), result);
+        // После фильтрации остаются: 105(str=2), 100(str=5), 98(str=3), 95(str=4)
+        // Проверяем окна (rangeThreshold=2%):
+        // 1. Окно с top=105: lower=105*0.98=102.9, currentPrice=100 не попадает
+        // 2. Окно с top=100: lower=100*0.98=98, currentPrice=100 попадает
+        //    В окно [98..100] попадают: 100(str=5), 98(str=3) => total=8
+        // 3. Окно с top=98: lower=98*0.98=96.04, currentPrice=100 не попадает (>98)
+        // 4. Окно с top=95: lower=95*0.98=93.1, currentPrice=100 не попадает
+        // Максимум: 8, top=100, bottom=98
+        // Above (>100): 105(str=2) => 2
+        // Below (<98): 95(str=4) => 4
 
-        // Ещё проверим включённость верхней границы: currentPrice==topPrice
-        Num resultAtTop = indicator.resistancePower(sorted, threshold, series.numFactory().numOf(100));
-        assertEquals(series.numFactory().numOf(8), resultAtTop);
+        ResistanceLevelIndicator.ResistanceWindowResult result = indicator.resistancePower(sorted, rangeThreshold, currentPrice);
+
+        assertEquals(series.numFactory().numOf(8), result.getMaxResistancePower());
+        assertEquals(series.numFactory().numOf(100), result.getTopPrice());
+        assertEquals(series.numFactory().numOf(98), result.getBottomPrice());
+        assertEquals(series.numFactory().numOf(2), result.getResistancePowerAbove());
+        assertEquals(series.numFactory().numOf(4), result.getResistancePowerBelow());
+    }
+
+    @Test
+    void resistancePower_shouldReturnZeroResult_whenAllPricesOutsideZone() {
+        BarSeries series = seriesWithHighs(100);
+        HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
+        CandleResistanceStrength strength = new CandleResistanceStrength(series);
+
+        Num rangeThreshold = series.numFactory().numOf(0.02);
+        Num zoneThreshold = series.numFactory().numOf(0.05); // 5%
+
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 32, rangeThreshold, zoneThreshold);
+
+        // currentPrice = 100, zone = [95..105]
+        // Все цены вне зоны
+        List<ResistanceLevelIndicator.PriceWithIndex> sorted = List.of(
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(120), 0, series.numFactory().numOf(10)),
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(80), 1, series.numFactory().numOf(5))
+        );
+
+        Num currentPrice = series.numFactory().numOf(100);
+        ResistanceLevelIndicator.ResistanceWindowResult result = indicator.resistancePower(sorted, rangeThreshold, currentPrice);
+
+        assertEquals(series.numFactory().zero(), result.getMaxResistancePower());
+        assertEquals(series.numFactory().zero(), result.getTopPrice());
+        assertEquals(series.numFactory().zero(), result.getBottomPrice());
+        assertEquals(series.numFactory().zero(), result.getResistancePowerAbove());
+        assertEquals(series.numFactory().zero(), result.getResistancePowerBelow());
+    }
+
+    @Test
+    void resistancePower_shouldHandleMultipleWindowsAndChooseMaximum() {
+        BarSeries series = seriesWithHighs(100);
+        HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
+        CandleResistanceStrength strength = new CandleResistanceStrength(series);
+
+        Num rangeThreshold = series.numFactory().numOf(0.05); // 5%
+        Num zoneThreshold = series.numFactory().numOf(0.20); // 20%
+
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength, 32, rangeThreshold, zoneThreshold);
+
+        // currentPrice = 100, zone = [80..120]
+        // Создаём несколько возможных окон
+        List<ResistanceLevelIndicator.PriceWithIndex> sorted = List.of(
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(110), 0, series.numFactory().numOf(3)),
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(105), 1, series.numFactory().numOf(10)), // Будет в лучшем окне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(102), 2, series.numFactory().numOf(8)),  // Будет в лучшем окне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(100), 3, series.numFactory().numOf(7)),  // Будет в лучшем окне
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(98), 4, series.numFactory().numOf(2)),
+                new ResistanceLevelIndicator.PriceWithIndex(series.numFactory().numOf(90), 5, series.numFactory().numOf(1))
+        );
+
+        Num currentPrice = series.numFactory().numOf(100);
+
+        // Окно с top=105: lower=105*0.95=99.75, currentPrice=100 попадает
+        // В окно попадают: 105(str=10), 102(str=8), 100(str=7) => total=25
+        // Это максимум, top=105, bottom=100
+        // Above (>105): 110(str=3) => 3
+        // Below (<100): 98(str=2), 90(str=1) => 3
+
+        ResistanceLevelIndicator.ResistanceWindowResult result = indicator.resistancePower(sorted, rangeThreshold, currentPrice);
+
+        assertEquals(series.numFactory().numOf(25), result.getMaxResistancePower());
+        assertEquals(series.numFactory().numOf(105), result.getTopPrice());
+        assertEquals(series.numFactory().numOf(100), result.getBottomPrice());
+        assertEquals(series.numFactory().numOf(3), result.getResistancePowerAbove());
+        assertEquals(series.numFactory().numOf(3), result.getResistancePowerBelow());
     }
 
     @Test
@@ -110,26 +212,29 @@ class ResistanceLevelIndicatorTest {
         // idx0: зелёная без тени => strength(0)=0 (index==begin)
         series.addBar(bar(t, 100, 110, 90, 110));
 
-        // idx1: красная без тени, prev зелёная без тени => strength=2, high=120
-        series.addBar(bar(t.plusSeconds(60), 120, 120, 100, 110));
+        // idx1: красная без тени, prev зелёная без тени => strength=2, high=120, close=120
+        series.addBar(bar(t.plusSeconds(60), 120, 120, 100, 120));
 
-        // idx2: красная без тени, prev красная без тени (prevShadow < thr, prevClose<prevOpen false) => strength=1, high=119
-        series.addBar(bar(t.plusSeconds(120), 119, 119, 100, 110));
+        // idx2: красная без тени, prev красная без тени => strength=1, high=119, close=119
+        series.addBar(bar(t.plusSeconds(120), 119, 119, 100, 119));
 
-        // idx3: красная без тени, prev красная без тени -> strength=1, high=120 (такая же цена как idx1)
-        series.addBar(bar(t.plusSeconds(180), 120, 120, 100, 110));
+        // idx3: красная без тени, prev красная без тени -> strength=1, high=120, close=120
+        series.addBar(bar(t.plusSeconds(180), 120, 120, 100, 120));
 
         HighPriceIndicator high = new HighPriceIndicator(series);
+        ClosePriceIndicator close = new ClosePriceIndicator(series);
         CandleResistanceStrength strength = new CandleResistanceStrength(series, series.numFactory().numOf(0.03));
 
         // threshold 0.2% (0.002) как дефолт, barCount=32
-        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, strength);
+        ResistanceLevelIndicator indicator = new ResistanceLevelIndicator(high, close, strength);
 
-        // На idx3 currentHigh=120.
-        // Окно top=120: lower=120*(1-0.002)=119.76, в него попадают high 120(idx1,str=2) и 120(idx3,str=1) => total=3.
-        // high 119(idx2) ниже lowerBound => не попадает.
+        // На idx3 currentPrice=close(3)=120. Анализируем только [0,1,2] (idx3 исключается).
+        // Окно top=120(idx1): lower=120*(1-0.002)=119.76, в него попадают:
+        //   - high 120(idx1, str=2)
+        //   - high 119(idx2, str=1) - не попадает (119 < 119.76)
+        // Итого: total=2.
         Num value = indicator.getValue(3);
-        assertEquals(series.numFactory().numOf(3), value);
+        assertEquals(series.numFactory().numOf(2), value);
     }
 
     private static BarSeries seriesWithHighs(double... highs) {

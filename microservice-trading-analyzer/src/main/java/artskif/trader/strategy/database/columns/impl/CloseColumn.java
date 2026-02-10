@@ -5,7 +5,7 @@ import artskif.trader.entity.MetadataType;
 import artskif.trader.strategy.database.columns.ColumnMetadata;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.database.columns.AbstractColumn;
-import artskif.trader.strategy.indicators.multi.CloseIndicatorM;
+import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.num.Num;
@@ -13,7 +13,7 @@ import org.ta4j.core.num.Num;
 import java.util.List;
 
 @ApplicationScoped
-public class CloseColumn extends AbstractColumn<CloseIndicatorM> {
+public class CloseColumn extends AbstractColumn<ClosePriceIndicatorM> {
 
     /**
      * Перечислимый тип для различных значений ADX фичи
@@ -54,8 +54,8 @@ public class CloseColumn extends AbstractColumn<CloseIndicatorM> {
     }
 
     @Inject
-    public CloseColumn(CloseIndicatorM closeIndicatorM) {
-        super(closeIndicatorM);
+    public CloseColumn(ClosePriceIndicatorM closePriceIndicatorM) {
+        super(closePriceIndicatorM);
     }
 
     @Override

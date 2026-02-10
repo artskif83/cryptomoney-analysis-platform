@@ -1,7 +1,7 @@
 package artskif.trader.strategy.event.impl.indicator;
 
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.strategy.indicators.multi.CloseIndicatorM;
+import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
 import artskif.trader.strategy.event.TradeEventProcessor;
 import artskif.trader.strategy.event.common.TradeEventData;
@@ -9,7 +9,6 @@ import artskif.trader.strategy.regime.common.MarketRegime;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
-import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import org.ta4j.core.rules.StopGainRule;
@@ -25,17 +24,17 @@ import java.util.Optional;
 public class WaterfallEventProcessor implements TradeEventProcessor {
 
     private final RSIIndicatorM rsiIndicatorM;
-    private final CloseIndicatorM closeIndicatorM;
+    private final ClosePriceIndicatorM closePriceIndicatorM;
 
     public WaterfallEventProcessor() {
         this.rsiIndicatorM = null;
-        this.closeIndicatorM = null;
+        this.closePriceIndicatorM = null;
     }
 
     @Inject
-    public WaterfallEventProcessor(RSIIndicatorM rsiIndicatorM, CloseIndicatorM closeIndicatorM) {
+    public WaterfallEventProcessor(RSIIndicatorM rsiIndicatorM, ClosePriceIndicatorM closePriceIndicatorM) {
         this.rsiIndicatorM = rsiIndicatorM;
-        this.closeIndicatorM = closeIndicatorM;
+        this.closePriceIndicatorM = closePriceIndicatorM;
     }
 
     @Override
@@ -59,7 +58,7 @@ public class WaterfallEventProcessor implements TradeEventProcessor {
 
     @Override
     public Rule getFixedExitRule(boolean isLiveSeries, Number lossPercentage, Number gainPercentage) {
-        ClosePriceIndicator indicator = closeIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
+        ClosePriceIndicator indicator = closePriceIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
         return new StopLossRule(indicator, lossPercentage)
                 .or(new StopGainRule(indicator, gainPercentage));
     }

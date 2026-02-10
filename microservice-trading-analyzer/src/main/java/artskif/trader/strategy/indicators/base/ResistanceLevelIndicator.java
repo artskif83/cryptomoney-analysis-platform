@@ -1,6 +1,7 @@
 package artskif.trader.strategy.indicators.base;
 
 import org.ta4j.core.indicators.CachedIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
@@ -13,56 +14,92 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceIndicator;
     private final CandleResistanceStrength candleResistanceStrength;
+    private final ClosePriceIndicator closePriceIndicator;
     private final int barCount;
-    private final Num resistanceRangePercentagesThreshold;
+    private final Num resistanceRangePercentagesThreshold; // Узкое окно в котором находится цена и считает итоговое сопротивление
+    private final Num resistanceZonePercentagesThreshold; // широкое окно в котором считается общее сопротивление
 
     public ResistanceLevelIndicator(HighPriceIndicator highPriceIndicator,
+                                    ClosePriceIndicator closePriceIndicator,
                                     CandleResistanceStrength candleResistanceStrength) {
-        this(highPriceIndicator, candleResistanceStrength, 32, DecimalNum.valueOf(0.002));
+        this(highPriceIndicator, closePriceIndicator, candleResistanceStrength, 6, DecimalNum.valueOf(0.002), DecimalNum.valueOf(0.05));
 
     }
 
     public ResistanceLevelIndicator(HighPriceIndicator highPriceIndicator,
+                                    ClosePriceIndicator closePriceIndicator,
                                     CandleResistanceStrength candleResistanceStrength,
-                                    int barCount, Num resistanceRangePercentagesThreshold) {
+                                    int barCount,
+                                    Num resistanceRangePercentagesThreshold,
+                                    Num resistanceZonePercentagesThreshold) {
         super(highPriceIndicator);
         this.highPriceIndicator = highPriceIndicator;
         this.candleResistanceStrength = candleResistanceStrength;
+        this.closePriceIndicator = closePriceIndicator;
         this.barCount = barCount;
         this.resistanceRangePercentagesThreshold = resistanceRangePercentagesThreshold;
+        this.resistanceZonePercentagesThreshold = resistanceZonePercentagesThreshold;
     }
 
     @Override
     protected Num calculate(int index) {
         List<PriceWithIndex> sortedPrices = sortByHighPrice(highPriceIndicator, candleResistanceStrength, index);
 
-        return resistancePower(sortedPrices,
-                resistanceRangePercentagesThreshold, highPriceIndicator.getValue(index));
+        ResistanceWindowResult result = resistancePower(sortedPrices,
+                resistanceRangePercentagesThreshold, closePriceIndicator.getValue(index));
+
+        return result.getMaxResistancePower();
     }
 
     /**
      * Вычисляет максимальную силу сопротивления для окон, содержащих текущую цену currentPrice.
      * Алгоритм:
-     * 1. Берем каждый элемент из списка как верхнюю границу окна
-     * 2. Вычисляем окно размером resistanceRangePercentagesThreshold
-     * 3. Если currentPrice попадает в это окно, суммируем силу сопротивления всех элементов в окне
-     * 4. Возвращаем максимальную найд��нную силу
+     * 1. Фильтрует цены, находящиеся в пределах resistanceZonePercentagesThreshold от currentPrice
+     * 2. Для каждого элемента из отфильтрованного списка как верхней границы окна
+     * 3. Вычисляет окно размером resistanceRangePercentagesThreshold
+     * 4. Если currentPrice попадает в это окно, суммирует силу сопротивления всех элементов в окне
+     * 5. Находит окно с максимальной силой сопротивления
+     * 6. Возвращает результат с верхней/нижней ценой окна и суммой сопротивлений выше и ниже окна
      *
      * @param sortedPrices отсортированный список цен (от максимальной к минимальной) с силой сопротивления
      * @param resistanceRangePercentagesThreshold процентный порог для определения размера окна
      * @param currentPrice текущая цена, которая должна попасть в окно
-     * @return максимальная суммарная сила сопротивления среди всех окон, содержащих currentPrice
+     * @return результат с информацией о наилучшем окне сопротивления
      */
-    Num resistancePower(List<PriceWithIndex> sortedPrices, Num resistanceRangePercentagesThreshold, Num currentPrice) {
+    ResistanceWindowResult resistancePower(List<PriceWithIndex> sortedPrices, Num resistanceRangePercentagesThreshold, Num currentPrice) {
         if (sortedPrices.isEmpty()) {
-            return getBarSeries().numFactory().zero();
+            Num zero = getBarSeries().numFactory().zero();
+            return new ResistanceWindowResult(zero, zero, zero, zero, zero);
+        }
+
+        // Шаг 1: Фильтруем цены в пределах resistanceZonePercentagesThreshold от currentPrice
+        Num zoneLowerBound = currentPrice.multipliedBy(
+            getBarSeries().numFactory().one().minus(resistanceZonePercentagesThreshold)
+        );
+        Num zoneUpperBound = currentPrice.multipliedBy(
+            getBarSeries().numFactory().one().plus(resistanceZonePercentagesThreshold)
+        );
+
+        List<PriceWithIndex> filteredPrices = new ArrayList<>();
+        for (PriceWithIndex priceItem : sortedPrices) {
+            if (priceItem.getPrice().isGreaterThanOrEqual(zoneLowerBound) &&
+                priceItem.getPrice().isLessThanOrEqual(zoneUpperBound)) {
+                filteredPrices.add(priceItem);
+            }
+        }
+
+        if (filteredPrices.isEmpty()) {
+            Num zero = getBarSeries().numFactory().zero();
+            return new ResistanceWindowResult(zero, zero, zero, zero, zero);
         }
 
         Num maxResistancePower = getBarSeries().numFactory().zero();
+        Num bestTopPrice = getBarSeries().numFactory().zero();
+        Num bestBottomPrice = getBarSeries().numFactory().zero();
 
-        // Проходим по списку сверху вниз (от максимальной цены к минимальной)
-        for (int i = 0; i < sortedPrices.size(); i++) {
-            PriceWithIndex topLevel = sortedPrices.get(i);
+        // Шаг 2-5: Находим окно с максимальной силой сопротивления
+        for (int i = 0; i < filteredPrices.size(); i++) {
+            PriceWithIndex topLevel = filteredPrices.get(i);
             Num topPrice = topLevel.getPrice();
 
             // Вычисляем нижнюю границу окна: topPrice * (1 - resistanceRangePercentagesThreshold)
@@ -74,15 +111,20 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
             if (currentPrice.isGreaterThanOrEqual(lowerBound) && currentPrice.isLessThanOrEqual(topPrice)) {
                 // currentPrice попадает в окно - суммируем силу сопротивления всех элементов в этом окне
                 Num totalResistance = getBarSeries().numFactory().zero();
+                Num windowBottomPrice = topPrice;
 
                 // Проходим по всем элементам и суммируем те, что попадают в окно
-                for (int j = i; j < sortedPrices.size(); j++) {
-                    PriceWithIndex priceItem = sortedPrices.get(j);
+                for (int j = i; j < filteredPrices.size(); j++) {
+                    PriceWithIndex priceItem = filteredPrices.get(j);
                     Num price = priceItem.getPrice();
 
                     // Проверяем, попадает ли цена в окно [lowerBound, topPrice]
                     if (price.isGreaterThanOrEqual(lowerBound) && price.isLessThanOrEqual(topPrice)) {
                         totalResistance = totalResistance.plus(priceItem.getResistanceStrength());
+                        // Обновляем нижнюю цену окна
+                        if (price.isLessThan(windowBottomPrice)) {
+                            windowBottomPrice = price;
+                        }
                     } else if (price.isLessThan(lowerBound)) {
                         // Цена вышла за нижнюю границу окна, дальше проверять нет смысла
                         break;
@@ -92,11 +134,27 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
                 // Обновляем максимальную силу сопротивления, если нашли большее значение
                 if (totalResistance.isGreaterThan(maxResistancePower)) {
                     maxResistancePower = totalResistance;
+                    bestTopPrice = topPrice;
+                    bestBottomPrice = windowBottomPrice;
                 }
             }
         }
 
-        return maxResistancePower;
+        // Шаг 6: Вычисляем суммы сопротивлений выше и ниже наилучшего окна
+        Num resistancePowerAbove = getBarSeries().numFactory().zero();
+        Num resistancePowerBelow = getBarSeries().numFactory().zero();
+
+        for (PriceWithIndex priceItem : filteredPrices) {
+            Num price = priceItem.getPrice();
+            if (price.isGreaterThan(bestTopPrice)) {
+                resistancePowerAbove = resistancePowerAbove.plus(priceItem.getResistanceStrength());
+            } else if (price.isLessThan(bestBottomPrice)) {
+                resistancePowerBelow = resistancePowerBelow.plus(priceItem.getResistanceStrength());
+            }
+        }
+
+        return new ResistanceWindowResult(maxResistancePower, bestTopPrice, bestBottomPrice,
+                                         resistancePowerAbove, resistancePowerBelow);
     }
 
     /**
@@ -116,7 +174,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         int startIndex = Math.max(0, currentIndex - barCount + 1);
 
         // Собираем значения цен с их индексами и силой сопротивления
-        for (int i = startIndex; i <= currentIndex; i++) {
+        for (int i = startIndex; i < currentIndex; i++) {
             Num highPrice = highPriceIndicator.getValue(i);
             Num resistanceStrength = candleResistanceStrength.getValue(i);
             pricesWithIndices.add(new PriceWithIndex(highPrice, i, resistanceStrength));
@@ -152,6 +210,55 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
         public Num getResistanceStrength() {
             return resistanceStrength;
+        }
+
+        @Override
+        public String toString() {
+            return "PriceWithIndex{" +
+                   "price=" + price +
+                   ", originalIndex=" + originalIndex +
+                   ", resistanceStrength=" + resistanceStrength +
+                   '}';
+        }
+    }
+
+    /**
+     * Класс для хранения результатов анализа окна сопротивления
+     */
+    static class ResistanceWindowResult {
+        private final Num maxResistancePower;
+        private final Num topPrice;
+        private final Num bottomPrice;
+        private final Num resistancePowerAbove;
+        private final Num resistancePowerBelow;
+
+        ResistanceWindowResult(Num maxResistancePower, Num topPrice, Num bottomPrice,
+                               Num resistancePowerAbove, Num resistancePowerBelow) {
+            this.maxResistancePower = maxResistancePower;
+            this.topPrice = topPrice;
+            this.bottomPrice = bottomPrice;
+            this.resistancePowerAbove = resistancePowerAbove;
+            this.resistancePowerBelow = resistancePowerBelow;
+        }
+
+        public Num getMaxResistancePower() {
+            return maxResistancePower;
+        }
+
+        public Num getTopPrice() {
+            return topPrice;
+        }
+
+        public Num getBottomPrice() {
+            return bottomPrice;
+        }
+
+        public Num getResistancePowerAbove() {
+            return resistancePowerAbove;
+        }
+
+        public Num getResistancePowerBelow() {
+            return resistancePowerBelow;
         }
     }
 
