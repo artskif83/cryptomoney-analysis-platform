@@ -89,6 +89,17 @@ return {
         {
             type: 'time',
             boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
             axisPointer: {
                 show: true,
                 label: { show: false }
