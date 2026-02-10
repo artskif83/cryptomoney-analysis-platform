@@ -43,6 +43,14 @@ const resistanceLevel = times.map((t, i) => [
     resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i]
 ]);
 
+// Дополнительные графики (для примера - дубликаты resistanceLevel)
+const metric1 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 0.95]);
+const metric2 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 1.05]);
+const metric3 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 0.9]);
+const metric4 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 1.1]);
+const metric5 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 0.98]);
+const metric6 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 1.02]);
+
 // ===== Цвета =====
 const upColor = '#4CAF50';
 const upBorderColor = '#4CAF50';
@@ -80,9 +88,15 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '45%' },   // свечи
-        { left: '5%', right: '5%', top: '56%', height: '15%' }, // Resistance strength
-        { left: '5%', right: '5%', top: '73%', height: '15%' }  // Resistance level
+        { left: '5%', right: '5%', top: 10, height: '50%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '52%', height: '5.5%' },  // Resistance strength (grid 1)
+        { left: '5%', right: '5%', top: '58.5%', height: '5.5%' },// Resistance level (grid 2)
+        { left: '5%', right: '5%', top: '65%', height: '5.5%' },  // Metric 1 (grid 3)
+        { left: '5%', right: '5%', top: '71.5%', height: '5.5%' },// Metric 2 (grid 4)
+        { left: '5%', right: '5%', top: '78%', height: '5.5%' },  // Metric 3 (grid 5)
+        { left: '5%', right: '5%', top: '84.5%', height: '5.5%' },// Metric 4 (grid 6)
+        { left: '5%', right: '5%', top: '91%', height: '4%' },    // Metric 5 (grid 7)
+        { left: '5%', right: '5%', top: '96%', height: '4%' }     // Metric 6 (grid 8)
     ],
 
     xAxis: [
@@ -118,6 +132,66 @@ return {
         {
             type: 'time',
             gridIndex: 2,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 3,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 4,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 5,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 6,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 7,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 8,
             boundaryGap: false,
             axisLabel: { show: false },
             axisPointer: {
@@ -170,11 +244,101 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 3,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        },
+        {
+            scale: true,
+            gridIndex: 4,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        },
+        {
+            scale: true,
+            gridIndex: 5,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        },
+        {
+            scale: true,
+            gridIndex: 6,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        },
+        {
+            scale: true,
+            gridIndex: 7,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
+        },
+        {
+            scale: true,
+            gridIndex: 8,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3, 4, 5, 6, 7, 8] }]
     },
 
     toolbox: {
@@ -189,7 +353,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2],
+            xAxisIndex: [0, 1, 2, 3, 4, 5, 6, 7, 8],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -291,6 +455,78 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#AB47BC' }
+        },
+
+        // --- Metric 1 ---
+        {
+            name: 'Metric 1',
+            type: 'line',
+            data: metric1,
+            xAxisIndex: 3,
+            yAxisIndex: 3,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#26C6DA' }
+        },
+
+        // --- Metric 2 ---
+        {
+            name: 'Metric 2',
+            type: 'line',
+            data: metric2,
+            xAxisIndex: 4,
+            yAxisIndex: 4,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#66BB6A' }
+        },
+
+        // --- Metric 3 ---
+        {
+            name: 'Metric 3',
+            type: 'line',
+            data: metric3,
+            xAxisIndex: 5,
+            yAxisIndex: 5,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#EF5350' }
+        },
+
+        // --- Metric 4 ---
+        {
+            name: 'Metric 4',
+            type: 'line',
+            data: metric4,
+            xAxisIndex: 6,
+            yAxisIndex: 6,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#FFCA28' }
+        },
+
+        // --- Metric 5 ---
+        {
+            name: 'Metric 5',
+            type: 'line',
+            data: metric5,
+            xAxisIndex: 7,
+            yAxisIndex: 7,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#42A5F5' }
+        },
+
+        // --- Metric 6 ---
+        {
+            name: 'Metric 6',
+            type: 'line',
+            data: metric6,
+            xAxisIndex: 8,
+            yAxisIndex: 8,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#8D6E63' }
         }
     ],
 
