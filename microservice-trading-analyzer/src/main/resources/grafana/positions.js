@@ -89,21 +89,30 @@ return {
         {
             type: 'time',
             boundaryGap: false,
-            axisPointer: { show: true }
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
         },
         {
             type: 'time',
             gridIndex: 1,
             boundaryGap: false,
             axisLabel: { show: false },
-            axisPointer: { show: true }
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
         },
         {
             type: 'time',
             gridIndex: 2,
             boundaryGap: false,
             axisLabel: { show: false },
-            axisPointer: { show: true }
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
         }
     ],
 
