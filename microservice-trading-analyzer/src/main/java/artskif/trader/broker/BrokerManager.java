@@ -6,7 +6,6 @@ import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.events.trade.TradeEventListener;
 import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventType;
-import artskif.trader.strategy.regime.common.MarketRegime;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.Startup;
 import io.quarkus.runtime.StartupEvent;

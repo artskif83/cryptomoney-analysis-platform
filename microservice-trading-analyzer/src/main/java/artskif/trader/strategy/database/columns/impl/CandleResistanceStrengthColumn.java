@@ -36,10 +36,18 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
                 null,
                 MetadataType.METRIC
         ),
+        INDEX_4H(
+                "index_candle_4h",
+                "Индекс свечи свечи на таймфрейме 4h",
+                "bigint",
+                CandleTimeframe.CANDLE_4H,
+                null,
+                MetadataType.METRIC
+        ),
         RESISTANCE_4H(
                 "metric_candle_resistance_strength_4h",
                 "Сила сопротивления свечи на таймфрейме 4h",
-                "numeric(10, 4)",
+                "smallint",
                 CandleTimeframe.CANDLE_4H,
                 null,
                 MetadataType.METRIC
@@ -47,7 +55,7 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
         RESISTANCE_5M_ON_4H(
                 "metric_candle_resistance_strength_5m_on_4h",
                 "Сила сопротивления свечи на таймфрейме 4h для индекса 5m",
-                "numeric(10, 4)",
+                "smallint",
                 CandleTimeframe.CANDLE_5M,
                 CandleTimeframe.CANDLE_4H, // higher timeframe
                 MetadataType.METRIC
@@ -78,11 +86,15 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
     @Override
     public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
         ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(CandleResistanceStrengthColumnType.values(), valueName);
-        if (featureType == CandleResistanceStrengthColumnType.INDEX_5M) {
-            return DecimalNum.valueOf(index);
+        switch (featureType) {
+            case CandleResistanceStrengthColumnType.INDEX_5M:
+                return DecimalNum.valueOf(index);
+            case CandleResistanceStrengthColumnType.INDEX_4H:
+                return DecimalNum.valueOf(index);
+            default:
+                return getValueByNameGeneric(isLiveSeries, valueName, index, CandleResistanceStrengthColumnType.values());
         }
 
-        return getValueByNameGeneric(isLiveSeries, valueName, index, CandleResistanceStrengthColumnType.values());
     }
 
     @Override

@@ -23,18 +23,18 @@ import java.util.List;
  * - Подписывание каждой строки фич специальным хешкодом контракта
  */
 @ApplicationScoped
-public class WaterfallSchema extends AbstractSchema {
+public class TF5mSchema extends AbstractSchema {
 
-    private static final String NAME = "WaterfallVisualization";
+    private static final String NAME = "TF5mVisualization";
 
 
     // Конструктор без параметров для CDI proxy
-    public WaterfallSchema() {
+    public TF5mSchema() {
         super(null, null);
     }
 
     @Inject
-    public WaterfallSchema(StrategyDataService dataService, ColumnsRegistry registry) {
+    public TF5mSchema(StrategyDataService dataService, ColumnsRegistry registry) {
         super(dataService, registry);
     }
 

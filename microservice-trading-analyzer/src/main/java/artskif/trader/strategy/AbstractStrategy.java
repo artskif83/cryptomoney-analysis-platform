@@ -6,10 +6,8 @@ import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventListener;
 import artskif.trader.candle.CandleEventType;
-import artskif.trader.strategy.regime.common.MarketRegime;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.TradeEventProcessor;
-import artskif.trader.strategy.regime.MarketRegimeProcessor;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,15 +22,13 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     // Общие зависимости для всех стратегий
     protected final Candle candle;
-    protected final MarketRegimeProcessor regimeModel;
     protected final TradeEventProcessor tradeEventProcessor;
     protected final StrategyDataService dataService;
     protected final DatabaseSnapshotBuilder snapshotBuilder;
 
-    protected AbstractStrategy(Candle candle, MarketRegimeProcessor regimeModel, TradeEventProcessor tradeEventProcessor,
+    protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
                                DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService) {
         this.candle = candle;
-        this.regimeModel = regimeModel;
         this.tradeEventProcessor = tradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
@@ -76,11 +72,6 @@ public abstract class AbstractStrategy implements CandleEventListener {
      * Получить таймфрейм на котором работает стратегия
      */
     protected abstract CandleTimeframe getTimeframe();
-
-    /**
-     * Получить режим рынка, за который отвечает данная стратегия
-     */
-    protected abstract List<MarketRegime> getSupportedRegimes();
 
     /**
      * Получить количество нестабильных баров для стратегии

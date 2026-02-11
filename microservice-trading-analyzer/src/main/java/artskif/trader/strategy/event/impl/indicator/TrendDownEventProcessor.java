@@ -5,7 +5,6 @@ import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
 import artskif.trader.strategy.event.TradeEventProcessor;
 import artskif.trader.strategy.event.common.TradeEventData;
-import artskif.trader.strategy.regime.common.MarketRegime;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
@@ -21,24 +20,24 @@ import java.util.Optional;
  * Отвечает только за детектирование событий во время FLAT режима
  */
 @ApplicationScoped
-public class WaterfallEventProcessor implements TradeEventProcessor {
+public class TrendDownEventProcessor implements TradeEventProcessor {
 
     private final RSIIndicatorM rsiIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
 
-    public WaterfallEventProcessor() {
+    public TrendDownEventProcessor() {
         this.rsiIndicatorM = null;
         this.closePriceIndicatorM = null;
     }
 
     @Inject
-    public WaterfallEventProcessor(RSIIndicatorM rsiIndicatorM, ClosePriceIndicatorM closePriceIndicatorM) {
+    public TrendDownEventProcessor(RSIIndicatorM rsiIndicatorM, ClosePriceIndicatorM closePriceIndicatorM) {
         this.rsiIndicatorM = rsiIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
     }
 
     @Override
-    public Optional<TradeEventData> detect(MarketRegime regime) {
+    public Optional<TradeEventData> detect() {
 
 //        ContractSnapshot snapshot5m =
 //                snapshotBuilder.build(schema5mBase, lastIndex5m, true);

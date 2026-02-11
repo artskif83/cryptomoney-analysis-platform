@@ -11,15 +11,11 @@ import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
-import artskif.trader.strategy.database.schema.impl.RegimeSchema;
-import artskif.trader.strategy.database.schema.impl.WaterfallSchema;
-import artskif.trader.strategy.event.impl.indicator.WaterfallEventProcessor;
-import artskif.trader.strategy.indicators.base.CandleResistanceStrength;
+import artskif.trader.strategy.database.schema.impl.TF5mSchema;
+import artskif.trader.strategy.event.impl.indicator.TrendDownEventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
-import artskif.trader.strategy.regime.common.MarketRegime;
-import artskif.trader.strategy.regime.impl.indicator.IndicatorMarketRegimeProcessor;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,38 +24,32 @@ import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
-import org.ta4j.core.num.NumFactory;
 
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.*;
 
 @ApplicationScoped
-public class WaterfallStrategy extends AbstractStrategy {
+public class TF5mStrategy extends AbstractStrategy {
 
     private final TradeEventBus tradeEventBus;
-    private final AbstractSchema waterfallSchema;
-    private final AbstractSchema regimeSchema;
+    private final AbstractSchema tf5mSchema;
 
 
     // Конструктор без параметров для CDI proxy
-    protected WaterfallStrategy() {
-        super(null, null, null, null, null);
+    protected TF5mStrategy() {
+        super(null, null, null, null);
         this.tradeEventBus = null;
-        this.waterfallSchema = null;
-        this.regimeSchema = null;
+        this.tf5mSchema = null;
     }
 
     @Inject
-    public WaterfallStrategy(Candle candle, IndicatorMarketRegimeProcessor regimeProcessor,
-                             WaterfallEventProcessor eventProcessor,
-                             DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                             RegimeSchema regimeSchema, WaterfallSchema waterfallSchema,
-                             TradeEventBus tradeEventBus) {
-        super(candle, regimeProcessor, eventProcessor, snapshotBuilder, dataService);
+    public TF5mStrategy(Candle candle,
+                        TrendDownEventProcessor eventProcessor,
+                        DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
+                        TF5mSchema TF5mSchema,
+                        TradeEventBus tradeEventBus) {
+        super(candle, eventProcessor, snapshotBuilder, dataService);
         this.tradeEventBus = tradeEventBus;
-        this.waterfallSchema = waterfallSchema;
-        this.regimeSchema = regimeSchema;
+        this.tf5mSchema = TF5mSchema;
 
         // Логирование загруженного EventProcessor
         Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());
@@ -67,16 +57,13 @@ public class WaterfallStrategy extends AbstractStrategy {
 
     @Override
     public String getName() {
-        return "Waterfall Strategy";
+        return "TF5m Strategy";
     }
 
     @Override
     public void onBar(CandlestickDto candle) {
 
-        MarketRegime regime =
-                regimeModel.classify();
-
-        Optional<TradeEventData> tradeEvent = tradeEventProcessor.detect(regime);
+        Optional<TradeEventData> tradeEvent = tradeEventProcessor.detect();
 
         if (tradeEvent.isPresent()) {
             TradeEventData event = tradeEvent.get();
@@ -85,7 +72,6 @@ public class WaterfallStrategy extends AbstractStrategy {
                     event.type(),
                     event.direction(),
                     event.confidence(),
-                    regime,
                     tradeEventProcessor.getClass().getSimpleName()
             );
 
@@ -95,7 +81,6 @@ public class WaterfallStrategy extends AbstractStrategy {
                     candle.getInstrument(),
                     event.direction(),
                     event.confidence(),
-                    regime,
                     candle.getTimestamp(),
                     false
             ));
@@ -109,11 +94,6 @@ public class WaterfallStrategy extends AbstractStrategy {
     }
 
     @Override
-    protected List<MarketRegime> getSupportedRegimes() {
-        return List.of(MarketRegime.TREND_DOWN);
-    }
-
-    @Override
     protected Integer getUnstableBars() {
         return 14;
     }
@@ -123,8 +103,6 @@ public class WaterfallStrategy extends AbstractStrategy {
         Log.info("📋 Начало генерации бектеста для контракта");
 
         checkColumnsExist();
-
-        MarketRegime regime = regimeModel.classify();
 
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
         int processedCount = 0;
@@ -153,7 +131,7 @@ public class WaterfallStrategy extends AbstractStrategy {
             boolean shouldOperate = false;
 
             Position position = tradingRecord.getCurrentPosition();
-            if (position.isNew() && getSupportedRegimes().contains(regime)) {
+            if (position.isNew()) {
                 shouldOperate = !isUnstableAt(index) && entryRule.isSatisfied(index, tradingRecord);
             } else if (position.isOpened()) {
                 shouldOperate = !isUnstableAt(index) && exitRule.isSatisfied(index, tradingRecord);
@@ -177,7 +155,7 @@ public class WaterfallStrategy extends AbstractStrategy {
 
             Bar bar = historicalBarSeries.getBar(index);
 
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, waterfallSchema, additionalColumns, index, false);
+            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, tf5mSchema, additionalColumns, index, false);
 
             dbRows.add(dbRow);
             processedCount++;
@@ -198,7 +176,7 @@ public class WaterfallStrategy extends AbstractStrategy {
 
     public void checkColumnsExist() {
         // Проверка что колонки существуют
-        for (ContractMetadata metadata : waterfallSchema.getContract().metadata) {
+        for (ContractMetadata metadata : tf5mSchema.getContract().metadata) {
             dataService.ensureColumnExist(metadata.name);
         }
     }

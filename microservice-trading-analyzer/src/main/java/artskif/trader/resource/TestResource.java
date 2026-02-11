@@ -12,7 +12,6 @@ import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.event.common.Confidence;
 import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventType;
-import artskif.trader.strategy.regime.common.MarketRegime;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -165,7 +164,6 @@ public class TestResource {
             TradeEventType eventType = TradeEventType.valueOf(type);
             Direction eventDirection = Direction.valueOf(direction);
             Confidence eventConfidence = Confidence.valueOf(confidence);
-            MarketRegime marketRegime = MarketRegime.valueOf(regime);
 
             Instant timestamp = Instant.now();
 
@@ -175,7 +173,6 @@ public class TestResource {
                     instrument,
                     eventDirection,
                     eventConfidence,
-                    marketRegime,
                     timestamp,
                     true // Тестовое событие
             );

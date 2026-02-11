@@ -17,9 +17,6 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
     private final HighPriceIndicatorM highPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final CandleResistanceStrengthM candleResistanceStrengthM;
-    private final int barCount;
-    private final DecimalNum resistanceRangePercentagesThreshold;
-    private final DecimalNum resistanceZonePercentagesThreshold;
 
     // No-args constructor required by CDI
     protected ResistanceLevelIndicatorM() {
@@ -27,9 +24,6 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
         this.highPriceIndicatorM = null;
         this.closePriceIndicatorM = null;
         this.candleResistanceStrengthM = null;
-        this.barCount = 0;
-        this.resistanceRangePercentagesThreshold = null;
-        this.resistanceZonePercentagesThreshold = null;
     }
 
     @Inject
@@ -37,34 +31,41 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
                                      HighPriceIndicatorM highPriceIndicatorM,
                                      ClosePriceIndicatorM closePriceIndicatorM,
                                      CandleResistanceStrengthM candleResistanceStrengthM) {
-        this(candle, highPriceIndicatorM, closePriceIndicatorM, candleResistanceStrengthM, 12, DecimalNum.valueOf(0.001), DecimalNum.valueOf(0.005));
-    }
-
-    public ResistanceLevelIndicatorM(Candle candle,
-                                     HighPriceIndicatorM highPriceIndicatorM,
-                                     ClosePriceIndicatorM closePriceIndicatorM,
-                                     CandleResistanceStrengthM candleResistanceStrengthM,
-                                     int barCount,
-                                     DecimalNum resistanceRangePercentagesThreshold,
-                                     DecimalNum resistanceZonePercentagesThreshold) {
         super(candle);
         this.highPriceIndicatorM = highPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.candleResistanceStrengthM = candleResistanceStrengthM;
-        this.barCount = barCount;
-        this.resistanceRangePercentagesThreshold = resistanceRangePercentagesThreshold;
-        this.resistanceZonePercentagesThreshold = resistanceZonePercentagesThreshold;
+
     }
 
     @Override
     protected ResistanceLevelIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
-        return new ResistanceLevelIndicator(
-                highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
-                barCount,
-                resistanceRangePercentagesThreshold,
-                resistanceZonePercentagesThreshold
-        );
+
+        return switch (timeframe) {
+            case CANDLE_5M -> new ResistanceLevelIndicator(
+                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
+                    12,
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.005)
+            );
+            case CANDLE_4H -> new ResistanceLevelIndicator(
+                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
+                    12,
+                    DecimalNum.valueOf(0.005),
+                    DecimalNum.valueOf(0.025)
+            );
+            default -> new ResistanceLevelIndicator(
+                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
+                    12,
+                    DecimalNum.valueOf(0.005),
+                    DecimalNum.valueOf(0.025)
+            );
+        };
     }
 }

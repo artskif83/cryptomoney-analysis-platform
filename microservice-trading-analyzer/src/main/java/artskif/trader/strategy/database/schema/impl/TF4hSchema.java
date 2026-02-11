@@ -3,10 +3,9 @@ package artskif.trader.strategy.database.schema.impl;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
+import artskif.trader.strategy.database.columns.impl.*;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.columns.AbstractColumn;
-import artskif.trader.strategy.database.columns.impl.ADXColumn;
-import artskif.trader.strategy.database.columns.impl.RSIColumn;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.ContractMetadata;
 import jakarta.annotation.PostConstruct;
@@ -17,18 +16,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class RegimeSchema extends AbstractSchema {
+public class TF4hSchema extends AbstractSchema {
 
-    private static final String NAME = "Test Contract-4h V1.0 ";
+    private static final String NAME = "TF4hVisualization";
 
 
     // Конструктор без параметров для CDI proxy
-    public RegimeSchema() {
+    public TF4hSchema() {
         super(null, null);
     }
 
     @Inject
-    public RegimeSchema(StrategyDataService dataService, ColumnsRegistry registry) {
+    public TF4hSchema(StrategyDataService dataService, ColumnsRegistry registry) {
         super(dataService, registry);
     }
 
@@ -38,8 +37,10 @@ public class RegimeSchema extends AbstractSchema {
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
-                List.of(RSIColumn.RSIColumnType.RSI_4H,
-                        ADXColumn.ADXColumnType.ADX_4H),
+                List.of(CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_4H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_4H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_4H,
+                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M),
                 contract
         ));
     }
