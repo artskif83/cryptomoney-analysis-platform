@@ -3,17 +3,14 @@ package artskif.trader.strategy.strategy;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
-import artskif.trader.entity.ContractMetadata;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
-import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF5mSchema;
 import artskif.trader.strategy.event.impl.indicator.TrendDownEventProcessor;
-import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
 import io.quarkus.logging.Log;
@@ -25,7 +22,7 @@ import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
-import java.util.*;
+import java.util.Optional;
 
 @ApplicationScoped
 public class TF5mStrategy extends AbstractStrategy {
@@ -99,86 +96,85 @@ public class TF5mStrategy extends AbstractStrategy {
     }
 
     @Override
-    public void backtest() {
-        Log.info("📋 Начало генерации бектеста для контракта");
+    protected BacktestContext initializeBacktest(BaseBarSeries historicalBarSeries) {
+        BacktestContext context = new BacktestContext();
 
-        checkColumnsExist();
-
-        BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
-        int processedCount = 0;
-        List<DatabaseSnapshot> dbRows = new ArrayList<>();
-        int totalBars = historicalBarSeries.getBarCount();
-        int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
-
+        // Инициализация торговых моделей
         ZeroCostModel transactionCostModel = new ZeroCostModel();
         ZeroCostModel holdingCostModel = new ZeroCostModel();
         TradeOnCurrentCloseModel tradeExecutionModel = new TradeOnCurrentCloseModel();
 
-        TradingRecord tradingRecord = new BaseTradingRecord(Trade.TradeType.SELL, historicalBarSeries.getBeginIndex(), historicalBarSeries.getEndIndex(), transactionCostModel,
-                holdingCostModel);
+        TradingRecord tradingRecord = new BaseTradingRecord(
+                Trade.TradeType.SELL,
+                historicalBarSeries.getBeginIndex(),
+                historicalBarSeries.getEndIndex(),
+                transactionCostModel,
+                holdingCostModel
+        );
 
-        DecimalNum one = DecimalNum.valueOf(1);
-        DecimalNum hundred = DecimalNum.valueOf(100);
+        // Торговые параметры
         DecimalNum lossPercentage = DecimalNum.valueOf(0.1);
         DecimalNum gainPercentage = DecimalNum.valueOf(1);
 
         Rule entryRule = tradeEventProcessor.getEntryRule(false);
         Rule exitRule = tradeEventProcessor.getFixedExitRule(false, lossPercentage.bigDecimalValue(), gainPercentage.bigDecimalValue());
-        Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
 
-        for (int index = historicalBarSeries.getBeginIndex(); index <= historicalBarSeries.getEndIndex(); index++) {
+        // Сохраняем все необходимые данные в контекст
+        context.customData.put("tradingRecord", tradingRecord);
+        context.customData.put("tradeExecutionModel", tradeExecutionModel);
+        context.customData.put("entryRule", entryRule);
+        context.customData.put("exitRule", exitRule);
+        context.customData.put("lossPercentage", lossPercentage);
+        context.customData.put("gainPercentage", gainPercentage);
 
-            boolean shouldOperate = false;
-
-            Position position = tradingRecord.getCurrentPosition();
-            if (position.isNew()) {
-                shouldOperate = !isUnstableAt(index) && entryRule.isSatisfied(index, tradingRecord);
-            } else if (position.isOpened()) {
-                shouldOperate = !isUnstableAt(index) && exitRule.isSatisfied(index, tradingRecord);
-            }
-
-            if (shouldOperate) {
-                tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
-            }
-
-            if (position.isOpened()){
-                Num netPrice = position.getEntry().getNetPrice();
-                Num stopLoss = netPrice.multipliedBy(one.plus(lossPercentage.dividedBy(hundred)));
-                Num takeProfit = netPrice.multipliedBy(one.minus(gainPercentage.dividedBy(hundred)));
-
-                additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_5M, netPrice);
-                additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_5M, stopLoss);
-                additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_5M, takeProfit);
-            } else {
-                additionalColumns = new HashMap<>();
-            }
-
-            Bar bar = historicalBarSeries.getBar(index);
-
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, tf5mSchema, additionalColumns, index, false);
-
-            dbRows.add(dbRow);
-            processedCount++;
-
-            // Выводим прогресс каждые progressStep свечей
-            if (index > 0 && (index % progressStep == 0 || index == totalBars - 1)) {
-                double progressPercent = ((double) processedCount / totalBars) * 100;
-                Log.infof("⏳ Прогресс тестирования: %.1f%% (%d/%d свечей)",
-                        progressPercent, processedCount, totalBars);
-            }
-        }
-
-        // Сохраняем в БД
-        dataService.saveContractSnapshotRowsBatch(dbRows);
-
-        Log.infof("✅ Завершено тестирование. Обработано %d свечей", processedCount);
+        return context;
     }
 
-    public void checkColumnsExist() {
-        // Проверка что колонки существуют
-        for (ContractMetadata metadata : tf5mSchema.getContract().metadata) {
-            dataService.ensureColumnExist(metadata.name);
+    @Override
+    protected void processBar(int index, BaseBarSeries historicalBarSeries, BacktestContext context) {
+        // Извлекаем данные из контекста
+        TradingRecord tradingRecord = (TradingRecord) context.customData.get("tradingRecord");
+        TradeOnCurrentCloseModel tradeExecutionModel = (TradeOnCurrentCloseModel) context.customData.get("tradeExecutionModel");
+        Rule entryRule = (Rule) context.customData.get("entryRule");
+        Rule exitRule = (Rule) context.customData.get("exitRule");
+        DecimalNum lossPercentage = (DecimalNum) context.customData.get("lossPercentage");
+        DecimalNum gainPercentage = (DecimalNum) context.customData.get("gainPercentage");
+
+        DecimalNum one = DecimalNum.valueOf(1);
+        DecimalNum hundred = DecimalNum.valueOf(100);
+
+        // Торговая логика
+        boolean shouldOperate = false;
+        Position position = tradingRecord.getCurrentPosition();
+
+        if (position.isNew()) {
+            shouldOperate = !isUnstableAt(index) && entryRule.isSatisfied(index, tradingRecord);
+        } else if (position.isOpened()) {
+            shouldOperate = !isUnstableAt(index) && exitRule.isSatisfied(index, tradingRecord);
+        }
+
+        if (shouldOperate) {
+            tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
+        }
+
+        // Обновление дополнительных колонок
+        if (position.isOpened()) {
+            Num netPrice = position.getEntry().getNetPrice();
+            Num stopLoss = netPrice.multipliedBy(one.plus(lossPercentage.dividedBy(hundred)));
+            Num takeProfit = netPrice.multipliedBy(one.minus(gainPercentage.dividedBy(hundred)));
+
+            context.additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_5M, netPrice);
+            context.additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_5M, stopLoss);
+            context.additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_5M, takeProfit);
+        } else {
+            context.additionalColumns.clear();
         }
     }
+
+    @Override
+    protected AbstractSchema getSchema() {
+        return tf5mSchema;
+    }
+
 
 }

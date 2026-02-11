@@ -54,8 +54,8 @@ public class TF4hStrategy extends AbstractStrategy {
     }
 
     @Override
-    public void backtest() {
-
+    protected AbstractSchema getSchema() {
+        return tf4hSchema;
     }
 
     @Override
