@@ -27,9 +27,9 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
         this.highPriceIndicatorM = null;
         this.closePriceIndicatorM = null;
         this.candleResistanceStrengthM = null;
-        this.barCount = 6;
-        this.resistanceRangePercentagesThreshold = DecimalNum.valueOf(0.0005);
-        this.resistanceZonePercentagesThreshold = DecimalNum.valueOf(0.003);
+        this.barCount = 0;
+        this.resistanceRangePercentagesThreshold = null;
+        this.resistanceZonePercentagesThreshold = null;
     }
 
     @Inject
@@ -37,7 +37,7 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
                                      HighPriceIndicatorM highPriceIndicatorM,
                                      ClosePriceIndicatorM closePriceIndicatorM,
                                      CandleResistanceStrengthM candleResistanceStrengthM) {
-        this(candle, highPriceIndicatorM, closePriceIndicatorM, candleResistanceStrengthM, 12, DecimalNum.valueOf(0.001), DecimalNum.valueOf(0.015));
+        this(candle, highPriceIndicatorM, closePriceIndicatorM, candleResistanceStrengthM, 12, DecimalNum.valueOf(0.001), DecimalNum.valueOf(0.005));
     }
 
     public ResistanceLevelIndicatorM(Candle candle,

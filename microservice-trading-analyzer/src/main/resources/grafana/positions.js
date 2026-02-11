@@ -17,6 +17,7 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const resistanceStrengthRaw = col("metric_candle_resistance_strength_5m");
 const resistanceLevelRaw = col("metric_resistance_level_5m");
+const resistancePowerAboveRaw = col("metric_resistance_power_above_5m");
 
 const posPrice = col("additional_position_price_5m");
 const tpPrice = col("additional_takeprofit_5m");
@@ -43,8 +44,12 @@ const resistanceLevel = times.map((t, i) => [
     resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i]
 ]);
 
+const resistancePowerAbove = times.map((t, i) => [
+    t,
+    resistancePowerAboveRaw[i] == null ? null : resistancePowerAboveRaw[i]
+]);
+
 // Дополнительные графики (для примера - дубликаты resistanceLevel)
-const metric1 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 0.95]);
 const metric2 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 1.05]);
 const metric3 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 0.9]);
 const metric4 = times.map((t, i) => [t, resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i] * 1.1]);
@@ -91,7 +96,7 @@ return {
         { left: '5%', right: '5%', top: 10, height: '50%' },      // свечи (grid 0)
         { left: '5%', right: '5%', top: '52%', height: '5.5%' },  // Resistance strength (grid 1)
         { left: '5%', right: '5%', top: '58.5%', height: '5.5%' },// Resistance level (grid 2)
-        { left: '5%', right: '5%', top: '65%', height: '5.5%' },  // Metric 1 (grid 3)
+        { left: '5%', right: '5%', top: '65%', height: '5.5%' },  // Resistance power above (grid 3)
         { left: '5%', right: '5%', top: '71.5%', height: '5.5%' },// Metric 2 (grid 4)
         { left: '5%', right: '5%', top: '78%', height: '5.5%' },  // Metric 3 (grid 5)
         { left: '5%', right: '5%', top: '84.5%', height: '5.5%' },// Metric 4 (grid 6)
@@ -457,11 +462,11 @@ return {
             lineStyle: { width: 1, color: '#AB47BC' }
         },
 
-        // --- Metric 1 ---
+        // --- Resistance power above ---
         {
-            name: 'Metric 1',
+            name: 'Resistance power above (5m)',
             type: 'line',
-            data: metric1,
+            data: resistancePowerAbove,
             xAxisIndex: 3,
             yAxisIndex: 3,
             symbol: 'none',

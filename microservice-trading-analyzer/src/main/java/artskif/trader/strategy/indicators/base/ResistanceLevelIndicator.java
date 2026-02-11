@@ -8,7 +8,9 @@ import org.ta4j.core.num.Num;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
@@ -18,6 +20,9 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
     private final int barCount;
     private final Num resistanceRangePercentagesThreshold; // Узкое окно в котором находится цена и считает итоговое сопротивление
     private final Num resistanceZonePercentagesThreshold; // широкое окно в котором считается общее сопротивление
+
+    // Кэш для хранения результатов расчетов по каждому индексу
+    private final Map<Integer, ResistanceWindowResult> resultsCache = new HashMap<>();
 
     public ResistanceLevelIndicator(HighPriceIndicator highPriceIndicator,
                                     ClosePriceIndicator closePriceIndicator,
@@ -48,7 +53,29 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         ResistanceWindowResult result = resistancePower(sortedPrices,
                 resistanceRangePercentagesThreshold, highPriceIndicator.getValue(index));
 
-        return result.getMaxResistancePower();
+        // Сохраняем результат в кэш для дальнейшего использования
+        resultsCache.put(index, result);
+
+        return  result.getMaxResistancePower().minus(result.getResistancePowerAbove()).max(DecimalNum.valueOf(0));
+    }
+
+    /**
+     * Возвращает силу сопротивления выше окна для указанного индекса.
+     * Перед вызовом этого метода необходимо вызвать getValue(index),
+     * чтобы убедиться, что результат для данного индекса был рассчитан и закэширован.
+     *
+     * @param index индекс бара
+     * @return сила сопротивления выше окна или ноль, если результат еще не рассчитан
+     */
+    public Num getResistancePowerAbove(int index) {
+        // Убеждаемся, что значение для данного индекса рассчитано
+        getValue(index);
+
+        ResistanceWindowResult result = resultsCache.get(index);
+        if (result != null) {
+            return result.getResistancePowerAbove();
+        }
+        return getBarSeries().numFactory().zero();
     }
 
     /**
@@ -94,8 +121,8 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         }
 
         Num maxResistancePower = getBarSeries().numFactory().zero();
-        Num bestTopPrice = getBarSeries().numFactory().zero();
-        Num bestBottomPrice = getBarSeries().numFactory().zero();
+        Num bestTopPrice = filteredPrices.getFirst().getPrice(); // Изначально верхняя цена - это максимальная цена из отфильтрованных
+        Num bestBottomPrice = filteredPrices.getLast().getPrice(); // Изначально нижняя цена - это минимальная цена из отфильтрованных
 
         // Шаг 2-5: Находим окно с максимальной силой сопротивления
         for (int i = 0; i < filteredPrices.size(); i++) {

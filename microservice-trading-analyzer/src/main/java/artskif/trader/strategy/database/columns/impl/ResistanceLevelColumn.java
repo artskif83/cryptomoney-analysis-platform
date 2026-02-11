@@ -5,9 +5,12 @@ import artskif.trader.entity.MetadataType;
 import artskif.trader.strategy.database.columns.AbstractColumn;
 import artskif.trader.strategy.database.columns.ColumnMetadata;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
+import artskif.trader.strategy.indicators.base.ResistanceLevelIndicator;
 import artskif.trader.strategy.indicators.multi.levels.ResistanceLevelIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.ta4j.core.indicators.AbstractIndicator;
+import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
@@ -22,6 +25,14 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
         RESISTANCE_LEVEL_5M(
                 "metric_resistance_level_5m",
                 "Уровень сопротивления на таймфрейме 5m",
+                "smallint",
+                CandleTimeframe.CANDLE_5M,
+                null,
+                MetadataType.METRIC
+        ),
+        RESISTANCE_POWER_ABOVE_5M(
+                "metric_resistance_power_above_5m",
+                "Уровень сопротивления над линией лучшей цены на таймфрейме 5m",
                 "smallint",
                 CandleTimeframe.CANDLE_5M,
                 null,
@@ -68,6 +79,15 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
 
     @Override
     public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
+        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(ResistanceLevelColumn.ResistanceLevelColumnType.values(), valueName);
+        ColumnMetadata metadata = featureType.getMetadata();
+
+        if (featureType == ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_5M) {
+            ResistanceLevelIndicator indicator = (ResistanceLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
+
+            return indicator.getResistancePowerAbove(index);
+        }
+
         return getValueByNameGeneric(isLiveSeries, valueName, index, ResistanceLevelColumnType.values());
     }
 
