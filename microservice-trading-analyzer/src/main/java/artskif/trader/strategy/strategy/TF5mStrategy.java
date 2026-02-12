@@ -42,11 +42,11 @@ public class TF5mStrategy extends AbstractStrategy {
     public TF5mStrategy(Candle candle,
                         TrendDownEventProcessor eventProcessor,
                         DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                        TF5mSchema TF5mSchema,
+                        TF5mSchema tf5mSchema,
                         TradeEventBus tradeEventBus) {
         super(candle, eventProcessor, snapshotBuilder, dataService);
         this.tradeEventBus = tradeEventBus;
-        this.tf5mSchema = TF5mSchema;
+        this.tf5mSchema = tf5mSchema;
 
         // Логирование загруженного EventProcessor
         Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());

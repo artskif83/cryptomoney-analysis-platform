@@ -8,21 +8,16 @@ function col(name) {
 }
 
 const times = col("time");
-const candleIndexRaw = col("index_candle_5m");
+const candleIndexRaw = col("index_candle_4h");
 const opens = col("open");
 const highs = col("high");
 const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
-const resistanceStrengthRaw = col("metric_candle_resistance_strength_5m");
-const resistanceLevelRaw = col("metric_resistance_level_5m");
-const resistancePowerAboveRaw = col("metric_resistance_power_above_5m");
-const resistanceLevel5mOn4hRaw = col("metric_resistance_level_5m_on_4h");
-
-const posPrice = col("additional_position_price_5m");
-const tpPrice = col("additional_takeprofit_5m");
-const slPrice = col("additional_stoploss_5m");
+const resistanceStrengthRaw = col("metric_candle_resistance_strength_4h");
+const resistanceLevelRaw = col("metric_resistance_level_4h");
+const resistancePowerAboveRaw = col("metric_resistance_power_above_4h");
 
 if (!times.length) return {};
 
@@ -50,11 +45,6 @@ const resistancePowerAbove = times.map((t, i) => [
     resistancePowerAboveRaw[i] == null ? null : resistancePowerAboveRaw[i]
 ]);
 
-const resistanceLevel5mOn4h = times.map((t, i) => [
-    t,
-    resistanceLevel5mOn4hRaw[i] == null ? null : resistanceLevel5mOn4hRaw[i]
-]);
-
 
 // ===== Цвета =====
 const upColor = '#4CAF50';
@@ -62,31 +52,6 @@ const upBorderColor = '#4CAF50';
 const downColor = '#FF4D4D';
 const downBorderColor = '#FF4D4D';
 
-// Формирование позиции
-const entryPoints = [];
-const posLine = [];
-const tpLine = [];
-const slLine = [];
-
-for (let i = 0; i < times.length; i++) {
-    const t = times[i];
-
-    const pos = posPrice[i];
-    const tp = tpPrice[i];
-    const sl = slPrice[i];
-
-    const prevPos = i > 0 ? posPrice[i - 1] : null;
-
-    // --- entry только на первом баре позиции ---
-    if (pos != null && prevPos == null) {
-        entryPoints.push([t, pos]);
-    }
-
-    // --- линии с разрывами через null ---
-    posLine.push([t, pos == null ? null : pos]);
-    tpLine.push([t, tp == null ? null : tp]);
-    slLine.push([t, sl == null ? null : sl]);
-}
 
 // ===== Конфигурация =====
 return {
@@ -94,10 +59,9 @@ return {
 
     grid: [
         { left: '5%', right: '5%', top: 10, height: '60%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '62%', height: '9%' },    // Resistance strength (grid 1)
-        { left: '5%', right: '5%', top: '72%', height: '9%' },    // Resistance level (grid 2)
-        { left: '5%', right: '5%', top: '82%', height: '9%' },    // Resistance power above (grid 3)
-        { left: '5%', right: '5%', top: '92%', height: '7%' }     // Resistance level 5m on 4h (grid 4)
+        { left: '5%', right: '5%', top: '72%', height: '7%' },    // Resistance strength (grid 1)
+        { left: '5%', right: '5%', top: '81%', height: '7%' },    // Resistance level (grid 2)
+        { left: '5%', right: '5%', top: '90%', height: '7%' }     // Resistance power above (grid 3)
     ],
 
     xAxis: [
@@ -143,16 +107,6 @@ return {
         {
             type: 'time',
             gridIndex: 3,
-            boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 4,
             boundaryGap: false,
             axisLabel: { show: false },
             axisPointer: {
@@ -220,26 +174,11 @@ return {
                     }
                 }
             }
-        },
-        {
-            scale: true,
-            gridIndex: 4,
-            axisLabel: {
-                formatter: (v) => Math.round(v)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v}`;
-                    }
-                }
-            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2, 3, 4] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3] }]
     },
 
     toolbox: {
@@ -254,7 +193,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2, 3, 4],
+            xAxisIndex: [0, 1, 2, 3],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -281,62 +220,9 @@ return {
             }
         },
 
-        // Позиции
-        // --- Position (blue dashed) ---
-        {
-            name: 'Position',
-            type: 'line',
-            data: posLine,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#4DA3FF', type: 'dashed' },
-            tooltip: { show: false }
-        },
-
-        // --- Entry (only first bar) ---
-        {
-            name: 'Entry',
-            type: 'scatter',
-            data: entryPoints,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'triangle',
-            tooltip: { show: false },
-            symbolSize: 8,
-            itemStyle: { color: '#00E676' }
-        },
-
-        // --- Take Profit ---
-        {
-            name: 'Take Profit',
-            type: 'line',
-            data: tpLine,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            tooltip: { show: false },
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#4CAF50', type: 'dashed' }
-        },
-
-        // --- Stop Loss ---
-        {
-            name: 'Stop Loss',
-            type: 'line',
-            data: slLine,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            tooltip: { show: false },
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#FF5252', type: 'dashed' }
-        },
-
         // --- Resistance strength ---
         {
-            name: 'Resistance strength (5m)',
+            name: 'Resistance strength (4h)',
             type: 'line',
             data: resistanceStrength,
             xAxisIndex: 1,
@@ -348,7 +234,7 @@ return {
 
         // --- Resistance level ---
         {
-            name: 'Resistance level (5m)',
+            name: 'Resistance level (4h)',
             type: 'line',
             data: resistanceLevel,
             xAxisIndex: 2,
@@ -360,7 +246,7 @@ return {
 
         // --- Resistance power above ---
         {
-            name: 'Resistance power above (5m)',
+            name: 'Resistance power above (4h)',
             type: 'line',
             data: resistancePowerAbove,
             xAxisIndex: 3,
@@ -368,18 +254,6 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#26C6DA' }
-        },
-
-        // --- Resistance level 5m on 4h ---
-        {
-            name: 'Resistance level 5m on 4h',
-            type: 'line',
-            data: resistanceLevel5mOn4h,
-            xAxisIndex: 4,
-            yAxisIndex: 4,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#66BB6A' }
         }
     ],
 
@@ -421,17 +295,14 @@ return {
                 prevH = highs[currentIdx - 1];
             }
 
-            const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (5m)');
+            const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (4h)');
             const sVal = strengthPoint && Array.isArray(strengthPoint.data) ? strengthPoint.data[1] : null;
 
-            const levelPoint = list.find(p => p.seriesName === 'Resistance level (5m)');
+            const levelPoint = list.find(p => p.seriesName === 'Resistance level (4h)');
             const lVal = levelPoint && Array.isArray(levelPoint.data) ? levelPoint.data[1] : null;
 
-            const powerAbovePoint = list.find(p => p.seriesName === 'Resistance power above (5m)');
-            const paVal = powerAbovePoint && Array.isArray(powerAbovePoint.data) ? powerAbovePoint.data[1] : null;
-
-            const level5mOn4hPoint = list.find(p => p.seriesName === 'Resistance level 5m on 4h');
-            const l5mOn4hVal = level5mOn4hPoint && Array.isArray(level5mOn4hPoint.data) ? level5mOn4hPoint.data[1] : null;
+            const powerPoint = list.find(p => p.seriesName === 'Resistance power above (4h)');
+            const pVal = powerPoint && Array.isArray(powerPoint.data) ? powerPoint.data[1] : null;
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -443,7 +314,6 @@ return {
             if (o != null && c != null && h != null && l != null) {
                 const bodyTop = Math.max(o, c);
                 const bodyBottom = Math.min(o, c);
-                const bodySize = Math.abs(c - o);
 
                 // Верхняя тень: (high - max(close, open)) / max(close, open) * 100
                 if (h > bodyTop) {
@@ -487,14 +357,13 @@ return {
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
-            if (paVal != null) lines.push(`Resistance power above: ${Math.round(paVal)}`);
-            if (l5mOn4hVal != null) lines.push(`Resistance level 5m on 4h: ${Math.round(l5mOn4hVal)}`);
+            if (pVal != null) lines.push(`Resistance power above: ${Math.round(pVal)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2] }],
+            link: [{ xAxisIndex: [0, 1, 2, 3] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {

@@ -23,7 +23,8 @@ public final class IndicatorUtils {
         for (int i = higherSeries.getEndIndex(); i >= higherSeries.getBeginIndex(); i--) {
             Bar hBar = higherSeries.getBar(i);
 
-            if (!hBar.getEndTime().isAfter(t)) {
+            // Проверяем, что время младшего таймфрейма находится в промежутке старшего
+            if (!hBar.getBeginTime().isAfter(t) && !t.isAfter(hBar.getEndTime())) {
                 return i;
             }
         }

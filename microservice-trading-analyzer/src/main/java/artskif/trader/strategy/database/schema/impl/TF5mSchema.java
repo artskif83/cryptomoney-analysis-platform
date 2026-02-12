@@ -46,6 +46,7 @@ public class TF5mSchema extends AbstractSchema {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_5M,
                         ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_5M,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_5M_ON_4H,
                         ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_5M,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M,
                         PositionColumn.PositionColumnType.POSITION_PRICE_5M,
