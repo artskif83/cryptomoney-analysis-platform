@@ -21,9 +21,6 @@ const tripleMaFastRaw = col("metric_triple_ma_fast_sma_4h");
 const tripleMaMediumRaw = col("metric_triple_ma_medium_sma_4h");
 const tripleMaSlowRaw = col("metric_triple_ma_slow_sma_4h");
 
-const tripleMaFastAngleRaw = col("metric_triple_ma_fast_angle_4h");
-const tripleMaMediumAngleRaw = col("metric_triple_ma_medium_angle_4h");
-const tripleMaSlowAngleRaw = col("metric_triple_ma_slow_angle_4h");
 
 const tripleMaValueRaw = col("metric_triple_ma_value_4h");
 
@@ -47,9 +44,6 @@ const resistanceLevel = times.map((t, i) => [
     resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i]
 ]);
 
-const tripleMaFastAngle = times.map((t, i) => [t, tripleMaFastAngleRaw[i] == null ? null : tripleMaFastAngleRaw[i]]);
-const tripleMaMediumAngle = times.map((t, i) => [t, tripleMaMediumAngleRaw[i] == null ? null : tripleMaMediumAngleRaw[i]]);
-const tripleMaSlowAngle = times.map((t, i) => [t, tripleMaSlowAngleRaw[i] == null ? null : tripleMaSlowAngleRaw[i]]);
 
 const tripleMaValue = times.map((t, i) => [t, tripleMaValueRaw[i] == null ? null : tripleMaValueRaw[i]]);
 
@@ -67,12 +61,9 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '58%' },      // свечи и MA (grid 0)
-        { left: '5%', right: '5%', top: '70%', height: '6%' },    // Resistance level (grid 1)
-        { left: '5%', right: '5%', top: '78%', height: '5%' },    // Triple MA value (grid 2)
-        { left: '5%', right: '5%', top: '84%', height: '4%' },    // Fast MA angle (grid 3)
-        { left: '5%', right: '5%', top: '89%', height: '4%' },    // Medium MA angle (grid 4)
-        { left: '5%', right: '5%', top: '94%', height: '4%' }     // Slow MA angle (grid 5)
+        { left: '5%', right: '5%', top: 10, height: '70%' },      // свечи и MA (grid 0)
+        { left: '5%', right: '5%', top: '70%', height: '15%' },    // Resistance level (grid 1)
+        { left: '5%', right: '5%', top: '85%', height: '15%' }     // Triple MA value (grid 2)
     ],
 
     xAxis: [
@@ -108,36 +99,6 @@ return {
         {
             type: 'time',
             gridIndex: 2,
-            boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 3,
-            boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 4,
-            boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 5,
             boundaryGap: false,
             axisLabel: { show: false },
             axisPointer: {
@@ -190,56 +151,11 @@ return {
                     }
                 }
             }
-        },
-        {
-            scale: true,
-            gridIndex: 3,
-            axisLabel: {
-                formatter: (v) => Math.round(v)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v}`;
-                    }
-                }
-            }
-        },
-        {
-            scale: true,
-            gridIndex: 4,
-            axisLabel: {
-                formatter: (v) => Math.round(v)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v}`;
-                    }
-                }
-            }
-        },
-        {
-            scale: true,
-            gridIndex: 5,
-            axisLabel: {
-                formatter: (v) => Math.round(v)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v}`;
-                    }
-                }
-            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2, 3, 4, 5] }]
+        link: [{ xAxisIndex: [0, 1, 2] }]
     },
 
     toolbox: {
@@ -254,7 +170,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2, 3, 4, 5],
+            xAxisIndex: [0, 1, 2],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -335,42 +251,6 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#EC407A' }
-        },
-
-        // --- Fast MA angle ---
-        {
-            name: 'Triple MA Fast angle (4h)',
-            type: 'line',
-            data: tripleMaFastAngle,
-            xAxisIndex: 3,
-            yAxisIndex: 3,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#42A5F5' }
-        },
-
-        // --- Medium MA angle ---
-        {
-            name: 'Triple MA Medium angle (4h)',
-            type: 'line',
-            data: tripleMaMediumAngle,
-            xAxisIndex: 4,
-            yAxisIndex: 4,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#66BB6A' }
-        },
-
-        // --- Slow MA angle ---
-        {
-            name: 'Triple MA Slow angle (4h)',
-            type: 'line',
-            data: tripleMaSlowAngle,
-            xAxisIndex: 5,
-            yAxisIndex: 5,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#FFA726' }
         }
     ],
 
@@ -427,14 +307,6 @@ return {
             const maValuePoint = list.find(p => p.seriesName === 'Triple MA value (4h)');
             const maValueVal = maValuePoint && Array.isArray(maValuePoint.data) ? maValuePoint.data[1] : null;
 
-            const maFastAnglePoint = list.find(p => p.seriesName === 'Triple MA Fast angle (4h)');
-            const maFastAngleVal = maFastAnglePoint && Array.isArray(maFastAnglePoint.data) ? maFastAnglePoint.data[1] : null;
-
-            const maMediumAnglePoint = list.find(p => p.seriesName === 'Triple MA Medium angle (4h)');
-            const maMediumAngleVal = maMediumAnglePoint && Array.isArray(maMediumAnglePoint.data) ? maMediumAnglePoint.data[1] : null;
-
-            const maSlowAnglePoint = list.find(p => p.seriesName === 'Triple MA Slow angle (4h)');
-            const maSlowAngleVal = maSlowAnglePoint && Array.isArray(maSlowAnglePoint.data) ? maSlowAnglePoint.data[1] : null;
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -492,15 +364,12 @@ return {
             if (maSlowVal != null) lines.push(`MA Slow: ${Number(maSlowVal).toFixed(2)}`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
             if (maValueVal != null) lines.push(`Triple MA value: ${Math.round(maValueVal)}`);
-            if (maFastAngleVal != null) lines.push(`MA Fast angle: ${Math.round(maFastAngleVal)}`);
-            if (maMediumAngleVal != null) lines.push(`MA Medium angle: ${Math.round(maMediumAngleVal)}`);
-            if (maSlowAngleVal != null) lines.push(`MA Slow angle: ${Math.round(maSlowAngleVal)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2, 3, 4, 5] }],
+            link: [{ xAxisIndex: [0, 1, 2] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
