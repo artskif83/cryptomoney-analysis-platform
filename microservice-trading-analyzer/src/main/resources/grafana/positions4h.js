@@ -15,9 +15,15 @@ const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
-const resistanceStrengthRaw = col("metric_candle_resistance_strength_4h");
 const resistanceLevelRaw = col("metric_resistance_level_4h");
-const resistancePowerAboveRaw = col("metric_resistance_power_above_4h");
+
+const tripleMaFastRaw = col("metric_triple_ma_fast_sma_4h");
+const tripleMaMediumRaw = col("metric_triple_ma_medium_sma_4h");
+const tripleMaSlowRaw = col("metric_triple_ma_slow_sma_4h");
+
+const tripleMaFastAngleRaw = col("metric_triple_ma_fast_angle_4h");
+const tripleMaMediumAngleRaw = col("metric_triple_ma_medium_angle_4h");
+const tripleMaSlowAngleRaw = col("metric_triple_ma_slow_angle_4h");
 
 if (!times.length) return {};
 
@@ -30,20 +36,19 @@ const candles = times.map((t, i) => [
     highs[i]
 ]);
 
-const resistanceStrength = times.map((t, i) => [
-    t,
-    resistanceStrengthRaw[i] == null ? null : resistanceStrengthRaw[i]
-]);
+const tripleMaFast = times.map((t, i) => [t, tripleMaFastRaw[i] == null ? null : tripleMaFastRaw[i]]);
+const tripleMaMedium = times.map((t, i) => [t, tripleMaMediumRaw[i] == null ? null : tripleMaMediumRaw[i]]);
+const tripleMaSlow = times.map((t, i) => [t, tripleMaSlowRaw[i] == null ? null : tripleMaSlowRaw[i]]);
 
 const resistanceLevel = times.map((t, i) => [
     t,
     resistanceLevelRaw[i] == null ? null : resistanceLevelRaw[i]
 ]);
 
-const resistancePowerAbove = times.map((t, i) => [
-    t,
-    resistancePowerAboveRaw[i] == null ? null : resistancePowerAboveRaw[i]
-]);
+const tripleMaFastAngle = times.map((t, i) => [t, tripleMaFastAngleRaw[i] == null ? null : tripleMaFastAngleRaw[i]]);
+const tripleMaMediumAngle = times.map((t, i) => [t, tripleMaMediumAngleRaw[i] == null ? null : tripleMaMediumAngleRaw[i]]);
+const tripleMaSlowAngle = times.map((t, i) => [t, tripleMaSlowAngleRaw[i] == null ? null : tripleMaSlowAngleRaw[i]]);
+
 
 
 // ===== Цвета =====
@@ -58,10 +63,11 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '60%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '72%', height: '7%' },    // Resistance strength (grid 1)
-        { left: '5%', right: '5%', top: '81%', height: '7%' },    // Resistance level (grid 2)
-        { left: '5%', right: '5%', top: '90%', height: '7%' }     // Resistance power above (grid 3)
+        { left: '5%', right: '5%', top: 10, height: '60%' },      // свечи и MA (grid 0)
+        { left: '5%', right: '5%', top: '72%', height: '7%' },    // Resistance level (grid 1)
+        { left: '5%', right: '5%', top: '81%', height: '5%' },    // Fast MA angle (grid 2)
+        { left: '5%', right: '5%', top: '87%', height: '5%' },    // Medium MA angle (grid 3)
+        { left: '5%', right: '5%', top: '93%', height: '5%' }     // Slow MA angle (grid 4)
     ],
 
     xAxis: [
@@ -113,6 +119,16 @@ return {
                 show: true,
                 label: { show: false }
             }
+        },
+        {
+            type: 'time',
+            gridIndex: 4,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
         }
     ],
 
@@ -134,7 +150,7 @@ return {
             scale: true,
             gridIndex: 1,
             axisLabel: {
-                formatter: (v) => `${v}`
+                formatter: (v) => Math.round(v)
             },
             axisPointer: {
                 label: {
@@ -174,11 +190,26 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 4,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2, 3] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3, 4] }]
     },
 
     toolbox: {
@@ -193,7 +224,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2, 3],
+            xAxisIndex: [0, 1, 2, 3, 4],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -220,13 +251,33 @@ return {
             }
         },
 
-        // --- Resistance strength ---
+        // --- Скользящие средние на основном графике ---
         {
-            name: 'Resistance strength (4h)',
+            name: 'Triple MA Fast (4h)',
             type: 'line',
-            data: resistanceStrength,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
+            data: tripleMaFast,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#42A5F5' }
+        },
+        {
+            name: 'Triple MA Medium (4h)',
+            type: 'line',
+            data: tripleMaMedium,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#66BB6A' }
+        },
+        {
+            name: 'Triple MA Slow (4h)',
+            type: 'line',
+            data: tripleMaSlow,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
@@ -237,23 +288,47 @@ return {
             name: 'Resistance level (4h)',
             type: 'line',
             data: resistanceLevel,
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#AB47BC' }
         },
 
-        // --- Resistance power above ---
+        // --- Fast MA angle ---
         {
-            name: 'Resistance power above (4h)',
+            name: 'Triple MA Fast angle (4h)',
             type: 'line',
-            data: resistancePowerAbove,
+            data: tripleMaFastAngle,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#42A5F5' }
+        },
+
+        // --- Medium MA angle ---
+        {
+            name: 'Triple MA Medium angle (4h)',
+            type: 'line',
+            data: tripleMaMediumAngle,
             xAxisIndex: 3,
             yAxisIndex: 3,
             symbol: 'none',
             connectNulls: false,
-            lineStyle: { width: 1, color: '#26C6DA' }
+            lineStyle: { width: 1, color: '#66BB6A' }
+        },
+
+        // --- Slow MA angle ---
+        {
+            name: 'Triple MA Slow angle (4h)',
+            type: 'line',
+            data: tripleMaSlowAngle,
+            xAxisIndex: 4,
+            yAxisIndex: 4,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#FFA726' }
         }
     ],
 
@@ -295,14 +370,26 @@ return {
                 prevH = highs[currentIdx - 1];
             }
 
-            const strengthPoint = list.find(p => p.seriesName === 'Resistance strength (4h)');
-            const sVal = strengthPoint && Array.isArray(strengthPoint.data) ? strengthPoint.data[1] : null;
+            const maFastPoint = list.find(p => p.seriesName === 'Triple MA Fast (4h)');
+            const maFastVal = maFastPoint && Array.isArray(maFastPoint.data) ? maFastPoint.data[1] : null;
+
+            const maMediumPoint = list.find(p => p.seriesName === 'Triple MA Medium (4h)');
+            const maMediumVal = maMediumPoint && Array.isArray(maMediumPoint.data) ? maMediumPoint.data[1] : null;
+
+            const maSlowPoint = list.find(p => p.seriesName === 'Triple MA Slow (4h)');
+            const maSlowVal = maSlowPoint && Array.isArray(maSlowPoint.data) ? maSlowPoint.data[1] : null;
 
             const levelPoint = list.find(p => p.seriesName === 'Resistance level (4h)');
             const lVal = levelPoint && Array.isArray(levelPoint.data) ? levelPoint.data[1] : null;
 
-            const powerPoint = list.find(p => p.seriesName === 'Resistance power above (4h)');
-            const pVal = powerPoint && Array.isArray(powerPoint.data) ? powerPoint.data[1] : null;
+            const maFastAnglePoint = list.find(p => p.seriesName === 'Triple MA Fast angle (4h)');
+            const maFastAngleVal = maFastAnglePoint && Array.isArray(maFastAnglePoint.data) ? maFastAnglePoint.data[1] : null;
+
+            const maMediumAnglePoint = list.find(p => p.seriesName === 'Triple MA Medium angle (4h)');
+            const maMediumAngleVal = maMediumAnglePoint && Array.isArray(maMediumAnglePoint.data) ? maMediumAnglePoint.data[1] : null;
+
+            const maSlowAnglePoint = list.find(p => p.seriesName === 'Triple MA Slow angle (4h)');
+            const maSlowAngleVal = maSlowAnglePoint && Array.isArray(maSlowAnglePoint.data) ? maSlowAnglePoint.data[1] : null;
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -355,15 +442,19 @@ return {
             if (highChangePct != null) lines.push(`High vs Prev High: ${highChangePct >= 0 ? '+' : ''}${highChangePct.toFixed(2)}%`);
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
-            if (sVal != null) lines.push(`Resistance strength: ${sVal}`);
+            if (maFastVal != null) lines.push(`MA Fast: ${Number(maFastVal).toFixed(2)}`);
+            if (maMediumVal != null) lines.push(`MA Medium: ${Number(maMediumVal).toFixed(2)}`);
+            if (maSlowVal != null) lines.push(`MA Slow: ${Number(maSlowVal).toFixed(2)}`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
-            if (pVal != null) lines.push(`Resistance power above: ${Math.round(pVal)}`);
+            if (maFastAngleVal != null) lines.push(`MA Fast angle: ${Math.round(maFastAngleVal)}`);
+            if (maMediumAngleVal != null) lines.push(`MA Medium angle: ${Math.round(maMediumAngleVal)}`);
+            if (maSlowAngleVal != null) lines.push(`MA Slow angle: ${Math.round(maSlowAngleVal)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2, 3] }],
+            link: [{ xAxisIndex: [0, 1, 2, 3, 4] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
