@@ -25,6 +25,8 @@ const tripleMaFastAngleRaw = col("metric_triple_ma_fast_angle_4h");
 const tripleMaMediumAngleRaw = col("metric_triple_ma_medium_angle_4h");
 const tripleMaSlowAngleRaw = col("metric_triple_ma_slow_angle_4h");
 
+const tripleMaValueRaw = col("metric_triple_ma_value_4h");
+
 if (!times.length) return {};
 
 // ===== Свечи =====
@@ -49,6 +51,8 @@ const tripleMaFastAngle = times.map((t, i) => [t, tripleMaFastAngleRaw[i] == nul
 const tripleMaMediumAngle = times.map((t, i) => [t, tripleMaMediumAngleRaw[i] == null ? null : tripleMaMediumAngleRaw[i]]);
 const tripleMaSlowAngle = times.map((t, i) => [t, tripleMaSlowAngleRaw[i] == null ? null : tripleMaSlowAngleRaw[i]]);
 
+const tripleMaValue = times.map((t, i) => [t, tripleMaValueRaw[i] == null ? null : tripleMaValueRaw[i]]);
+
 
 
 // ===== Цвета =====
@@ -63,11 +67,12 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '60%' },      // свечи и MA (grid 0)
-        { left: '5%', right: '5%', top: '72%', height: '7%' },    // Resistance level (grid 1)
-        { left: '5%', right: '5%', top: '81%', height: '5%' },    // Fast MA angle (grid 2)
-        { left: '5%', right: '5%', top: '87%', height: '5%' },    // Medium MA angle (grid 3)
-        { left: '5%', right: '5%', top: '93%', height: '5%' }     // Slow MA angle (grid 4)
+        { left: '5%', right: '5%', top: 10, height: '58%' },      // свечи и MA (grid 0)
+        { left: '5%', right: '5%', top: '70%', height: '6%' },    // Resistance level (grid 1)
+        { left: '5%', right: '5%', top: '78%', height: '5%' },    // Triple MA value (grid 2)
+        { left: '5%', right: '5%', top: '84%', height: '4%' },    // Fast MA angle (grid 3)
+        { left: '5%', right: '5%', top: '89%', height: '4%' },    // Medium MA angle (grid 4)
+        { left: '5%', right: '5%', top: '94%', height: '4%' }     // Slow MA angle (grid 5)
     ],
 
     xAxis: [
@@ -123,6 +128,16 @@ return {
         {
             type: 'time',
             gridIndex: 4,
+            boundaryGap: false,
+            axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 5,
             boundaryGap: false,
             axisLabel: { show: false },
             axisPointer: {
@@ -205,11 +220,26 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 5,
+            axisLabel: {
+                formatter: (v) => Math.round(v)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2, 3, 4] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3, 4, 5] }]
     },
 
     toolbox: {
@@ -224,7 +254,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2, 3, 4],
+            xAxisIndex: [0, 1, 2, 3, 4, 5],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -295,13 +325,25 @@ return {
             lineStyle: { width: 1, color: '#AB47BC' }
         },
 
+        // --- Triple MA value ---
+        {
+            name: 'Triple MA value (4h)',
+            type: 'line',
+            data: tripleMaValue,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#EC407A' }
+        },
+
         // --- Fast MA angle ---
         {
             name: 'Triple MA Fast angle (4h)',
             type: 'line',
             data: tripleMaFastAngle,
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 3,
+            yAxisIndex: 3,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#42A5F5' }
@@ -312,8 +354,8 @@ return {
             name: 'Triple MA Medium angle (4h)',
             type: 'line',
             data: tripleMaMediumAngle,
-            xAxisIndex: 3,
-            yAxisIndex: 3,
+            xAxisIndex: 4,
+            yAxisIndex: 4,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#66BB6A' }
@@ -324,8 +366,8 @@ return {
             name: 'Triple MA Slow angle (4h)',
             type: 'line',
             data: tripleMaSlowAngle,
-            xAxisIndex: 4,
-            yAxisIndex: 4,
+            xAxisIndex: 5,
+            yAxisIndex: 5,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
@@ -381,6 +423,9 @@ return {
 
             const levelPoint = list.find(p => p.seriesName === 'Resistance level (4h)');
             const lVal = levelPoint && Array.isArray(levelPoint.data) ? levelPoint.data[1] : null;
+
+            const maValuePoint = list.find(p => p.seriesName === 'Triple MA value (4h)');
+            const maValueVal = maValuePoint && Array.isArray(maValuePoint.data) ? maValuePoint.data[1] : null;
 
             const maFastAnglePoint = list.find(p => p.seriesName === 'Triple MA Fast angle (4h)');
             const maFastAngleVal = maFastAnglePoint && Array.isArray(maFastAnglePoint.data) ? maFastAnglePoint.data[1] : null;
@@ -446,6 +491,7 @@ return {
             if (maMediumVal != null) lines.push(`MA Medium: ${Number(maMediumVal).toFixed(2)}`);
             if (maSlowVal != null) lines.push(`MA Slow: ${Number(maSlowVal).toFixed(2)}`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
+            if (maValueVal != null) lines.push(`Triple MA value: ${Math.round(maValueVal)}`);
             if (maFastAngleVal != null) lines.push(`MA Fast angle: ${Math.round(maFastAngleVal)}`);
             if (maMediumAngleVal != null) lines.push(`MA Medium angle: ${Math.round(maMediumAngleVal)}`);
             if (maSlowAngleVal != null) lines.push(`MA Slow angle: ${Math.round(maSlowAngleVal)}`);
@@ -454,7 +500,7 @@ return {
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2, 3, 4] }],
+            link: [{ xAxisIndex: [0, 1, 2, 3, 4, 5] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
