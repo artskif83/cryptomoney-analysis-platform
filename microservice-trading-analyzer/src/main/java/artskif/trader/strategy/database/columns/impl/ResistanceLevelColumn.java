@@ -90,13 +90,14 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
         ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(ResistanceLevelColumn.ResistanceLevelColumnType.values(), valueName);
         ColumnMetadata metadata = featureType.getMetadata();
 
-        if (featureType == ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_5M) {
-            ResistanceLevelIndicator indicator = (ResistanceLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
-
-            return indicator.getResistancePowerAbove(index);
+        switch (featureType) {
+            case ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_5M:
+            case ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_4H:
+                ResistanceLevelIndicator indicator = (ResistanceLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
+                return indicator.getResistancePowerAbove(index);
+            default:
+                return getValueByNameGeneric(isLiveSeries, valueName, index, ResistanceLevelColumnType.values());
         }
-
-        return getValueByNameGeneric(isLiveSeries, valueName, index, ResistanceLevelColumnType.values());
     }
 
     @Override

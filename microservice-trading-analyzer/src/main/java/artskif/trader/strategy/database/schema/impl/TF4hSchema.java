@@ -40,7 +40,7 @@ public class TF4hSchema extends AbstractSchema {
                 List.of(CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.RESISTANCE_4H,
                         ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_4H,
                         ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_4H,
-                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M),
+                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_4H),
                 contract
         ));
     }
