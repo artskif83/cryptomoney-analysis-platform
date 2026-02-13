@@ -10,7 +10,7 @@ import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF5mSchema;
-import artskif.trader.strategy.event.impl.indicator.TrendDownEventProcessor;
+import artskif.trader.strategy.event.impl.indicator.TrendDownLevel2EventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
 import io.quarkus.logging.Log;
@@ -40,7 +40,7 @@ public class TF5mStrategy extends AbstractStrategy {
 
     @Inject
     public TF5mStrategy(Candle candle,
-                        TrendDownEventProcessor eventProcessor,
+                        TrendDownLevel2EventProcessor eventProcessor,
                         DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
                         TF5mSchema tf5mSchema,
                         TradeEventBus tradeEventBus) {

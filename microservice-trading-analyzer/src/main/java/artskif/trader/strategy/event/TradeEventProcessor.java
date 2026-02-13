@@ -29,4 +29,9 @@ public interface TradeEventProcessor {
      * Получить таймфрейм модели
      */
     CandleTimeframe getTimeframe();
+
+    /**
+     * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
+     */
+    CandleTimeframe getHigherTimeframe();
 }

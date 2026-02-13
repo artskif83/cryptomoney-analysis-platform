@@ -11,10 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Абстрактный базовый класс для фич
- * Содержит общую логику для создания метаданных и делегирования базовых методов
+ * Абстрактный базовый класс для колонок (фич) в базе данных
+ * <p>
+ * Предоставляет общую функциональность для работы с индикаторами технического анализа:
+ * - Получение значений индикаторов для различных таймфреймов
+ * - Создание метаданных для колонок
+ * - Работа с live и historical сериями данных
  *
- * @param <T> тип индикатора, наследующийся от MultiAbstractIndicator
+ * @param <T> тип мульти-индикатора, который используется для получения значений
  */
 public abstract class AbstractColumn<T extends MultiAbstractIndicator<? extends AbstractIndicator<Num>>> implements Column {
 
@@ -62,8 +66,18 @@ public abstract class AbstractColumn<T extends MultiAbstractIndicator<? extends 
         return indicatorM.getIndicator(timeframe, isLiveSeries);
     }
 
+    /**
+     * Получить значение индикатора на старшем таймфрейме для указанного индекса на младшем таймфрейме
+     *
+     * @param index          индекс на младшем таймфрейме
+     * @param lowerTimeframe младший таймфрейм
+     * @param higherTimeframe старший таймфрейм
+     * @param isLifeSeries   использовать live серию или historical
+     * @return значение индикатора на старшем таймфрейме
+     */
     public Num getHigherTimeframeValue(int index, CandleTimeframe lowerTimeframe, CandleTimeframe higherTimeframe, boolean isLifeSeries) {
-        return indicatorM.getHigherTimeframeValue(index, lowerTimeframe, higherTimeframe, isLifeSeries);
+        AbstractIndicator<Num> higherTimeframeIndicator = indicatorM.getHigherTimeframeIndicator(lowerTimeframe, higherTimeframe, isLifeSeries);
+        return higherTimeframeIndicator.getValue(index);
     }
 
     /**

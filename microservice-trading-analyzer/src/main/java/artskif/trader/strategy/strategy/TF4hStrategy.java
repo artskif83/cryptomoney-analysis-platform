@@ -8,8 +8,7 @@ import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF4hSchema;
-import artskif.trader.strategy.event.TradeEventProcessor;
-import artskif.trader.strategy.event.impl.indicator.TrendDownEventProcessor;
+import artskif.trader.strategy.event.impl.indicator.TrendDownLevel2EventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -29,7 +28,7 @@ public class TF4hStrategy extends AbstractStrategy {
 
     @Inject
     protected TF4hStrategy(Candle candle,
-                           TrendDownEventProcessor eventProcessor,
+                           TrendDownLevel2EventProcessor eventProcessor,
                            DatabaseSnapshotBuilder snapshotBuilder,
                            StrategyDataService dataService,
                            TF4hSchema tf4hSchema,

@@ -2,38 +2,46 @@ package artskif.trader.strategy.event.impl.indicator;
 
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
-import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
+import artskif.trader.strategy.indicators.multi.HighPriceIndicatorM;
 import artskif.trader.strategy.event.TradeEventProcessor;
 import artskif.trader.strategy.event.common.TradeEventData;
+import artskif.trader.strategy.indicators.multi.TripleMAIndicatorM;
+import artskif.trader.strategy.indicators.multi.levels.ResistanceLevelIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
+import org.ta4j.core.rules.IsEqualRule;
 import org.ta4j.core.rules.StopGainRule;
 import org.ta4j.core.rules.StopLossRule;
 
 import java.util.Optional;
 
-/**
- * Модель событий для режима флета (бокового движения рынка)
- * Отвечает только за детектирование событий во время FLAT режима
- */
 @ApplicationScoped
-public class TrendDownEventProcessor implements TradeEventProcessor {
+public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
 
-    private final RSIIndicatorM rsiIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
+    private final TripleMAIndicatorM tripleMAIndicatorM;
+    private final ResistanceLevelIndicatorM resistanceLevelIndicatorM;
+    private final HighPriceIndicatorM highPriceIndicatorM;
 
-    public TrendDownEventProcessor() {
-        this.rsiIndicatorM = null;
+    public TrendDownLevel2EventProcessor() {
         this.closePriceIndicatorM = null;
+        this.tripleMAIndicatorM = null;
+        this.resistanceLevelIndicatorM = null;
+        this.highPriceIndicatorM = null;
     }
 
     @Inject
-    public TrendDownEventProcessor(RSIIndicatorM rsiIndicatorM, ClosePriceIndicatorM closePriceIndicatorM) {
-        this.rsiIndicatorM = rsiIndicatorM;
+    public TrendDownLevel2EventProcessor(TripleMAIndicatorM tripleMAIndicatorM,
+                                         ClosePriceIndicatorM closePriceIndicatorM,
+                                         ResistanceLevelIndicatorM resistanceLevelIndicatorM,
+                                         HighPriceIndicatorM highPriceIndicatorM) {
         this.closePriceIndicatorM = closePriceIndicatorM;
+        this.tripleMAIndicatorM = tripleMAIndicatorM;
+        this.resistanceLevelIndicatorM = resistanceLevelIndicatorM;
+        this.highPriceIndicatorM = highPriceIndicatorM;
     }
 
     @Override
@@ -52,7 +60,10 @@ public class TrendDownEventProcessor implements TradeEventProcessor {
 
     @Override
     public Rule getEntryRule(boolean isLiveSeries) {
-        return new CrossedUpIndicatorRule(rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 70);
+        var isEqualRule = new IsEqualRule(tripleMAIndicatorM.getHigherTimeframeIndicator(getTimeframe(),getHigherTimeframe(), isLiveSeries), -2);
+
+//        return new CrossedUpIndicatorRule(rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 70);
+        return isEqualRule;
     }
 
     @Override
@@ -65,6 +76,11 @@ public class TrendDownEventProcessor implements TradeEventProcessor {
     @Override
     public CandleTimeframe getTimeframe() {
         return CandleTimeframe.CANDLE_5M;
+    }
+
+    @Override
+    public CandleTimeframe getHigherTimeframe() {
+        return CandleTimeframe.CANDLE_4H;
     }
 
 }
