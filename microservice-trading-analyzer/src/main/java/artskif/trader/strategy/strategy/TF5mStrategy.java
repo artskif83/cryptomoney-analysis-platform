@@ -113,8 +113,8 @@ public class TF5mStrategy extends AbstractStrategy {
         );
 
         // Торговые параметры
-        DecimalNum lossPercentage = DecimalNum.valueOf(0.1);
-        DecimalNum gainPercentage = DecimalNum.valueOf(1);
+        DecimalNum lossPercentage = DecimalNum.valueOf(0.2);
+        DecimalNum gainPercentage = DecimalNum.valueOf(5);
 
         Rule entryRule = tradeEventProcessor.getEntryRule(false);
         Rule exitRule = tradeEventProcessor.getFixedExitRule(false, lossPercentage.bigDecimalValue(), gainPercentage.bigDecimalValue());

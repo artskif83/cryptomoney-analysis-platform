@@ -11,10 +11,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.rules.CrossedUpIndicatorRule;
-import org.ta4j.core.rules.IsEqualRule;
-import org.ta4j.core.rules.StopGainRule;
-import org.ta4j.core.rules.StopLossRule;
+import org.ta4j.core.indicators.helpers.HighPriceIndicator;
+import org.ta4j.core.rules.*;
 
 import java.util.Optional;
 
@@ -60,15 +58,16 @@ public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
 
     @Override
     public Rule getEntryRule(boolean isLiveSeries) {
-        var isEqualRule = new IsEqualRule(tripleMAIndicatorM.getHigherTimeframeIndicator(getTimeframe(),getHigherTimeframe(), isLiveSeries), -2);
+        var tripleMARule = new IsEqualRule(tripleMAIndicatorM.getHigherTimeframeIndicator(getTimeframe(),getHigherTimeframe(), isLiveSeries), -2);
+        OverIndicatorRule resistance5m = new OverIndicatorRule(resistanceLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 3);
+        OverIndicatorRule resistance4h = new OverIndicatorRule(resistanceLevelIndicatorM.getHigherTimeframeIndicator(getTimeframe(), getHigherTimeframe(), isLiveSeries), 0);
 
-//        return new CrossedUpIndicatorRule(rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 70);
-        return isEqualRule;
+        return tripleMARule.and(resistance5m).and(resistance4h);
     }
 
     @Override
     public Rule getFixedExitRule(boolean isLiveSeries, Number lossPercentage, Number gainPercentage) {
-        ClosePriceIndicator indicator = closePriceIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
+        HighPriceIndicator indicator = highPriceIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
         return new StopLossRule(indicator, lossPercentage)
                 .or(new StopGainRule(indicator, gainPercentage));
     }
