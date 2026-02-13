@@ -41,9 +41,6 @@ public class TF4hSchema extends AbstractSchema {
                         TripleMAColumn.TripleMAColumnType.FAST_SMA_4H,
                         TripleMAColumn.TripleMAColumnType.MEDIUM_SMA_4H,
                         TripleMAColumn.TripleMAColumnType.SLOW_SMA_4H,
-                        TripleMAColumn.TripleMAColumnType.FAST_SMA_ANGLE_4H,
-                        TripleMAColumn.TripleMAColumnType.SLOW_SMA_ANGLE_4H,
-                        TripleMAColumn.TripleMAColumnType.MEDIUM_SMA_ANGLE_4H,
                         TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_4H,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_4H),
                 contract

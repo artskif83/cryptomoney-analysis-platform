@@ -17,6 +17,7 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const resistanceLevelRaw = col("metric_resistance_level_5m");
 const resistanceLevel5mOn4hRaw = col("metric_resistance_level_5m_on_4h");
+const tripleMaValue5mOn4hRaw = col("metric_triple_ma_value_5m_on_4h");
 
 const posPrice = col("additional_position_price_5m");
 const tpPrice = col("additional_takeprofit_5m");
@@ -42,6 +43,11 @@ const resistanceLevel = times.map((t, i) => [
 const resistanceLevel5mOn4h = times.map((t, i) => [
     t,
     resistanceLevel5mOn4hRaw[i] == null ? null : resistanceLevel5mOn4hRaw[i]
+]);
+
+const tripleMaValue5mOn4h = times.map((t, i) => [
+    t,
+    tripleMaValue5mOn4hRaw[i] == null ? null : tripleMaValue5mOn4hRaw[i]
 ]);
 
 
@@ -82,9 +88,10 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '70%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '72%', height: '12%' },   // Resistance level (grid 1)
-        { left: '5%', right: '5%', top: '86%', height: '12%' }    // Resistance level 5m on 4h (grid 2)
+        { left: '5%', right: '5%', top: 10, height: '64%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '66%', height: '10%' },   // Resistance level (grid 1)
+        { left: '5%', right: '5%', top: '78%', height: '10%' },   // Resistance level 5m on 4h (grid 2)
+        { left: '5%', right: '5%', top: '90%', height: '8%' }     // Triple MA value 5m on 4h (grid 3)
     ],
 
     xAxis: [
@@ -122,6 +129,26 @@ return {
             gridIndex: 2,
             boundaryGap: false,
             axisLabel: { show: false },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 3,
+            boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
             axisPointer: {
                 show: true,
                 label: { show: false }
@@ -172,11 +199,26 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 3,
+            axisLabel: {
+                formatter: (v) => v.toFixed(2)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v.toFixed(2)}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3] }]
     },
 
     toolbox: {
@@ -191,7 +233,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2],
+            xAxisIndex: [0, 1, 2, 3],
             start: 80,
             end: 100,
             zoomOnMouseWheel: true,
@@ -293,6 +335,18 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#66BB6A' }
+        },
+
+        // --- Triple MA value 5m on 4h ---
+        {
+            name: 'Triple MA value 5m on 4h',
+            type: 'line',
+            data: tripleMaValue5mOn4h,
+            xAxisIndex: 3,
+            yAxisIndex: 3,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#FFA726' }
         }
     ],
 
@@ -340,6 +394,9 @@ return {
 
             const level5mOn4hPoint = list.find(p => p.seriesName === 'Resistance level 5m on 4h');
             const l5mOn4hVal = level5mOn4hPoint && Array.isArray(level5mOn4hPoint.data) ? level5mOn4hPoint.data[1] : null;
+
+            const tripleMaPoint = list.find(p => p.seriesName === 'Triple MA value 5m on 4h');
+            const tripleMaVal = tripleMaPoint && Array.isArray(tripleMaPoint.data) ? tripleMaPoint.data[1] : null;
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -395,12 +452,13 @@ return {
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
             if (l5mOn4hVal != null) lines.push(`Resistance level 5m on 4h: ${Math.round(l5mOn4hVal)}`);
+            if (tripleMaVal != null) lines.push(`Triple MA value 5m on 4h: ${tripleMaVal.toFixed(2)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2] }],
+            link: [{ xAxisIndex: [0, 1, 2, 3] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
