@@ -12,8 +12,13 @@ import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.TradeEventProcessor;
 import io.quarkus.logging.Log;
+import org.ta4j.core.AnalysisCriterion;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBarSeries;
+import org.ta4j.core.TradingRecord;
+import org.ta4j.core.criteria.NumberOfPositionsCriterion;
+import org.ta4j.core.criteria.NumberOfWinningPositionsCriterion;
+import org.ta4j.core.criteria.PositionsRatioCriterion;
 import org.ta4j.core.num.Num;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 
@@ -112,10 +117,24 @@ public abstract class AbstractStrategy implements CandleEventListener {
             }
         }
 
+        TradingRecord tradingRecord = (TradingRecord) context.customData.get("tradingRecord");
+
+        strategyAnalysis(tradingRecord, historicalBarSeries);
+
         // Сохраняем в БД
         dataService.saveContractSnapshotRowsBatch(dbRows);
 
         Log.infof("✅ Завершено тестирование. Обработано %d свечей", processedCount);
+    }
+
+    private void strategyAnalysis(TradingRecord tradingRecord, BaseBarSeries historicalBarSeries) {
+        Num numberOfPositions = new NumberOfPositionsCriterion().calculate(historicalBarSeries, tradingRecord);
+        Log.debugf("Количество позиций: %s", numberOfPositions.intValue());
+        Num numberOfWiningPositions = new NumberOfWinningPositionsCriterion().calculate(historicalBarSeries, tradingRecord);
+        Log.debugf("Количество позиций: %s", numberOfPositions.intValue());
+        var positionsRatio = new PositionsRatioCriterion(AnalysisCriterion.PositionFilter.PROFIT).calculate(historicalBarSeries, tradingRecord);
+        Log.debugf("Соотношение выигрышных позиций: %s", positionsRatio.bigDecimalValue());
+
     }
 
     /**
