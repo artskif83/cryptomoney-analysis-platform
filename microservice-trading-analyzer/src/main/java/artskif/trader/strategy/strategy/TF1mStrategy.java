@@ -7,6 +7,7 @@ import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
+import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
@@ -18,11 +19,11 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.*;
-import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
-import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -100,80 +101,6 @@ public class TF1mStrategy extends AbstractStrategy {
     @Override
     protected Integer getUnstableBars() {
         return 14;
-    }
-
-    @Override
-    protected BacktestContext initializeBacktest(BaseBarSeries historicalBarSeries) {
-        BacktestContext context = new BacktestContext();
-
-        // Инициализация торговых моделей
-        ZeroCostModel transactionCostModel = new ZeroCostModel();
-        ZeroCostModel holdingCostModel = new ZeroCostModel();
-        TradeOnCurrentCloseModel tradeExecutionModel = new TradeOnCurrentCloseModel();
-
-        TradingRecord sellTradingRecord = new BaseTradingRecord(
-                Trade.TradeType.SELL,
-                historicalBarSeries.getBeginIndex(),
-                historicalBarSeries.getEndIndex(),
-                transactionCostModel,
-                holdingCostModel
-        );
-
-        // Торговые параметры
-        DecimalNum stoplossPercentage = DecimalNum.valueOf(0.05);
-        DecimalNum takeprofitPercentage = DecimalNum.valueOf(1);
-
-        Rule entryRule = tradeEventProcessor.getEntryRule(false);
-        Rule exitRule = tradeEventProcessor.getFixedExitRule(false, stoplossPercentage.bigDecimalValue(), takeprofitPercentage.bigDecimalValue());
-
-        // Сохраняем все необходимые данные в контекст
-        context.customData.put("tradingRecord", sellTradingRecord);
-        context.customData.put("tradeExecutionModel", tradeExecutionModel);
-        context.customData.put("entryRule", entryRule);
-        context.customData.put("exitRule", exitRule);
-        context.customData.put("lossPercentage", stoplossPercentage);
-        context.customData.put("gainPercentage", takeprofitPercentage);
-
-        return context;
-    }
-
-    @Override
-    protected void processBar(int index, BaseBarSeries historicalBarSeries, BacktestContext context) {
-        // Извлекаем данные из контекста
-        TradingRecord tradingRecord = (TradingRecord) context.customData.get("tradingRecord");
-        TradeOnCurrentCloseModel tradeExecutionModel = (TradeOnCurrentCloseModel) context.customData.get("tradeExecutionModel");
-        Rule entryRule = (Rule) context.customData.get("entryRule");
-        Rule exitRule = (Rule) context.customData.get("exitRule");
-        DecimalNum lossPercentage = (DecimalNum) context.customData.get("lossPercentage");
-        DecimalNum gainPercentage = (DecimalNum) context.customData.get("gainPercentage");
-
-
-        // Торговая логика
-        boolean shouldOperate = false;
-        Position position = tradingRecord.getCurrentPosition();
-
-        if (position.isNew()) {
-            shouldOperate = !isUnstableAt(index) && entryRule.isSatisfied(index, tradingRecord);
-        } else if (position.isOpened()) {
-            shouldOperate = !isUnstableAt(index) && exitRule.isSatisfied(index, tradingRecord);
-        }
-
-        if (shouldOperate) {
-            tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
-        }
-
-        // Обновление дополнительных колонок
-        if (position.isOpened()) {
-            Num netPrice = position.getEntry().getNetPrice();
-            Num stopLoss = netPrice.multipliedBy(ONE.plus(lossPercentage.dividedBy(HUNDRED)));
-            Num takeProfit = netPrice.multipliedBy(ONE.minus(gainPercentage.dividedBy(HUNDRED)));
-
-            context.additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
-            context.additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
-            context.additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_1M, takeProfit);
-        } else {
-            context.additionalColumns.clear();
-        }
     }
 
     @Override

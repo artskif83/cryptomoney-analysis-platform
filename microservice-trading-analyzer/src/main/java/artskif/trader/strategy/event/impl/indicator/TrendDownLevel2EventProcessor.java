@@ -10,8 +10,11 @@ import artskif.trader.strategy.indicators.multi.levels.ResistanceLevelIndicatorM
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.Rule;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.Trade;
+import org.ta4j.core.TradingRecord;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
+import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.num.Num;
 import org.ta4j.core.rules.*;
 
 import java.util.Optional;
@@ -65,10 +68,35 @@ public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
     }
 
     @Override
-    public Rule getFixedExitRule(boolean isLiveSeries, Number lossPercentage, Number gainPercentage) {
+    public Rule getFixedExitRule(boolean isLiveSeries) {
         HighPriceIndicator indicator = highPriceIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
-        return new StopLossRule(indicator, lossPercentage)
-                .or(new StopGainRule(indicator, gainPercentage));
+        return new StopLossRule(indicator, getStoplossPercentage().bigDecimalValue())
+                .or(new StopGainRule(indicator, getTakeprofitPercentage().bigDecimalValue()));
+    }
+
+    @Override
+    public boolean shouldEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries) {
+        return getEntryRule(isLiveSeries).isSatisfied(index, tradingRecord);
+    }
+
+    @Override
+    public boolean shouldExit(int index, TradingRecord tradingRecord, boolean isLiveSeries) {
+        return getFixedExitRule(isLiveSeries).isSatisfied(index, tradingRecord);
+    }
+
+    @Override
+    public Trade.TradeType getTradeType() {
+        return Trade.TradeType.SELL;
+    }
+
+    @Override
+    public Num getStoplossPercentage() {
+        return DecimalNum.valueOf(0.05);
+    }
+
+    @Override
+    public Num getTakeprofitPercentage() {
+        return DecimalNum.valueOf(1);
     }
 
     @Override

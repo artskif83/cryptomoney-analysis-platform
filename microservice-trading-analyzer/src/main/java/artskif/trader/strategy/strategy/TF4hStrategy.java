@@ -17,29 +17,25 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class TF4hStrategy extends AbstractStrategy {
 
-    private final TradeEventBus tradeEventBus;
     private final AbstractSchema tf4hSchema;
 
     public TF4hStrategy() {
         super(null, null, null, null);
-        this.tradeEventBus = null;
         this.tf4hSchema = null;
     }
 
     @Inject
     protected TF4hStrategy(Candle candle,
-                           TrendDownLevel2EventProcessor eventProcessor,
                            DatabaseSnapshotBuilder snapshotBuilder,
                            StrategyDataService dataService,
                            TF4hSchema tf4hSchema,
                            TradeEventBus tradeEventBus) {
-        super(candle, eventProcessor, snapshotBuilder, dataService);
+        super(candle, null, snapshotBuilder, dataService);
 
-        this.tradeEventBus = tradeEventBus;
         this.tf4hSchema = tf4hSchema;
 
         // Логирование загруженного EventProcessor
-        Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());
+        Log.infof("📦 Инициализирована стратегия без EventProcessor");
     }
 
     @Override
