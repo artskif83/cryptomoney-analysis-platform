@@ -163,9 +163,9 @@ public class TF1mStrategy extends AbstractStrategy {
             Num stopLoss = netPrice.multipliedBy(one.plus(lossPercentage.dividedBy(hundred)));
             Num takeProfit = netPrice.multipliedBy(one.minus(gainPercentage.dividedBy(hundred)));
 
-            context.additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_5M, netPrice);
-            context.additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_5M, stopLoss);
-            context.additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_5M, takeProfit);
+            context.additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
+            context.additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
+            context.additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_1M, takeProfit);
         } else {
             context.additionalColumns.clear();
         }
