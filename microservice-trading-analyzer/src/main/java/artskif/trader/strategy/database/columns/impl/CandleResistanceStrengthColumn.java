@@ -36,6 +36,14 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
                 null,
                 MetadataType.METRIC
         ),
+        INDEX_1M(
+                "index_candle_1m",
+                "Индекс свечи свечи на таймфрейме 1m",
+                "bigint",
+                CandleTimeframe.CANDLE_1M,
+                null,
+                MetadataType.METRIC
+        ),
         INDEX_4H(
                 "index_candle_4h",
                 "Индекс свечи свечи на таймфрейме 4h",
@@ -88,7 +96,7 @@ public class CandleResistanceStrengthColumn extends AbstractColumn<CandleResista
         ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(CandleResistanceStrengthColumnType.values(), valueName);
         switch (featureType) {
             case CandleResistanceStrengthColumnType.INDEX_5M:
-                return DecimalNum.valueOf(index);
+            case CandleResistanceStrengthColumnType.INDEX_1M:
             case CandleResistanceStrengthColumnType.INDEX_4H:
                 return DecimalNum.valueOf(index);
             default:

@@ -59,10 +59,9 @@ public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
     @Override
     public Rule getEntryRule(boolean isLiveSeries) {
         var tripleMARule = new IsEqualRule(tripleMAIndicatorM.getHigherTimeframeIndicator(getTimeframe(),getHigherTimeframe(), isLiveSeries), -2);
-        OverIndicatorRule resistance5m = new OverIndicatorRule(resistanceLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 3);
-        OverIndicatorRule resistance4h = new OverIndicatorRule(resistanceLevelIndicatorM.getHigherTimeframeIndicator(getTimeframe(), getHigherTimeframe(), isLiveSeries), 0);
+        OverIndicatorRule resistance1m = new OverIndicatorRule(resistanceLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 3);
 
-        return tripleMARule.and(resistance5m).and(resistance4h);
+        return tripleMARule.and(resistance1m);
     }
 
     @Override
@@ -74,12 +73,12 @@ public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
 
     @Override
     public CandleTimeframe getTimeframe() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_1M;
     }
 
     @Override
     public CandleTimeframe getHigherTimeframe() {
-        return CandleTimeframe.CANDLE_4H;
+        return CandleTimeframe.CANDLE_1M;
     }
 
 }

@@ -42,14 +42,14 @@ public class CandleResistanceStrength extends CachedIndicator<Num> {
         if (currentShadowPercent.isLessThan(shadowPercentThreshold)) {
             // Тень от текущей свечи слишком короткая. Смотрим предыдщую свечу.
             if (currentClose.isGreaterThan(currentOpen)) {
-                // Зеленая свеча без тени - значит ранг 0, неважно какая была предыдущая свеча
-                return getBarSeries().numFactory().zero();
+                // Зеленая свеча без тени - значит ранг 1, неважно какая была предыдущая свеча
+                return getBarSeries().numFactory().one();
             } else if (previousShadowPercent.isLessThan(shadowPercentThreshold) && previousClose.isGreaterThan(previousOpen)) {
                 // Красная без тени, предыдущая свеча зеленая без тени значит ранг сопротивления 2
                 return getBarSeries().numFactory().two();
             } else {
                 // Красная без тени, предыдущая свеча зеленая или красная с тенью, значит ранг 1
-                return getBarSeries().numFactory().one();
+                return getBarSeries().numFactory().two();
             }
         } else {
             if (currentClose.isGreaterThan(currentOpen)) {

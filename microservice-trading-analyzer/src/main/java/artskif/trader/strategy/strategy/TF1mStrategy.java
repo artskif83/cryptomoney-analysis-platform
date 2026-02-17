@@ -9,7 +9,7 @@ import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
-import artskif.trader.strategy.database.schema.impl.TF5mSchema;
+import artskif.trader.strategy.database.schema.impl.TF1mSchema;
 import artskif.trader.strategy.event.impl.indicator.TrendDownLevel2EventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
@@ -25,28 +25,28 @@ import org.ta4j.core.num.Num;
 import java.util.Optional;
 
 @ApplicationScoped
-public class TF5mStrategy extends AbstractStrategy {
+public class TF1mStrategy extends AbstractStrategy {
 
     private final TradeEventBus tradeEventBus;
-    private final AbstractSchema tf5mSchema;
+    private final AbstractSchema tf1mSchema;
 
 
     // Конструктор без параметров для CDI proxy
-    protected TF5mStrategy() {
+    protected TF1mStrategy() {
         super(null, null, null, null);
         this.tradeEventBus = null;
-        this.tf5mSchema = null;
+        this.tf1mSchema = null;
     }
 
     @Inject
-    public TF5mStrategy(Candle candle,
+    public TF1mStrategy(Candle candle,
                         TrendDownLevel2EventProcessor eventProcessor,
                         DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                        TF5mSchema tf5mSchema,
+                        TF1mSchema tf1MSchema,
                         TradeEventBus tradeEventBus) {
         super(candle, eventProcessor, snapshotBuilder, dataService);
         this.tradeEventBus = tradeEventBus;
-        this.tf5mSchema = tf5mSchema;
+        this.tf1mSchema = tf1MSchema;
 
         // Логирование загруженного EventProcessor
         Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());
@@ -54,7 +54,7 @@ public class TF5mStrategy extends AbstractStrategy {
 
     @Override
     public String getName() {
-        return "TF5m Strategy";
+        return "TF1m Strategy";
     }
 
     @Override
@@ -87,7 +87,7 @@ public class TF5mStrategy extends AbstractStrategy {
 
     @Override
     protected CandleTimeframe getTimeframe() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_1M;
     }
 
     @Override
@@ -173,7 +173,7 @@ public class TF5mStrategy extends AbstractStrategy {
 
     @Override
     protected AbstractSchema getSchema() {
-        return tf5mSchema;
+        return tf1mSchema;
     }
 
 

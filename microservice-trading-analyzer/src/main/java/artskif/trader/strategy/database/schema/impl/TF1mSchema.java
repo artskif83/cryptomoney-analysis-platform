@@ -15,26 +15,23 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
- * Экземпляр контракта - описывает один отдельный контракт (одна запись в таблице contracts)
- * Отвечает за:
- * - Генерацию исторического набора фич и сохранение в таблицу wide_candles
- * - Генерацию фич для текущей свечи из liveBuffer
- * - Подписывание каждой строки фич специальным хешкодом контракта
+ * Схема для визуализации базовой стратегии на таймфрейме 1m
  */
 @ApplicationScoped
-public class TF5mSchema extends AbstractSchema {
+public class TF1mSchema extends AbstractSchema {
 
-    private static final String NAME = "TF5mVisualization";
+    private static final String NAME = "TF1mVisualization";
 
 
     // Конструктор без параметров для CDI proxy
-    public TF5mSchema() {
+    public TF1mSchema() {
         super(null, null);
     }
 
     @Inject
-    public TF5mSchema(StrategyDataService dataService, ColumnsRegistry registry) {
+    public TF1mSchema(StrategyDataService dataService, ColumnsRegistry registry) {
         super(dataService, registry);
     }
 
@@ -44,20 +41,19 @@ public class TF5mSchema extends AbstractSchema {
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
-                List.of(TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_5M_ON_4H,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_5M,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_5M_ON_4H,
-                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_5M,
-                        PositionColumn.PositionColumnType.POSITION_PRICE_5M,
-                        PositionColumn.PositionColumnType.STOPLOSS_5M,
-                        PositionColumn.PositionColumnType.TAKEPROFIT_5M),
+                List.of(TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_1M,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M,
+                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M,
+                        PositionColumn.PositionColumnType.POSITION_PRICE_1M,
+                        PositionColumn.PositionColumnType.STOPLOSS_1M,
+                        PositionColumn.PositionColumnType.TAKEPROFIT_1M),
                 contract
         ));
     }
 
     @Override
     protected String getContractDescription() {
-        return "Визуализация стратегии водопад";
+        return "Визуализация базовой стратегии";
     }
 
     /**
@@ -76,7 +72,7 @@ public class TF5mSchema extends AbstractSchema {
 
     @Override
     public CandleTimeframe getTimeframe() {
-        return CandleTimeframe.CANDLE_5M;
+        return CandleTimeframe.CANDLE_1M;
     }
 
 }

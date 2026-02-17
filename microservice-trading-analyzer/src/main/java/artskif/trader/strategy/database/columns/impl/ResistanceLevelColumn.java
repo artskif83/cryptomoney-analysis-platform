@@ -30,6 +30,14 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
                 null,
                 MetadataType.METRIC
         ),
+        RESISTANCE_LEVEL_1M(
+                "metric_resistance_level_1m",
+                "Уровень сопротивления на таймфрейме 1m",
+                "smallint",
+                CandleTimeframe.CANDLE_1M,
+                null,
+                MetadataType.METRIC
+        ),
         RESISTANCE_LEVEL_4H(
                 "metric_resistance_level_4h",
                 "Уровень сопротивления на таймфрейме 4h",

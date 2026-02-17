@@ -19,6 +19,30 @@ public class PositionColumn extends AbstractColumn<ClosePriceIndicatorM> {
      * Перечислимый тип для различных значений текущей позиции
      */
     public enum PositionColumnType implements ColumnTypeMetadata {
+        STOPLOSS_1M(
+                "additional_stoploss_1m",
+                "Стоплос значение на таймфрейме 1m",
+                "numeric(18, 8)",
+                CandleTimeframe.CANDLE_1M,
+                null,
+                MetadataType.ADDITIONAL
+        ),
+        TAKEPROFIT_1M(
+                "additional_takeprofit_1m",
+                "Тейкпрофит на таймфрейме 1m",
+                "numeric(18, 8)",
+                CandleTimeframe.CANDLE_1M,
+                null,
+                MetadataType.ADDITIONAL
+        ),
+        POSITION_PRICE_1M(
+                "additional_position_price_1m",
+                "Цена входа в позицию на таймфрейме 1m",
+                "numeric(18, 8)",
+                CandleTimeframe.CANDLE_1M,
+                null,
+                MetadataType.ADDITIONAL
+        ),
         STOPLOSS_5M(
                 "additional_stoploss_5m",
                 "Стоплос значение на таймфрейме 5m",
