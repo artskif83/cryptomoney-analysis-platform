@@ -44,7 +44,7 @@ public class TrendDownLevel2EventProcessor implements TradeEventProcessor {
 
     @Override
     public Optional<TradeEventData> detect() {
-
+        Rule entryRule = getEntryRule(true);
 //        ContractSnapshot snapshot5m =
 //                snapshotBuilder.build(schema5mBase, lastIndex5m, true);
 

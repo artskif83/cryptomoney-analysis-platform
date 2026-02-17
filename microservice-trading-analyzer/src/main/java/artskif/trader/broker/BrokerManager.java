@@ -128,7 +128,7 @@ public class BrokerManager implements TradeEventListener {
     private void handleTradeEvent(TradeEvent event) {
         log.info("🔄 Обработка TradeEvent: {}", event);
 
-        if (event.type() == TradeEventType.WATERFALL && event.direction() == Direction.SHORT) {
+        if (event.type() == TradeEventType.GOLDEN_FIELD && event.direction() == Direction.SHORT) {
             log.info("📈 Получен сигнал на открытие ШОРТ позиции");
             tradingExecutorService.openShort(event.instrument(), BigDecimal.valueOf(10));
         }

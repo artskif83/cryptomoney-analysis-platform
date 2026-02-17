@@ -9,7 +9,8 @@ import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
-import artskif.trader.strategy.database.schema.impl.TF1mSchema;
+import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
+import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
 import artskif.trader.strategy.event.impl.indicator.TrendDownLevel2EventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
@@ -28,25 +29,31 @@ import java.util.Optional;
 public class TF1mStrategy extends AbstractStrategy {
 
     private final TradeEventBus tradeEventBus;
-    private final AbstractSchema tf1mSchema;
+    private final AbstractSchema tf1mBacktestSchema;
+    private final AbstractSchema tf1mLifetimeSchema;
+
 
 
     // Конструктор без параметров для CDI proxy
     protected TF1mStrategy() {
         super(null, null, null, null);
         this.tradeEventBus = null;
-        this.tf1mSchema = null;
+        this.tf1mBacktestSchema = null;
+        this.tf1mLifetimeSchema = null;
     }
 
     @Inject
     public TF1mStrategy(Candle candle,
                         TrendDownLevel2EventProcessor eventProcessor,
-                        DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                        TF1mSchema tf1MSchema,
+                        DatabaseSnapshotBuilder snapshotBuilder,
+                        StrategyDataService dataService,
+                        TF1mBacktestSchema tf1mBacktestSchema,
+                        TF1mLifetimeSchema tf1mLifetimeSchema,
                         TradeEventBus tradeEventBus) {
         super(candle, eventProcessor, snapshotBuilder, dataService);
         this.tradeEventBus = tradeEventBus;
-        this.tf1mSchema = tf1MSchema;
+        this.tf1mBacktestSchema = tf1mBacktestSchema;
+        this.tf1mLifetimeSchema = tf1mLifetimeSchema;
 
         // Логирование загруженного EventProcessor
         Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());
@@ -104,7 +111,7 @@ public class TF1mStrategy extends AbstractStrategy {
         ZeroCostModel holdingCostModel = new ZeroCostModel();
         TradeOnCurrentCloseModel tradeExecutionModel = new TradeOnCurrentCloseModel();
 
-        TradingRecord tradingRecord = new BaseTradingRecord(
+        TradingRecord sellTradingRecord = new BaseTradingRecord(
                 Trade.TradeType.SELL,
                 historicalBarSeries.getBeginIndex(),
                 historicalBarSeries.getEndIndex(),
@@ -113,19 +120,19 @@ public class TF1mStrategy extends AbstractStrategy {
         );
 
         // Торговые параметры
-        DecimalNum lossPercentage = DecimalNum.valueOf(0.05);
-        DecimalNum gainPercentage = DecimalNum.valueOf(1);
+        DecimalNum stoplossPercentage = DecimalNum.valueOf(0.05);
+        DecimalNum takeprofitPercentage = DecimalNum.valueOf(1);
 
         Rule entryRule = tradeEventProcessor.getEntryRule(false);
-        Rule exitRule = tradeEventProcessor.getFixedExitRule(false, lossPercentage.bigDecimalValue(), gainPercentage.bigDecimalValue());
+        Rule exitRule = tradeEventProcessor.getFixedExitRule(false, stoplossPercentage.bigDecimalValue(), takeprofitPercentage.bigDecimalValue());
 
         // Сохраняем все необходимые данные в контекст
-        context.customData.put("tradingRecord", tradingRecord);
+        context.customData.put("tradingRecord", sellTradingRecord);
         context.customData.put("tradeExecutionModel", tradeExecutionModel);
         context.customData.put("entryRule", entryRule);
         context.customData.put("exitRule", exitRule);
-        context.customData.put("lossPercentage", lossPercentage);
-        context.customData.put("gainPercentage", gainPercentage);
+        context.customData.put("lossPercentage", stoplossPercentage);
+        context.customData.put("gainPercentage", takeprofitPercentage);
 
         return context;
     }
@@ -140,8 +147,6 @@ public class TF1mStrategy extends AbstractStrategy {
         DecimalNum lossPercentage = (DecimalNum) context.customData.get("lossPercentage");
         DecimalNum gainPercentage = (DecimalNum) context.customData.get("gainPercentage");
 
-        DecimalNum one = DecimalNum.valueOf(1);
-        DecimalNum hundred = DecimalNum.valueOf(100);
 
         // Торговая логика
         boolean shouldOperate = false;
@@ -160,8 +165,8 @@ public class TF1mStrategy extends AbstractStrategy {
         // Обновление дополнительных колонок
         if (position.isOpened()) {
             Num netPrice = position.getEntry().getNetPrice();
-            Num stopLoss = netPrice.multipliedBy(one.plus(lossPercentage.dividedBy(hundred)));
-            Num takeProfit = netPrice.multipliedBy(one.minus(gainPercentage.dividedBy(hundred)));
+            Num stopLoss = netPrice.multipliedBy(ONE.plus(lossPercentage.dividedBy(HUNDRED)));
+            Num takeProfit = netPrice.multipliedBy(ONE.minus(gainPercentage.dividedBy(HUNDRED)));
 
             context.additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
             context.additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
@@ -172,8 +177,13 @@ public class TF1mStrategy extends AbstractStrategy {
     }
 
     @Override
-    protected AbstractSchema getSchema() {
-        return tf1mSchema;
+    protected AbstractSchema getBacktestSchema() {
+        return tf1mBacktestSchema;
+    }
+
+    @Override
+    protected AbstractSchema getLifetimeSchema() {
+        return tf1mLifetimeSchema;
     }
 
 

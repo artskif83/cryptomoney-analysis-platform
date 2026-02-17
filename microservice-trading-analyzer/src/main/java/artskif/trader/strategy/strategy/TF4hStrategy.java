@@ -53,8 +53,13 @@ public class TF4hStrategy extends AbstractStrategy {
     }
 
     @Override
-    protected AbstractSchema getSchema() {
+    protected AbstractSchema getBacktestSchema() {
         return tf4hSchema;
+    }
+
+    @Override
+    protected AbstractSchema getLifetimeSchema() {
+        return null;
     }
 
     @Override

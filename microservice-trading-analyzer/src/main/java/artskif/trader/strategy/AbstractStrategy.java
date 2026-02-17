@@ -19,6 +19,7 @@ import org.ta4j.core.TradingRecord;
 import org.ta4j.core.criteria.NumberOfPositionsCriterion;
 import org.ta4j.core.criteria.NumberOfWinningPositionsCriterion;
 import org.ta4j.core.criteria.PositionsRatioCriterion;
+import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 
@@ -29,6 +30,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractStrategy implements CandleEventListener {
+
+    // Общие константы для расчетов
+    protected static final DecimalNum ONE = DecimalNum.valueOf(1);
+    protected static final DecimalNum HUNDRED = DecimalNum.valueOf(100);
 
     protected Integer lastProcessedBarIndex = null;
     /**
@@ -86,7 +91,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
     public final void backtest() {
         Log.info("📋 Начало генерации бектеста для контракта");
 
-        AbstractSchema schema = getSchema();
+        AbstractSchema schema = getBacktestSchema();
         checkColumnsExist(schema);
 
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
@@ -161,9 +166,14 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     /**
-     * Получить схему данных для стратегии
+     * Получить схему данных для бэктеста
      */
-    protected abstract AbstractSchema getSchema();
+    protected abstract AbstractSchema getBacktestSchema();
+
+    /**
+     * Получить схему данных для лайв-торговли
+     */
+    protected abstract AbstractSchema getLifetimeSchema();
 
     /**
      * Получить таймфрейм на котором работает стратегия

@@ -3,6 +3,6 @@ package artskif.trader.strategy.event.common;
 public enum TradeEventType {
 
     /**  */
-    WATERFALL,
+    GOLDEN_FIELD,
 
 }

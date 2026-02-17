@@ -1,13 +1,16 @@
 package artskif.trader.strategy.database.schema.impl;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.entity.Contract;
+import artskif.trader.entity.ContractMetadata;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.columns.AbstractColumn;
-import artskif.trader.strategy.database.columns.impl.*;
+import artskif.trader.strategy.database.columns.impl.CandleResistanceStrengthColumn;
+import artskif.trader.strategy.database.columns.impl.PositionColumn;
+import artskif.trader.strategy.database.columns.impl.ResistanceLevelColumn;
+import artskif.trader.strategy.database.columns.impl.TripleMAColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
-import artskif.trader.entity.Contract;
-import artskif.trader.entity.ContractMetadata;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,23 +18,22 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Схема для визуализации базовой стратегии на таймфрейме 1m
  */
 @ApplicationScoped
-public class TF1mSchema extends AbstractSchema {
+public class TF1mLifetimeSchema extends AbstractSchema {
 
-    private static final String NAME = "TF1mVisualization";
+    private static final String NAME = "TF1mLifetimeVisualization";
 
 
     // Конструктор без параметров для CDI proxy
-    public TF1mSchema() {
+    public TF1mLifetimeSchema() {
         super(null, null);
     }
 
     @Inject
-    public TF1mSchema(StrategyDataService dataService, ColumnsRegistry registry) {
+    public TF1mLifetimeSchema(StrategyDataService dataService, ColumnsRegistry registry) {
         super(dataService, registry);
     }
 
