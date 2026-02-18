@@ -3,12 +3,12 @@ package artskif.trader.strategy;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
-import artskif.trader.entity.ContractMetadata;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventListener;
 import artskif.trader.candle.CandleEventType;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
+import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.TradeEventProcessor;
@@ -57,14 +57,13 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     public void startStrategy() {
         Log.infof("🚀 Запуск стратегии для лайв-торговли: %s", getName());
-        checkColumnsExist(getLifetimeSchema());
+        dataService.checkColumnsExist(getLifetimeSchema());
         lifetimeBarSeries = candle.getInstance(getTimeframe()).getLiveBarSeries();
-
         setRunning(true);
     }
 
     public void stopStrategy() {
-        Log.infof("🛑 Остановка стратегии для лайв-торговли: %s", getName());
+        Log.infof("?? Остановка стратегии для лайв-торговли: %s", getName());
         lifetimeBarSeries = null;
         setRunning(false);
     }
@@ -115,7 +114,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
     public final void backtest() {
         Log.info("📋 Начало генерации бектеста для контракта");
 
-        checkColumnsExist(getBacktestSchema());
+        dataService.checkColumnsExist(getBacktestSchema());
 
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
         int totalBars = historicalBarSeries.getBarCount();
@@ -170,7 +169,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             ZeroCostModel holdingCostModel = new ZeroCostModel();
 
             tradingRecord = new BaseTradingRecord(
-                    tradeEventProcessor.getTradeType(),
+                    tradeEventProcessor.getTradeDirection() == Direction.LONG ? Trade.TradeType.BUY : Trade.TradeType.SELL,
                     historicalBarSeries.getBeginIndex(),
                     historicalBarSeries.getEndIndex(),
                     transactionCostModel,
@@ -223,8 +222,8 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Обновление дополнительных колонок
         if (position.isOpened()) {
             Num netPrice = position.getEntry().getNetPrice();
-            Num stopLoss = netPrice.multipliedBy(ONE.plus(tradeEventProcessor.getStoplossPercentage().dividedBy(HUNDRED)));
-            Num takeProfit = netPrice.multipliedBy(ONE.minus(tradeEventProcessor.getTakeprofitPercentage().dividedBy(HUNDRED)));
+            Num stopLoss = netPrice.multipliedBy(ONE.plus(tradeEventProcessor.getStopLossPercentage().dividedBy(HUNDRED)));
+            Num takeProfit = netPrice.multipliedBy(ONE.minus(tradeEventProcessor.getTakeProfitPercentage().dividedBy(HUNDRED)));
 
             additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
             additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
@@ -255,31 +254,5 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     public boolean isUnstableAt(int index) {
         return index < getUnstableBars();
-    }
-
-    /**
-     * Проверка и создание колонок для схемы в базе данных
-     *
-     * @param schema схема, для которой необходимо проверить колонки
-     */
-    protected void checkColumnsExist(AbstractSchema schema) {
-        for (ContractMetadata metadata : schema.getContract().metadata) {
-            dataService.ensureColumnExist(metadata.name);
-        }
-    }
-
-    /**
-     * Класс-контекст для хранения состояния в процессе бэктеста
-     */
-    public static class BacktestContext {
-        /**
-         * Дополнительные колонки для сохранения в БД (например, позиции, стоп-лосс, тейк-профит)
-         */
-        public Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
-
-        /**
-         * Любые дополнительные данные, которые могут понадобиться конкретной стратегии
-         */
-        public Map<String, Object> customData = new HashMap<>();
     }
 }

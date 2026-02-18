@@ -1,20 +1,24 @@
 package artskif.trader.strategy.event;
 
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventData;
+import artskif.trader.strategy.event.common.TradeEventType;
 import org.ta4j.core.Rule;
-import org.ta4j.core.Trade;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.Num;
 
 import java.util.Optional;
 
 public interface TradeEventProcessor {
+
     /**
-     * Детектировать торговое событие на основе снимка контракта и режима рынка
-     * @return Optional с событием, если модель поддерживает данный режим и событие обнаружено
+     * Проверить, произошел ли торговый сигнал на данном баре
+     *
+     * @param index индекс бара для проверки
+     * @return данные торгового сигнала, если он произошел, или пустой Optional иначе
      */
-    Optional<TradeEventData> detect();
+    Optional<TradeEventData> checkLifeTradeEvent(int index);
 
     /**
      * Получить правило входа в позицию
@@ -48,22 +52,22 @@ public interface TradeEventProcessor {
     boolean shouldExit(int index, TradingRecord tradingRecord, boolean isLiveSeries);
 
     /**
-     * Получить тип сделки (лонг или шорт)
+     * Получить направление сделки (лонг или шорт)
      * @return тип сделки
      */
-    Trade.TradeType getTradeType();
+    Direction getTradeDirection();
 
     /**
      * Получить процент для установки стоп-лосса от цены входа
      * @return процент для стоп-лосса
      */
-    Num getStoplossPercentage();
+    Num getStopLossPercentage();
 
     /**
      * Получить процент для установки тейк-профита от цены входа
      * @return процент для тейк-профита
      */
-    Num getTakeprofitPercentage();
+    Num getTakeProfitPercentage();
 
 
     /**
@@ -75,4 +79,9 @@ public interface TradeEventProcessor {
      * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
      */
     CandleTimeframe getHigherTimeframe();
+
+    /**
+     * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
+     */
+    TradeEventType getTradeEventType();
 }

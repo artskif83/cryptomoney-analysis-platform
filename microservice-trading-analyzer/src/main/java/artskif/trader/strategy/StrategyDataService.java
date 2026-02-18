@@ -1,9 +1,11 @@
 package artskif.trader.strategy;
 
+import artskif.trader.entity.ContractMetadata;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.columns.Column;
 import artskif.trader.entity.Contract;
 import artskif.trader.entity.MetadataType;
+import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.impl.DatabaseSnapshotRow;
 import io.quarkus.logging.Log;
@@ -39,22 +41,39 @@ public class StrategyDataService {
     ColumnsRegistry registry;
 
     /**
-     * Вставить новую строку фич
+     * Вставить или обновить строку фич (UPSERT)
+     * Если строка с таким tf и ts существует, она обновляется, иначе вставляется новая
      */
     @Transactional
-    public void insertFeatureRow(DatabaseSnapshotRow row) {
+    public void insertFeatureRow(DatabaseSnapshot row) {
         Map<String, Object> features = row.getAllColumns();
 
-        // Формируем SQL для INSERT
+        // Формируем SQL для INSERT ... ON CONFLICT DO UPDATE
         StringBuilder columns = new StringBuilder("tf, ts, contract_hash");
         StringBuilder values = new StringBuilder(":tf, :ts, :contractHash");
+        StringBuilder updateSet = new StringBuilder();
 
         for (String featureName : features.keySet()) {
             columns.append(", ").append(featureName);
             values.append(", :").append(featureName);
+
+            if (updateSet.length() > 0) {
+                updateSet.append(", ");
+            }
+            updateSet.append(featureName).append(" = EXCLUDED.").append(featureName);
         }
 
-        String sql = String.format("INSERT INTO wide_candles (%s) VALUES (%s)", columns, values);
+        // Добавляем contract_hash в UPDATE SET
+        if (updateSet.length() > 0) {
+            updateSet.append(", ");
+        }
+        updateSet.append("contract_hash = EXCLUDED.contract_hash");
+
+        String sql = String.format(
+                "INSERT INTO wide_candles (%s) VALUES (%s) " +
+                "ON CONFLICT (tf, ts) DO UPDATE SET %s",
+                columns, values, updateSet
+        );
 
         var query = entityManager.createNativeQuery(sql)
                 .setParameter("tf", formatDuration(row.getTimeframe()))
@@ -68,7 +87,7 @@ public class StrategyDataService {
 
         query.executeUpdate();
 
-        Log.tracef("💾 Вставлена новая строка фич: %s", row);
+        Log.tracef("💾 Вставлена/обновлена строка фич: %s", row);
     }
 
     /**
@@ -277,6 +296,17 @@ public class StrategyDataService {
      */
     private String safe(String s) {
         return s == null ? "" : s;
+    }
+
+    /**
+     * Проверка и создание колонок для схемы в базе данных
+     *
+     * @param schema схема, для которой необходимо проверить колонки
+     */
+    protected void checkColumnsExist(AbstractSchema schema) {
+        for (ContractMetadata metadata : schema.getContract().metadata) {
+            ensureColumnExist(metadata.name);
+        }
     }
 
     /**

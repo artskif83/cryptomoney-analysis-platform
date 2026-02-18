@@ -7,16 +7,22 @@ import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
+import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
-import artskif.trader.strategy.event.impl.indicator.TrendDownLevel2EventProcessor;
+import artskif.trader.strategy.event.impl.indicator.GoldenFieldEventProcessor;
+import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.common.TradeEventData;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.ta4j.core.Bar;
+import org.ta4j.core.num.Num;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -25,7 +31,6 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
     private final TradeEventBus tradeEventBus;
     private final AbstractSchema tf1mBacktestSchema;
     private final AbstractSchema tf1mLifetimeSchema;
-
 
 
     // Конструктор без параметров для CDI proxy
@@ -38,7 +43,7 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
 
     @Inject
     public TF1mLifetimeStrategy(Candle candle,
-                                TrendDownLevel2EventProcessor eventProcessor,
+                                GoldenFieldEventProcessor eventProcessor,
                                 DatabaseSnapshotBuilder snapshotBuilder,
                                 StrategyDataService dataService,
                                 TF1mBacktestSchema tf1mBacktestSchema,
@@ -58,30 +63,47 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
 
     @Override
     public void onBar(CandlestickDto candle) {
+        if (lifetimeBarSeries == null) {
+            Log.warn("⏳ Серия баров еще не инициализирована, пропускаем обработку");
+            return;
+        }
 
-        Optional<TradeEventData> tradeEvent = tradeEventProcessor.detect();
+        Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
+        int endIndex = lifetimeBarSeries.getEndIndex();
+        Bar bar = lifetimeBarSeries.getBar(endIndex);
+
+        if (candle.getTimestamp() != bar.getBeginTime()) {
+            Log.warnf(
+                    "⏳ Полученный бар с timestamp %s не совпадает с последним баром серии с timestamp %s, пропускаем обработку",
+                    candle.getTimestamp(),
+                    bar.getBeginTime()
+            );
+            return;
+        }
+
+        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getBacktestSchema(), additionalColumns, endIndex, true);
+        // Сохраняем в БД
+        dataService.insertFeatureRow(dbRow);
+
+        Optional<TradeEventData> tradeEvent = tradeEventProcessor.checkLifeTradeEvent(endIndex);
 
         if (tradeEvent.isPresent()) {
-            TradeEventData event = tradeEvent.get();
+            TradeEventData eventData = tradeEvent.get();
             Log.infof(
                     "✅ Произошло торговое событие: %s %s (%s) [Режим: %s, Процессор: %s]",
-                    event.type(),
-                    event.direction(),
-                    event.confidence(),
+                    eventData.type(),
+                    eventData.direction(),
                     tradeEventProcessor.getClass().getSimpleName()
             );
 
             // Публикуем событие TradeEvent
             tradeEventBus.publish(new TradeEvent(
-                    event.type(),
+                    eventData,
                     candle.getInstrument(),
-                    event.direction(),
-                    event.confidence(),
                     candle.getTimestamp(),
                     false
             ));
         }
-
     }
 
     @Override

@@ -9,8 +9,8 @@ import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
-import artskif.trader.strategy.event.common.Confidence;
 import artskif.trader.strategy.event.common.Direction;
+import artskif.trader.strategy.event.common.TradeEventData;
 import artskif.trader.strategy.event.common.TradeEventType;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
@@ -146,8 +146,10 @@ public class TestResource {
      * @param instrument инструмент (например, BTC-USDT)
      * @param type тип торгового события
      * @param direction направление (LONG/SHORT)
-     * @param confidence уровень уверенности (LOW/MEDIUM/HIGH)
-     * @param regime текущий режим рынка
+     * @param timeframe таймфрейм события
+     * @param stopLossPercentage процент стоп-лосса
+     * @param takeProfitPercentage процент тейк-профита
+     * @param eventPrice цена события
      * @return ответ с результатом симуляции
      */
     @POST
@@ -156,31 +158,41 @@ public class TestResource {
             @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
             @QueryParam("type") @DefaultValue("BREAKOUT") String type,
             @QueryParam("direction") @DefaultValue("LONG") String direction,
-            @QueryParam("confidence") @DefaultValue("MEDIUM") String confidence,
-            @QueryParam("regime") @DefaultValue("TREND_UP") String regime
+            @QueryParam("timeframe") @DefaultValue("5m") String timeframe,
+            @QueryParam("stopLossPercentage") @DefaultValue("2.0") BigDecimal stopLossPercentage,
+            @QueryParam("takeProfitPercentage") @DefaultValue("5.0") BigDecimal takeProfitPercentage,
+            @QueryParam("eventPrice") @DefaultValue("50000") BigDecimal eventPrice
     ) {
         try {
             // Парсинг параметров
             TradeEventType eventType = TradeEventType.valueOf(type);
             Direction eventDirection = Direction.valueOf(direction);
-            Confidence eventConfidence = Confidence.valueOf(confidence);
+            CandleTimeframe candleTimeframe = CandleTimeframe.fromString(timeframe);
 
             Instant timestamp = Instant.now();
 
+            // Создание TradeEventData
+            TradeEventData tradeEventData = new TradeEventData(
+                    eventType,
+                    eventDirection,
+                    stopLossPercentage,
+                    takeProfitPercentage,
+                    candleTimeframe,
+                    eventPrice
+            );
+
             // Создание и публикация события
             TradeEvent event = new TradeEvent(
-                    eventType,
+                    tradeEventData,
                     instrument,
-                    eventDirection,
-                    eventConfidence,
                     timestamp,
                     true // Тестовое событие
             );
 
             tradeEventBus.publish(event);
 
-            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s режим=%s timestamp=%s (TEST)",
-                    instrument, type, direction, confidence, regime, timestamp);
+            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s SL=%s%% TP=%s%% price=%s timestamp=%s (TEST)",
+                    instrument, type, direction, timeframe, stopLossPercentage, takeProfitPercentage, eventPrice, timestamp);
 
             return Response.ok()
                     .entity(Map.of(
@@ -191,8 +203,10 @@ public class TestResource {
                                     "instrument", instrument,
                                     "tradeEventType", type,
                                     "direction", direction,
-                                    "confidence", confidence,
-                                    "regime", regime,
+                                    "timeframe", timeframe,
+                                    "stopLossPercentage", stopLossPercentage.toString(),
+                                    "takeProfitPercentage", takeProfitPercentage.toString(),
+                                    "eventPrice", eventPrice.toString(),
                                     "timestamp", timestamp.toString()
                             )
                     ))
@@ -202,11 +216,10 @@ public class TestResource {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of(
                             "status", "error",
-                            "message", "Неверные параметры. Доступные значения: type=[PULLBACK,BREAKOUT,FALSE_BREAKOUT,EVENT_CANCELLED], direction=[LONG,SHORT], confidence=[LOW,MEDIUM,HIGH], regime=[FLAT,TREND_UP,TREND_DOWN]",
+                            "message", "Неверные параметры. Доступные значения: type=[PULLBACK,BREAKOUT,FALSE_BREAKOUT,EVENT_CANCELLED], direction=[LONG,SHORT], timeframe=[1m,5m,15m,1h,4h,1d,1w]",
                             "type", type,
                             "direction", direction,
-                            "confidence", confidence,
-                            "regime", regime
+                            "timeframe", timeframe
                     ))
                     .build();
         } catch (Exception e) {
