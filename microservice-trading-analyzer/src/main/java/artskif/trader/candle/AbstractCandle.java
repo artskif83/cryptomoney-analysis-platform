@@ -178,7 +178,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     }
 
     @ActivateRequestContext
-    protected void saveLiveBuffer() {
+    public void saveLiveBuffer() {
         if (isSaveLiveEnabled()) {
             log().debugf("💾 [%s] Сохраняем в бд актуальный буфер", getName());
             Integer count = getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
@@ -189,7 +189,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     }
 
     @ActivateRequestContext
-    protected void saveHistoricalBuffer() {
+    public void saveHistoricalBuffer() {
         if (isSaveHistoricalEnabled()) {
             log().debugf("💾 [%s] Сохраняем исторический буфер", getName());
             Integer count = getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
@@ -416,13 +416,17 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 return;
             }
 
-            log().infof("🔄 [%s] Восстанавливаем исторические %d элементов (instId=%s, isLast=%s, первый=%s, последний=%s)",
+            log().infof("📚 [%s] Восстанавливаем %d свечей (instId=%s, isLast=%s, первый=%s, последний=%s)",
                     getName(), historyDto.getData().size(), historyDto.getInstId(), historyDto.isLast(),
                     historyDto.getData().isEmpty() ? "N/A" : historyDto.getData().keySet().stream().min(Instant::compareTo).orElse(null),
                     historyDto.getData().isEmpty() ? "N/A" : historyDto.getData().keySet().stream().max(Instant::compareTo).orElse(null));
 
             getLiveBuffer().putItems(historyDto.getData());
             getLiveBuffer().incrementVersion();
+            if (historyDto.getData().size() >= getMaxHistoryBufferSize()) {
+                            log().warnf("⚠️ [%s] Размер исторических данных (%d) превышает максимальный размер буфера (%d). Добавьте аксимальный размер исторического буфера, иначе данные будут обрезаны",
+                                    getName(), historyDto.getData().size(), getMaxHistoryBufferSize());
+                        }
             getHistoricalBuffer().putItems(historyDto.getData());
             getHistoricalBuffer().incrementVersion();
 

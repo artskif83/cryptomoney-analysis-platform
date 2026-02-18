@@ -1,5 +1,6 @@
 package artskif.trader.buffer;
 
+import artskif.trader.candle.AbstractCandle;
 import artskif.trader.candle.Candle;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
@@ -18,15 +19,28 @@ public class BufferSaveScheduler {
     @Inject
     Candle candle;
 
-    @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "5s")
-    void saveAllBuffersPeriodically() {
+    @Scheduled(delay = 1, delayUnit = TimeUnit.SECONDS, every = "1s")
+    void saveLiveBuffersPeriodically() {
         candle.getAllInstances().values().stream()
-                .filter(instance -> instance.isSaveLiveEnabled() || instance.isSaveHistoricalEnabled())
+                .filter(AbstractCandle::isSaveLiveEnabled)
                 .forEach(candleInstance -> {
                     try {
-                        candleInstance.saveBuffer();
+                        candleInstance.saveLiveBuffer();
                     } catch (Exception e) {
-                        log.severe("Ошибка при сохранении данных для " + candleInstance.getName() + ": " + e.getMessage());
+                        log.severe("Ошибка при сохранении актуального буфера для " + candleInstance.getName() + ": " + e.getMessage());
+                    }
+                });
+    }
+
+    @Scheduled(delay = 10, delayUnit = TimeUnit.SECONDS, every = "10s")
+    void saveHistoricalBuffersPeriodically() {
+        candle.getAllInstances().values().stream()
+                .filter(AbstractCandle::isSaveHistoricalEnabled)
+                .forEach(candleInstance -> {
+                    try {
+                        candleInstance.saveHistoricalBuffer();
+                    } catch (Exception e) {
+                        log.severe("Ошибка при сохранении исторического буфера для " + candleInstance.getName() + ": " + e.getMessage());
                     }
                 });
     }
