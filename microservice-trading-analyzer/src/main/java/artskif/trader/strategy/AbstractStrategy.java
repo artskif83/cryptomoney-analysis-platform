@@ -94,6 +94,10 @@ public abstract class AbstractStrategy implements CandleEventListener {
             return;
         }
 
+        if (event.period() != getTimeframe()) {
+            return;
+        }
+
         CandlestickDto candle = event.candle();
         if (candle == null) {
             return;
