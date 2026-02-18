@@ -7,8 +7,6 @@ import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
-import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
-import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
@@ -18,16 +16,11 @@ import artskif.trader.strategy.event.common.TradeEventData;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.ta4j.core.*;
-import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
-import org.ta4j.core.num.Num;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
-public class TF1mStrategy extends AbstractStrategy {
+public class TF1mLifetimeStrategy extends AbstractStrategy {
 
     private final TradeEventBus tradeEventBus;
     private final AbstractSchema tf1mBacktestSchema;
@@ -36,7 +29,7 @@ public class TF1mStrategy extends AbstractStrategy {
 
 
     // Конструктор без параметров для CDI proxy
-    protected TF1mStrategy() {
+    protected TF1mLifetimeStrategy() {
         super(null, null, null, null);
         this.tradeEventBus = null;
         this.tf1mBacktestSchema = null;
@@ -44,20 +37,18 @@ public class TF1mStrategy extends AbstractStrategy {
     }
 
     @Inject
-    public TF1mStrategy(Candle candle,
-                        TrendDownLevel2EventProcessor eventProcessor,
-                        DatabaseSnapshotBuilder snapshotBuilder,
-                        StrategyDataService dataService,
-                        TF1mBacktestSchema tf1mBacktestSchema,
-                        TF1mLifetimeSchema tf1mLifetimeSchema,
-                        TradeEventBus tradeEventBus) {
+    public TF1mLifetimeStrategy(Candle candle,
+                                TrendDownLevel2EventProcessor eventProcessor,
+                                DatabaseSnapshotBuilder snapshotBuilder,
+                                StrategyDataService dataService,
+                                TF1mBacktestSchema tf1mBacktestSchema,
+                                TF1mLifetimeSchema tf1mLifetimeSchema,
+                                TradeEventBus tradeEventBus) {
         super(candle, eventProcessor, snapshotBuilder, dataService);
         this.tradeEventBus = tradeEventBus;
         this.tf1mBacktestSchema = tf1mBacktestSchema;
         this.tf1mLifetimeSchema = tf1mLifetimeSchema;
 
-        // Логирование загруженного EventProcessor
-        Log.infof("📦 Загружен EventProcessor: %s", eventProcessor.getClass().getSimpleName());
     }
 
     @Override
@@ -112,6 +103,4 @@ public class TF1mStrategy extends AbstractStrategy {
     protected AbstractSchema getLifetimeSchema() {
         return tf1mLifetimeSchema;
     }
-
-
 }

@@ -36,10 +36,8 @@ public abstract class AbstractStrategy implements CandleEventListener {
     protected static final DecimalNum HUNDRED = DecimalNum.valueOf(100);
 
     protected Integer lastProcessedBarIndex = null;
-    /**
-     * Проверить, запущена ли стратегия
-     */
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    protected BaseBarSeries lifetimeBarSeries;
+    private final AtomicBoolean running = new AtomicBoolean(false); // флаг запуска старатегии
 
     // Общие зависимости для всех стратегий
     protected final Candle candle;
@@ -53,6 +51,32 @@ public abstract class AbstractStrategy implements CandleEventListener {
         this.tradeEventProcessor = tradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
+
+        Log.infof("📦 Запущен иснстанс стратегии: %s", this.getClass().getSimpleName());
+    }
+
+    public void startStrategy() {
+        Log.infof("🚀 Запуск стратегии для лайв-торговли: %s", getName());
+        checkColumnsExist(getLifetimeSchema());
+        lifetimeBarSeries = candle.getInstance(getTimeframe()).getLiveBarSeries();
+
+        setRunning(true);
+    }
+
+    public void stopStrategy() {
+        Log.infof("🛑 Остановка стратегии для лайв-торговли: %s", getName());
+        lifetimeBarSeries = null;
+        setRunning(false);
+    }
+
+    /**
+     * Установить статус запуска стратегии
+     */
+    public void setRunning(boolean isRunning) {
+        this.running.set(isRunning);
+        if (!isRunning) {
+            lastProcessedBarIndex = null; // Сбрасываем при остановке
+        }
     }
 
     public abstract String getName();
@@ -166,18 +190,6 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     /**
-     * Хук для инициализации контекста бэктеста.
-     * Переопределяйте в подклассах для добавления специфичной логики (например, TradingRecord).
-     *
-     * @param historicalBarSeries серия исторических данных
-     * @return контекст для использования в процессе бэктеста
-     */
-    protected BacktestContext initializeBacktest(BaseBarSeries historicalBarSeries) {
-        return new BacktestContext();
-    }
-
-
-/**
      * Хук для обработки каждого бара в процессе бэктеста.
      * Переопределяйте в подклассах для добавления специфичной логики (например, открытие/закрытие позиций).
      *
@@ -243,16 +255,6 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     public boolean isUnstableAt(int index) {
         return index < getUnstableBars();
-    }
-
-    /**
-     * Установить статус запуска стратегии
-     */
-    public void setRunning(boolean isRunning) {
-        this.running.set(isRunning);
-        if (!isRunning) {
-            lastProcessedBarIndex = null; // Сбрасываем при остановке
-        }
     }
 
     /**

@@ -31,11 +31,11 @@ public class StrategyService {
         this.registry = registry;
         this.eventBus = eventBus;
 
-        // Регистрируем контракты
+        // Регистрируем схему
         contractInstances.forEach(contract -> {
             String contractName = contract.getName();
             contractMap.put(contractName, contract);
-            Log.infof("📋 Зарегистрирован контракт: %s", contractName);
+            Log.infof("📋 Зарегистрирована схема: %s", contractName);
         });
 
         // Регистрируем стратегии
@@ -66,8 +66,8 @@ public class StrategyService {
         }
 
         try {
-            // Помечаем стратегию как запущенную
-            strategy.setRunning(true);
+            // Запускаем стратегию
+            strategy.startStrategy();
             // Подписываемся на события
             eventBus.subscribe(strategy);
 
@@ -101,10 +101,11 @@ public class StrategyService {
         }
 
         try {
+
+            // Останавливаем стратегию
+            strategy.stopStrategy();
             // Отписываемся от событий
             eventBus.unsubscribe(strategy);
-            // Помечаем стратегию как остановленную
-            strategy.setRunning(false);
 
             Log.infof("🛑 Стратегия остановлена: %s", strategyName);
             return true;
