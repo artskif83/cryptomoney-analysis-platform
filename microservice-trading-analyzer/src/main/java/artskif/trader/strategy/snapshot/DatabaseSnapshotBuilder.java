@@ -35,7 +35,8 @@ public class DatabaseSnapshotBuilder {
         DatabaseSnapshotRow row = new DatabaseSnapshotRow(
                 bar.getTimePeriod(),
                 bar.getBeginTime(),
-                schema.getContractHash()
+                schema.getContractHash(),
+                tag
         );
 
         // Добавляем базовые данные свечи
@@ -44,7 +45,6 @@ public class DatabaseSnapshotBuilder {
         row.addColumn("low", bar.getLowPrice().bigDecimalValue());
         row.addColumn("close", bar.getClosePrice().bigDecimalValue());
         row.addColumn("volume", bar.getVolume().bigDecimalValue());
-        row.addColumn("tag", tag);
 
         for (ContractMetadata metadata : contract.metadata) {
             try {

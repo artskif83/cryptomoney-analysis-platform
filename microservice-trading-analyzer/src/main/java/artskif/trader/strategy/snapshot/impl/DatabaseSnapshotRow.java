@@ -12,13 +12,15 @@ public final class DatabaseSnapshotRow implements DatabaseSnapshot {
     private final Duration timeframe;
     private final Instant timestamp;
     private final String contractHash;
+    private final String tag;
     private final Map<String, Object> columns;
 
     public DatabaseSnapshotRow(Duration timeframe, Instant timestamp,
-                               String contractHash) {
+                               String contractHash, String tag) {
         this.timeframe = timeframe;
         this.timestamp = timestamp;
         this.contractHash = contractHash;
+        this.tag = tag;
         this.columns = new HashMap<>();
     }
 
@@ -59,8 +61,13 @@ public final class DatabaseSnapshotRow implements DatabaseSnapshot {
     }
 
     @Override
+    public String tag() {
+        return tag;
+    }
+
+    @Override
     public String toString() {
-        return String.format("DatabaseRow{tf=%s, ts=%s, hash='%s', columns=%d}",
-                timeframe, timestamp, contractHash.substring(0, 8), columns.size());
+        return String.format("DatabaseRow{tf=%s, ts=%s, hash='%s', tag='%s', columns=%d}",
+                timeframe, timestamp, contractHash.substring(0, 8), tag, columns.size());
     }
 }

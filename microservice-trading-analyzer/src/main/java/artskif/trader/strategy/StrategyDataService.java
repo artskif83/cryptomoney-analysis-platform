@@ -4,10 +4,8 @@ import artskif.trader.entity.ContractMetadata;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.columns.Column;
 import artskif.trader.entity.Contract;
-import artskif.trader.entity.MetadataType;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
-import artskif.trader.strategy.snapshot.impl.DatabaseSnapshotRow;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -42,15 +40,15 @@ public class StrategyDataService {
 
     /**
      * Вставить или обновить строку фич (UPSERT)
-     * Если строка с таким tf и ts существует, она обновляется, иначе вставляется новая
+     * Если строка с таким tf, tag и ts существует, она обновляется, иначе вставляется новая
      */
     @Transactional
     public void insertFeatureRow(DatabaseSnapshot row) {
         Map<String, Object> features = row.getAllColumns();
 
         // Формируем SQL для INSERT ... ON CONFLICT DO UPDATE
-        StringBuilder columns = new StringBuilder("tf, ts, contract_hash");
-        StringBuilder values = new StringBuilder(":tf, :ts, :contractHash");
+        StringBuilder columns = new StringBuilder("tf, tag, ts, contract_hash");
+        StringBuilder values = new StringBuilder(":tf, :tag, :ts, :contractHash");
         StringBuilder updateSet = new StringBuilder();
 
         for (String featureName : features.keySet()) {
@@ -71,12 +69,13 @@ public class StrategyDataService {
 
         String sql = String.format(
                 "INSERT INTO wide_candles (%s) VALUES (%s) " +
-                "ON CONFLICT (tf, ts) DO UPDATE SET %s",
+                "ON CONFLICT (tf, tag, ts) DO UPDATE SET %s",
                 columns, values, updateSet
         );
 
         var query = entityManager.createNativeQuery(sql)
                 .setParameter("tf", formatDuration(row.getTimeframe()))
+                .setParameter("tag", row.tag())
                 .setParameter("ts", row.getTimestamp())
                 .setParameter("contractHash", row.contractHash());
 
@@ -196,6 +195,7 @@ public class StrategyDataService {
 
             // Добавляем базовые колонки
             values.add(formatDuration(row.getTimeframe()));
+            values.add(safe(row.tag()));
             values.add(formatTimestamp(row.getTimestamp()));
             values.add(safe(row.contractHash()));
 
@@ -222,6 +222,7 @@ public class StrategyDataService {
     private String buildCopyColumnList(DatabaseSnapshot sampleRow) {
         java.util.List<String> columns = new java.util.ArrayList<>();
         columns.add("tf");
+        columns.add("tag");
         columns.add("ts");
         columns.add("contract_hash");
 
@@ -240,8 +241,8 @@ public class StrategyDataService {
         java.util.List<String> featureNames = new java.util.ArrayList<>(sampleRow.getAllColumns().keySet());
         java.util.Collections.sort(featureNames);
 
-        StringBuilder columns = new StringBuilder("tf, ts, contract_hash");
-        StringBuilder selectColumns = new StringBuilder("tf, ts, contract_hash");
+        StringBuilder columns = new StringBuilder("tf, tag, ts, contract_hash");
+        StringBuilder selectColumns = new StringBuilder("tf, tag, ts, contract_hash");
         StringBuilder updateSet = new StringBuilder();
 
         for (String featureName : featureNames) {
@@ -255,7 +256,7 @@ public class StrategyDataService {
 
         return String.format(
                 "INSERT INTO wide_candles(%s) SELECT %s FROM stage_wide_candles " +
-                        "ON CONFLICT (tf, ts) DO UPDATE SET %s",
+                        "ON CONFLICT (tf, tag, ts) DO UPDATE SET %s",
                 columns, selectColumns, updateSet
         );
     }

@@ -16,7 +16,7 @@ import java.util.Map;
 public class WideCandle extends PanacheEntityBase {
 
     @EmbeddedId
-    public CandleId id;
+    public WideCandleId id;
 
     @Column(nullable = false, precision = 18, scale = 8)
     public BigDecimal open;
@@ -30,8 +30,11 @@ public class WideCandle extends PanacheEntityBase {
     @Column(nullable = false, precision = 18, scale = 8)
     public BigDecimal close;
 
-    @Column(nullable = true, precision = 30, scale = 8)
+    @Column(precision = 30, scale = 8)
     public BigDecimal volume;
+
+    @Column(name = "contract_hash", length = 64)
+    public String contractHash;
 
     @Column(nullable = false, columnDefinition = "boolean default true")
     public boolean confirmed;
@@ -47,14 +50,16 @@ public class WideCandle extends PanacheEntityBase {
     public WideCandle() {
     }
 
-    public WideCandle(CandleId id, BigDecimal open, BigDecimal high,
-                      BigDecimal low, BigDecimal close, BigDecimal volume, boolean confirmed) {
+    public WideCandle(WideCandleId id, BigDecimal open, BigDecimal high,
+                      BigDecimal low, BigDecimal close, BigDecimal volume,
+                      String contractHash, boolean confirmed) {
         this.id = id;
         this.open = open;
         this.high = high;
         this.low = low;
         this.close = close;
         this.volume = volume;
+        this.contractHash = contractHash;
         this.confirmed = confirmed;
     }
 

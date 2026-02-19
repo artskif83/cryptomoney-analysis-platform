@@ -9,7 +9,10 @@ public interface DatabaseSnapshot {
     /** Идентификатор схемы (Contract.contractHash) */
     String contractHash();
 
-       /** Все фичи в виде мапы */
+    /** Тег для группировки данных (например, 'positions', 'trades') */
+    String tag();
+
+    /** Все фичи в виде мапы */
     Map<String, Object> getAllColumns();
 
     Duration getTimeframe();
