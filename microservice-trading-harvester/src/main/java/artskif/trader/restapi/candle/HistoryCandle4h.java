@@ -6,8 +6,6 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * Харвестер для таймфрейма 4 часа
  */
@@ -28,10 +26,10 @@ public class HistoryCandle4h extends AbstractHistoryCandle {
     String dbTimeframeKey;
 
     /**
-     * Метод запускается по расписанию каждые syncIntervalSeconds секунд.
+     * Метод запускается по расписанию в 30-ю секунду каждые 4 часа.
      * Вызывает асинхронную синхронизацию данных.
      */
-    @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, every = "${okx.history.4h.syncIntervalSeconds}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(cron = "30 0 */4 * * ?", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void scheduledSync() {
         syncScheduled();
     }

@@ -27,7 +27,7 @@ public class DatabaseSnapshotBuilder {
         this.registry = registry;
     }
 
-    public DatabaseSnapshot build(Bar bar, AbstractSchema schema, Map<ColumnTypeMetadata, Num> additionalColumns, int barIndex, boolean isLive) {
+    public DatabaseSnapshot build(Bar bar, String tag, AbstractSchema schema, Map<ColumnTypeMetadata, Num> additionalColumns, int barIndex, boolean isLive) {
 
         CandleTimeframe timeframe = schema.getTimeframe();
         Contract contract = schema.getContract();
@@ -44,6 +44,7 @@ public class DatabaseSnapshotBuilder {
         row.addColumn("low", bar.getLowPrice().bigDecimalValue());
         row.addColumn("close", bar.getClosePrice().bigDecimalValue());
         row.addColumn("volume", bar.getVolume().bigDecimalValue());
+        row.addColumn("tag", tag);
 
         for (ContractMetadata metadata : contract.metadata) {
             try {

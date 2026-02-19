@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS wide_candles
     open           numeric(18, 8) NOT NULL,
     high           numeric(18, 8) NOT NULL,
     low            numeric(18, 8) NOT NULL,
+    tag            varchar(255),
     close          numeric(18, 8) NOT NULL,
     volume         numeric(30, 8),
     contract_hash         varchar(64),

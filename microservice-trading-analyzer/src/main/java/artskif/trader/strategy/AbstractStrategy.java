@@ -139,7 +139,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             }
 
             Bar bar = historicalBarSeries.getBar(index);
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getBacktestSchema(), additionalColumns, index, false);
+            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-backtest", getBacktestSchema(), additionalColumns, index, false);
             dbRows.add(dbRow);
             processedCount++;
 

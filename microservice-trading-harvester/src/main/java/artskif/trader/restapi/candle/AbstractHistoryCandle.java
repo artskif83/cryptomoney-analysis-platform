@@ -45,6 +45,7 @@ public abstract class AbstractHistoryCandle {
         if (!isEnabled()) {
             LOG.infof("⚙️ Харвестер исторических свечей с таймфреймом %s отключен", getTimeframe());
         }
+        syncScheduled();
     }
 
     /**

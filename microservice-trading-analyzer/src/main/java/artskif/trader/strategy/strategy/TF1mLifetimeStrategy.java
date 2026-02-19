@@ -8,6 +8,7 @@ import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
+import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
@@ -81,7 +82,7 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
             return;
         }
 
-        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getBacktestSchema(), additionalColumns, endIndex, true);
+        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-lifetime", getBacktestSchema(), additionalColumns, endIndex, true);
         // Сохраняем в БД
         dataService.insertFeatureRow(dbRow);
 
