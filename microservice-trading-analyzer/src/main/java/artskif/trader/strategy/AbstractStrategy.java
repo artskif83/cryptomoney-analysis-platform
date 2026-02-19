@@ -6,9 +6,12 @@ import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventListener;
 import artskif.trader.candle.CandleEventType;
+import artskif.trader.events.trade.TradeEvent;
+import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.event.common.Direction;
+import artskif.trader.strategy.event.common.TradeEventData;
 import artskif.trader.strategy.snapshot.DatabaseSnapshot;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import artskif.trader.strategy.event.TradeEventProcessor;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractStrategy implements CandleEventListener {
@@ -44,13 +48,21 @@ public abstract class AbstractStrategy implements CandleEventListener {
     protected final TradeEventProcessor tradeEventProcessor;
     protected final StrategyDataService dataService;
     protected final DatabaseSnapshotBuilder snapshotBuilder;
+    protected final TradeEventBus tradeEventBus;
 
     protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
                                DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService) {
+        this(candle, tradeEventProcessor, snapshotBuilder, dataService, null);
+    }
+
+    protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
+                               DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
+                               TradeEventBus tradeEventBus) {
         this.candle = candle;
         this.tradeEventProcessor = tradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
+        this.tradeEventBus = tradeEventBus;
 
         Log.infof("📦 Запущен иснстанс стратегии: %s", this.getClass().getSimpleName());
     }
@@ -109,7 +121,52 @@ public abstract class AbstractStrategy implements CandleEventListener {
     /**
      * Метод вызывается при поступлении нового бара
      */
-    public abstract void onBar(CandlestickDto candle);
+    public void onBar(CandlestickDto candle) {
+        if (lifetimeBarSeries == null) {
+            Log.warn("⏳ Серия баров еще не инициализирована, пропускаем обработку");
+            return;
+        }
+
+        Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
+        int endIndex = lifetimeBarSeries.getEndIndex();
+        Bar bar = lifetimeBarSeries.getBar(endIndex);
+
+        if (candle.getTimestamp() != bar.getBeginTime()) {
+            Log.warnf(
+                    "⏳ Полученный бар с timestamp %s не совпадает с последним баром серии с timestamp %s, пропускаем обработку",
+                    candle.getTimestamp(),
+                    bar.getBeginTime()
+            );
+            return;
+        }
+
+        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-lifetime", getLifetimeSchema(), additionalColumns, endIndex, true);
+        // Сохраняем в БД
+        dataService.insertFeatureRow(dbRow);
+
+        // Обработка торговых событий (если процессор настроен)
+        if (tradeEventProcessor != null && tradeEventBus != null) {
+            Optional<TradeEventData> tradeEvent = tradeEventProcessor.checkLifeTradeEvent(endIndex);
+
+            if (tradeEvent.isPresent()) {
+                TradeEventData eventData = tradeEvent.get();
+                Log.infof(
+                        "✅ Произошло торговое событие: %s %s [Процессор: %s]",
+                        eventData.type(),
+                        eventData.direction(),
+                        tradeEventProcessor.getClass().getSimpleName()
+                );
+
+                // Публикуем событие TradeEvent
+                tradeEventBus.publish(new TradeEvent(
+                        eventData,
+                        candle.getInstrument(),
+                        candle.getTimestamp(),
+                        false
+                ));
+            }
+        }
+    }
 
     /**
      * Метод для проведения бэктеста стратегии (Template Method)

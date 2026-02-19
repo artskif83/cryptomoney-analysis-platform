@@ -2,7 +2,6 @@ package artskif.trader.strategy.strategy;
 
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
-import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
@@ -18,7 +17,7 @@ public class TF4hVisualizationStrategy extends AbstractStrategy {
     private final AbstractSchema tf4hSchema;
 
     public TF4hVisualizationStrategy() {
-        super(null, null, null, null);
+        super(null, null, null, null, null);
         this.tf4hSchema = null;
     }
 
@@ -28,7 +27,7 @@ public class TF4hVisualizationStrategy extends AbstractStrategy {
                                         StrategyDataService dataService,
                                         TF4hSchema tf4hSchema,
                                         TradeEventBus tradeEventBus) {
-        super(candle, null, snapshotBuilder, dataService);
+        super(candle, null, snapshotBuilder, dataService, null);
         this.tf4hSchema = tf4hSchema;
     }
 
@@ -37,10 +36,6 @@ public class TF4hVisualizationStrategy extends AbstractStrategy {
         return "TF4h Strategy";
     }
 
-    @Override
-    public void onBar(CandlestickDto candle) {
-
-    }
 
     @Override
     protected AbstractSchema getBacktestSchema() {
