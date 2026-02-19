@@ -45,16 +45,24 @@ CREATE TABLE IF NOT EXISTS wide_candles
     open           numeric(18, 8) NOT NULL,
     high           numeric(18, 8) NOT NULL,
     low            numeric(18, 8) NOT NULL,
-    tag            varchar(255),
+    tag            varchar(255)   NOT NULL,
     close          numeric(18, 8) NOT NULL,
     volume         numeric(30, 8),
-    contract_hash         varchar(64),
+    contract_hash  varchar(64),
     confirmed      boolean        NOT NULL DEFAULT true,
-    PRIMARY KEY (tf, ts)
+    PRIMARY KEY (tf, tag, ts)
 );
 
 SELECT create_hypertable('wide_candles', 'ts', if_not_exists => TRUE);
-CREATE INDEX wide_candles_symbol_tf_ts_idx ON wide_candles (tf, ts DESC);
+
+-- PRIMARY KEY (tf, tag, ts) автоматически создаст индекс и покроет запросы вида:
+-- WHERE tf = '1m' AND tag = 'positions' ORDER BY ts
+
+-- Индекс для запросов только по tf (если используется без tag)
+CREATE INDEX IF NOT EXISTS wide_candles_tf_ts_idx ON wide_candles (tf, ts DESC);
+
+-- Индекс для быстрого поиска по contract_hash (если используется для JOIN)
+CREATE INDEX IF NOT EXISTS wide_candles_contract_hash_idx ON wide_candles (contract_hash) WHERE contract_hash IS NOT NULL;
 
 -- Staging таблица для COPY wide_candles (UNLOGGED для скорости)
 CREATE UNLOGGED TABLE IF NOT EXISTS stage_wide_candles
@@ -64,6 +72,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stage_wide_candles
     open           numeric(18, 8),
     high           numeric(18, 8),
     low            numeric(18, 8),
+    tag            varchar(255),
     close          numeric(18, 8),
     volume         numeric(30, 8),
     contract_hash  varchar(64),

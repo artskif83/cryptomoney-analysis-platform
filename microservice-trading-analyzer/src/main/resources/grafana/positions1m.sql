@@ -12,6 +12,6 @@ SELECT
     additional_stoploss_1m
 FROM wide_candles
 WHERE
-    tf = '1m'
-  AND confirmed = true
+    tf = '1m'  AND
+    tag = 'positions'
 ORDER BY ts;
