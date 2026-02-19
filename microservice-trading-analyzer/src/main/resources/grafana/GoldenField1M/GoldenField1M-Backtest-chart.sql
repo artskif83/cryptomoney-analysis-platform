@@ -12,6 +12,6 @@ SELECT
     additional_stoploss_1m
 FROM wide_candles
 WHERE
-    tf = '1m'  AND
-    tag = 'positions'
+    tf = '1m' AND
+    tag = 'GoldenField1M-backtest'
 ORDER BY ts;

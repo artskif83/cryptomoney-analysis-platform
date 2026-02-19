@@ -67,7 +67,11 @@ public class StrategyService {
 
         try {
             // Запускаем стратегию
-            strategy.startStrategy();
+            boolean started = strategy.startStrategy();
+            if (!started) {
+                Log.warnf("⚠️ Стратегия не запустилась: %s", strategyName);
+                return false;
+            }
             // Подписываемся на события
             eventBus.subscribe(strategy);
 

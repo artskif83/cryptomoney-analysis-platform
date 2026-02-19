@@ -14,27 +14,27 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 @ApplicationScoped
-public class TF1mLifetimeStrategy extends AbstractStrategy {
+public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     private final AbstractSchema tf1mBacktestSchema;
     private final AbstractSchema tf1mLifetimeSchema;
 
 
     // Конструктор без параметров для CDI proxy
-    protected TF1mLifetimeStrategy() {
+    protected GoldenField1MLifetimeStrategy() {
         super(null, null, null, null, null);
         this.tf1mBacktestSchema = null;
         this.tf1mLifetimeSchema = null;
     }
 
     @Inject
-    public TF1mLifetimeStrategy(Candle candle,
-                                GoldenFieldEventProcessor eventProcessor,
-                                DatabaseSnapshotBuilder snapshotBuilder,
-                                StrategyDataService dataService,
-                                TF1mBacktestSchema tf1mBacktestSchema,
-                                TF1mLifetimeSchema tf1mLifetimeSchema,
-                                TradeEventBus tradeEventBus) {
+    public GoldenField1MLifetimeStrategy(Candle candle,
+                                         GoldenFieldEventProcessor eventProcessor,
+                                         DatabaseSnapshotBuilder snapshotBuilder,
+                                         StrategyDataService dataService,
+                                         TF1mBacktestSchema tf1mBacktestSchema,
+                                         TF1mLifetimeSchema tf1mLifetimeSchema,
+                                         TradeEventBus tradeEventBus) {
         super(candle, eventProcessor, snapshotBuilder, dataService, tradeEventBus);
         this.tf1mBacktestSchema = tf1mBacktestSchema;
         this.tf1mLifetimeSchema = tf1mLifetimeSchema;
@@ -43,7 +43,7 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
 
     @Override
     public String getName() {
-        return "TF1m Strategy";
+        return "GoldenField1M";
     }
 
     @Override

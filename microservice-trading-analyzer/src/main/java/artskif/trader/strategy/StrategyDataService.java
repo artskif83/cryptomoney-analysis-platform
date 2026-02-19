@@ -110,15 +110,15 @@ public class StrategyDataService {
                 .getSingleResult();
 
         if (existingCount > 0) {
-            Log.infof("⚠️ Найдено %d существующих записей для контракта %s. Удаляем их...",
-                    existingCount, firstRow.contractHash());
+            Log.infof("⚠️ Найдено %d существующих записей для стратегии %s. Удаляем их...",
+                    existingCount, firstRow.tag());
 
             String deleteSql = "DELETE FROM wide_candles WHERE contract_hash = :contract_hash";
             int deleted = entityManager.createNativeQuery(deleteSql)
                     .setParameter("contract_hash", firstRow.contractHash())
                     .executeUpdate();
 
-            Log.infof("✅ Удалено %d записей для контракта %s", deleted, firstRow.contractHash());
+            Log.infof("✅ Удалено %d записей для стратегии %s", deleted, firstRow.tag());
         }
 
         // Собираем все строки обратно в список для формирования CSV

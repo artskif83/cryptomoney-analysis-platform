@@ -18,7 +18,6 @@ import artskif.trader.strategy.event.TradeEventProcessor;
 import io.quarkus.logging.Log;
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.cost.ZeroCostModel;
-import org.ta4j.core.backtest.TradeExecutionModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
 import org.ta4j.core.criteria.NumberOfPositionsCriterion;
 import org.ta4j.core.criteria.NumberOfWinningPositionsCriterion;
@@ -68,15 +67,24 @@ public abstract class AbstractStrategy implements CandleEventListener {
         Log.infof("📦 Запущен инстанс стратегии: %s", this.getClass().getSimpleName());
     }
 
-    public void startStrategy() {
+    public boolean startStrategy() {
         Log.infof("🚀 Запуск стратегии для лайв-торговли: %s", getName());
         dataService.checkColumnsExist(getLifetimeSchema());
         lifetimeBarSeries = candle.getInstance(getTimeframe()).getLiveBarSeries();
+        if (lifetimeBarSeries.getBarCount() < lifetimeBarSeries.getMaximumBarCount()) {
+            Log.warnf("⚠️ Серия баров для стратегии %s содержит меньше баров (%d), чем рабочий размер серии (%d). Стратегия еще не готова к запуску.",
+                    getName(), lifetimeBarSeries.getBarCount(), lifetimeBarSeries.getMaximumBarCount());
+            return false;
+        }
         setRunning(true);
+        processCandleSeries(lifetimeBarSeries, getName() + "-lifetime", getLifetimeSchema(), true);
+        Log.infof("🚀 Стратегия запущена: %s", getName());
+
+        return true;
     }
 
     public void stopStrategy() {
-        Log.infof("?? Остановка стратегии для лайв-торговли: %s", getName());
+        Log.infof("🛑 Остановка стратегии для лайв-торговли: %s", getName());
         lifetimeBarSeries = null;
         setRunning(false);
     }

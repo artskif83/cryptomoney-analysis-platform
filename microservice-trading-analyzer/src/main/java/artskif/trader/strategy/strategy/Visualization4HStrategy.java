@@ -12,21 +12,21 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 @ApplicationScoped
-public class TF4hVisualizationStrategy extends AbstractStrategy {
+public class Visualization4HStrategy extends AbstractStrategy {
 
     private final AbstractSchema tf4hSchema;
 
-    public TF4hVisualizationStrategy() {
+    public Visualization4HStrategy() {
         super(null, null, null, null, null);
         this.tf4hSchema = null;
     }
 
     @Inject
-    protected TF4hVisualizationStrategy(Candle candle,
-                                        DatabaseSnapshotBuilder snapshotBuilder,
-                                        StrategyDataService dataService,
-                                        TF4hSchema tf4hSchema,
-                                        TradeEventBus tradeEventBus) {
+    protected Visualization4HStrategy(Candle candle,
+                                      DatabaseSnapshotBuilder snapshotBuilder,
+                                      StrategyDataService dataService,
+                                      TF4hSchema tf4hSchema,
+                                      TradeEventBus tradeEventBus) {
         super(candle, null, snapshotBuilder, dataService, null);
         this.tf4hSchema = tf4hSchema;
     }
