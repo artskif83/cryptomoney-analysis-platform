@@ -457,14 +457,16 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                 log().debugf("🕯️ [%s] Получена подтвержденная свеча: bucket=%s, o=%s, h=%s, l=%s, c=%s, v=%s",
                         getName(), bucket, candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume());
 
+                if (liveBarSeries.getBarCount() < getMaxLiveBufferSize()) {
+                    log().debugf("⏳ [%s] Live серия еще не заполнена: %d/%d элементов. Ожидаем добавления элементов",
+                            getName(), liveBarSeries.getBarCount(), getMaxLiveBufferSize());
+                    return;
+                }
+
                 // Добавляем в буферы
                 getLiveBuffer().putItem(bucket, candle);
                 getLiveBuffer().incrementVersion();
 
-                if (liveBarSeries.getBarCount() < getMaxLiveBufferSize()) {
-                    log().debugf("⏳ [%s] Live серия еще не заполнена: %d/%d элементов. Ожидаем добавления элементов",
-                            getName(), liveBarSeries.getBarCount(), getMaxLiveBufferSize());
-                }
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
                 if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live candle") &&
                         addBarToLiveSeries(candle)) {
@@ -473,7 +475,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                     log().infof("✅ [%s] Свеча успешно добавлена в live серию: bucket=%s, close=%s", getName(), bucket, candle.getClose());
 
                 } else {
-                    log().warnf("⚠️ [%s] Свеча не добавлена в live серию, т.к. буфер еще не актуален", getName());
+                    log().warnf("⚠️ [%s] Свеча не добавлена в live серию, т.к. буфер еще не актуален или свечи дублируются", getName());
                 }
             }
         } catch (Exception e) {
