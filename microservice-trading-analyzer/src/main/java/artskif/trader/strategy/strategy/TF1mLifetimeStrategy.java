@@ -82,7 +82,7 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
             return;
         }
 
-        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-lifetime", getBacktestSchema(), additionalColumns, endIndex, true);
+        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-lifetime", getLifetimeSchema(), additionalColumns, endIndex, true);
         // Сохраняем в БД
         dataService.insertFeatureRow(dbRow);
 

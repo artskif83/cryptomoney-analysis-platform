@@ -45,10 +45,7 @@ public class TF1mLifetimeSchema extends AbstractSchema {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_1M,
                         ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M,
-                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M,
-                        PositionColumn.PositionColumnType.POSITION_PRICE_1M,
-                        PositionColumn.PositionColumnType.STOPLOSS_1M,
-                        PositionColumn.PositionColumnType.TAKEPROFIT_1M),
+                        CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M),
                 contract
         ));
     }
