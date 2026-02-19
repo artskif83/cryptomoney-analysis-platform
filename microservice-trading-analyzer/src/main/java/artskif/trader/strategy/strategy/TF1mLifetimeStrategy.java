@@ -46,7 +46,6 @@ public class TF1mLifetimeStrategy extends AbstractStrategy {
         return "TF1m Strategy";
     }
 
-
     @Override
     protected CandleTimeframe getTimeframe() {
         return CandleTimeframe.CANDLE_1M;

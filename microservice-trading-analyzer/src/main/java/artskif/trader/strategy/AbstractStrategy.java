@@ -18,6 +18,7 @@ import artskif.trader.strategy.event.TradeEventProcessor;
 import io.quarkus.logging.Log;
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.cost.ZeroCostModel;
+import org.ta4j.core.backtest.TradeExecutionModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
 import org.ta4j.core.criteria.NumberOfPositionsCriterion;
 import org.ta4j.core.criteria.NumberOfWinningPositionsCriterion;
@@ -64,7 +65,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         this.dataService = dataService;
         this.tradeEventBus = tradeEventBus;
 
-        Log.infof("📦 Запущен иснстанс стратегии: %s", this.getClass().getSimpleName());
+        Log.infof("📦 Запущен инстанс стратегии: %s", this.getClass().getSimpleName());
     }
 
     public void startStrategy() {
@@ -140,7 +141,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             return;
         }
 
-        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-lifetime", getLifetimeSchema(), additionalColumns, endIndex, true);
+        DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName() + "-lifetime", getLifetimeSchema(), additionalColumns, endIndex, true);
         // Сохраняем в БД
         dataService.insertFeatureRow(dbRow);
 
@@ -178,50 +179,59 @@ public abstract class AbstractStrategy implements CandleEventListener {
         dataService.checkColumnsExist(getBacktestSchema());
 
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
-        int totalBars = historicalBarSeries.getBarCount();
+
+        TradingRecord tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false);
+
+        if (tradingRecord != null) {
+            Log.info("📊 Выполняем торговый анализ стратегии...");
+            strategyAnalysis(tradingRecord, historicalBarSeries);
+        }
+
+        Log.infof("✅ Завершено тестирование.");
+    }
+
+    private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife) {
+        int totalBars = barSeries.getBarCount();
         int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
         Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
 
-        TradingRecord tradingRecord = getTradingRecord(historicalBarSeries);
-        TradeOnCurrentCloseModel tradeExecutionModel = new TradeOnCurrentCloseModel();
+        TradingRecord tradingRecord = null;
+        TradeOnCurrentCloseModel tradeExecutionModel = null;
+
+        if (!isLife) {
+            tradingRecord = getTradingRecord(barSeries);
+            tradeExecutionModel = new TradeOnCurrentCloseModel();
+        }
 
         int processedCount = 0;
-        for (int index = historicalBarSeries.getBeginIndex(); index <= historicalBarSeries.getEndIndex(); index++) {
+        for (int index = barSeries.getBeginIndex(); index <= barSeries.getEndIndex(); index++) {
 
             // Хук для обработки каждой свечи - здесь можно открывать/закрывать позиции и сохранять метрики
             if (tradingRecord != null && tradeEventProcessor != null) {
-                additionalColumns = captureBacktestPositionMetrics(index, historicalBarSeries, tradingRecord, tradeExecutionModel);
+                additionalColumns = captureBacktestPositionMetrics(index, barSeries, tradingRecord, tradeExecutionModel);
             }
 
-            Bar bar = historicalBarSeries.getBar(index);
-            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName()+"-backtest", getBacktestSchema(), additionalColumns, index, false);
+            Bar bar = barSeries.getBar(index);
+            DatabaseSnapshot dbRow = snapshotBuilder.build(bar, tagName, schema, additionalColumns, index, isLife);
             dbRows.add(dbRow);
             processedCount++;
 
             // Выводим прогресс каждые progressStep свечей
             if (index > 0 && (index % progressStep == 0 || index == totalBars - 1)) {
                 double progressPercent = ((double) processedCount / totalBars) * 100;
-                Log.infof("⏳ Прогресс тестирования: %.1f%% (%d/%d свечей)",
+                Log.infof("⏳ Прогресс выполнения: %.1f%% (%d/%d свечей)",
                         progressPercent, processedCount, totalBars);
             }
         }
-
-        if (tradingRecord != null) {
-            Log.info("📊 Выполняем торговый анализ стратегии...");
-            strategyAnalysis(tradingRecord, historicalBarSeries);
-        } else {
-            Log.info("⚠️ Торговый анализ пропущен - TradingRecord не инициализирован");
-        }
-
         // Сохраняем в БД
         dataService.saveContractSnapshotRowsBatch(dbRows);
 
-        Log.infof("✅ Завершено тестирование. Обработано %d свечей", processedCount);
+        return tradingRecord;
     }
 
-    private TradingRecord getTradingRecord(BaseBarSeries historicalBarSeries) {
+    private TradingRecord getTradingRecord(BarSeries historicalBarSeries) {
         TradingRecord tradingRecord = null;
 
         if (tradeEventProcessor != null) {
@@ -244,7 +254,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         Num numberOfPositions = new NumberOfPositionsCriterion().calculate(historicalBarSeries, tradingRecord);
         Log.debugf("Количество позиций: %s", numberOfPositions.intValue());
         Num numberOfWiningPositions = new NumberOfWinningPositionsCriterion().calculate(historicalBarSeries, tradingRecord);
-        Log.debugf("Количество позиций: %s", numberOfPositions.intValue());
+        Log.debugf("Количество выигрышных позиций: %s", numberOfWiningPositions.intValue());
         var positionsRatio = new PositionsRatioCriterion(AnalysisCriterion.PositionFilter.PROFIT).calculate(historicalBarSeries, tradingRecord);
         Log.debugf("Соотношение выигрышных позиций: %s", positionsRatio.bigDecimalValue());
     }
@@ -260,7 +270,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
      * @return дополнительные колонки для сохранения в БД (например, позиции, стоп-лосс, тейк-профит)
      */
     protected Map<ColumnTypeMetadata, Num> captureBacktestPositionMetrics(int index,
-                                                                          BaseBarSeries historicalBarSeries,
+                                                                          BarSeries historicalBarSeries,
                                                                           TradingRecord tradingRecord,
                                                                           TradeOnCurrentCloseModel tradeExecutionModel) {
 
