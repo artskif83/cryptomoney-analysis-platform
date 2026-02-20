@@ -54,18 +54,31 @@ const tripleMaValue = times.map((t, i) => [
 const tradeEventsLong = [];
 const tradeEventsShort = [];
 
-// Создаем карту времени к индексу для быстрого поиска
-const timeToIndexMap = new Map();
-times.forEach((t, idx) => timeToIndexMap.set(t, idx));
-
 for (let i = 0; i < eventTimes.length; i++) {
-    // Находим high свечи для этого события
-    const candleIdx = timeToIndexMap.get(eventTimes[i]);
-    let displayPrice = eventPrices[i];
+    const eventPrice = eventPrices[i];
+    const stopLossPercent = eventStopLoss[i];
+    const direction = eventDirections[i];
+    let displayPrice = eventPrice;
 
-    if (candleIdx !== undefined && highs[candleIdx] != null) {
-        // Показываем маркер на 0.3% выше high свечи
-        displayPrice = highs[candleIdx] * 1.002;
+    if (stopLossPercent != null && stopLossPercent > 0) {
+        const stopLossOffset = eventPrice * (stopLossPercent / 100);
+
+        if (direction === 'SHORT') {
+            // Для SHORT позиции: маркер ВЫШЕ на величину stopLoss
+            // (стоп-лосс для шорта находится выше цены входа)
+            displayPrice = eventPrice + stopLossOffset;
+        } else if (direction === 'LONG') {
+            // Для LONG позиции: маркер НИЖЕ на величину stopLoss
+            // (стоп-лосс для лонга находится ниже цены входа)
+            displayPrice = eventPrice - stopLossOffset;
+        }
+    } else {
+        // Если stopLoss не задан, отступаем на 0.2% от цены
+        if (direction === 'SHORT') {
+            displayPrice = eventPrice * 1.002;
+        } else if (direction === 'LONG') {
+            displayPrice = eventPrice * 0.998;
+        }
     }
 
     const eventData = {
@@ -75,12 +88,12 @@ for (let i = 0; i < eventTimes.length; i++) {
         stopLoss: eventStopLoss[i],
         takeProfit: eventTakeProfit[i],
         isTest: eventIsTest[i],
-        actualPrice: eventPrices[i] // сохраняем реальную цену для tooltip
+        actualPrice: eventPrice // сохраняем реальную цену для tooltip
     };
 
-    if (eventDirections[i] === 'LONG') {
+    if (direction === 'LONG') {
         tradeEventsLong.push(eventData);
-    } else if (eventDirections[i] === 'SHORT') {
+    } else if (direction === 'SHORT') {
         tradeEventsShort.push(eventData);
     }
 }
