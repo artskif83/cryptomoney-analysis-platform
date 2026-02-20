@@ -1,7 +1,6 @@
 -- Trade Events for GoldenField1M strategy
 -- This query fetches trade events to display them on the chart
--- event_type contains the name of the event (e.g., "GOLDEN_FIELD")
--- direction specifies LONG or SHORT
+-- Each event represents an entry or exit point in the trading strategy
 
 SELECT
     timestamp AS time,

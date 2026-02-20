@@ -54,14 +54,28 @@ const tripleMaValue = times.map((t, i) => [
 const tradeEventsLong = [];
 const tradeEventsShort = [];
 
+// Создаем карту времени к индексу для быстрого поиска
+const timeToIndexMap = new Map();
+times.forEach((t, idx) => timeToIndexMap.set(t, idx));
+
 for (let i = 0; i < eventTimes.length; i++) {
+    // Находим high свечи для этого события
+    const candleIdx = timeToIndexMap.get(eventTimes[i]);
+    let displayPrice = eventPrices[i];
+
+    if (candleIdx !== undefined && highs[candleIdx] != null) {
+        // Показываем маркер на 0.3% выше high свечи
+        displayPrice = highs[candleIdx] * 1.002;
+    }
+
     const eventData = {
-        value: [eventTimes[i], eventPrices[i]],
+        value: [eventTimes[i], displayPrice],
         eventType: eventTypes[i],
         direction: eventDirections[i],
         stopLoss: eventStopLoss[i],
         takeProfit: eventTakeProfit[i],
-        isTest: eventIsTest[i]
+        isTest: eventIsTest[i],
+        actualPrice: eventPrices[i] // сохраняем реальную цену для tooltip
     };
 
     if (eventDirections[i] === 'LONG') {
@@ -263,7 +277,7 @@ return {
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'triangle',
-            symbolSize: 15,
+            symbolSize: 10,
             symbolRotate: 0,
             itemStyle: {
                 color: '#00FF00',
@@ -281,7 +295,7 @@ return {
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'triangle',
-            symbolSize: 15,
+            symbolSize: 10,
             symbolRotate: 180,
             itemStyle: {
                 color: '#FF0000',
@@ -403,7 +417,9 @@ return {
                     lines.push(''); // пустая строка для разделения
                     lines.push(`<b style="color: #FFD700;">⚡ ${eventData.eventType || 'Trade Event'}</b>`);
                     lines.push(`Direction: <b>${eventData.direction || 'N/A'}</b>`);
-                    lines.push(`Price: ${eventData.value ? Number(eventData.value[1]).toFixed(4) : 'N/A'}`);
+                    // Показываем реальную цену события, а не displayPrice
+                    const priceToShow = eventData.actualPrice || (eventData.value ? eventData.value[1] : null);
+                    lines.push(`Price: ${priceToShow ? Number(priceToShow).toFixed(4) : 'N/A'}`);
                     if (eventData.stopLoss != null) {
                         lines.push(`Stop Loss: ${Number(eventData.stopLoss).toFixed(2)}%`);
                     }
