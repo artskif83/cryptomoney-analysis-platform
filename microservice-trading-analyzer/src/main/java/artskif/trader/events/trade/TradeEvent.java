@@ -7,6 +7,7 @@ import java.time.Instant;
 public record TradeEvent(
         TradeEventData tradeEventData,
         String instrument,
+        String tag,
         Instant timestamp,
         Boolean isTest
 ) {
@@ -15,6 +16,7 @@ public record TradeEvent(
         return "TradeEvent{" +
                 "type=" + tradeEventData.type() +
                 ", instrument='" + instrument + '\'' +
+                ", tag='" + tag + '\'' +
                 ", direction=" + tradeEventData.direction() +
                 ", stopLossPercentage=" + tradeEventData.stopLossPercentage() +
                 ", takeProfitPercentage=" + tradeEventData.takeProfitPercentage() +

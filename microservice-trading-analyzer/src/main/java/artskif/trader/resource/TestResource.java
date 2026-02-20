@@ -159,6 +159,7 @@ public class TestResource {
             @QueryParam("type") @DefaultValue("BREAKOUT") String type,
             @QueryParam("direction") @DefaultValue("LONG") String direction,
             @QueryParam("timeframe") @DefaultValue("5m") String timeframe,
+            @QueryParam("tag") @DefaultValue("test-strategy") String tag,
             @QueryParam("stopLossPercentage") @DefaultValue("2.0") BigDecimal stopLossPercentage,
             @QueryParam("takeProfitPercentage") @DefaultValue("5.0") BigDecimal takeProfitPercentage,
             @QueryParam("eventPrice") @DefaultValue("50000") BigDecimal eventPrice
@@ -185,14 +186,15 @@ public class TestResource {
             TradeEvent event = new TradeEvent(
                     tradeEventData,
                     instrument,
+                    tag,
                     timestamp,
                     true // Тестовое событие
             );
 
             tradeEventBus.publish(event);
 
-            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s SL=%s%% TP=%s%% price=%s timestamp=%s (TEST)",
-                    instrument, type, direction, timeframe, stopLossPercentage, takeProfitPercentage, eventPrice, timestamp);
+            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s tag=%s SL=%s%% TP=%s%% price=%s timestamp=%s (TEST)",
+                    instrument, type, direction, timeframe, tag, stopLossPercentage, takeProfitPercentage, eventPrice, timestamp);
 
             return Response.ok()
                     .entity(Map.of(

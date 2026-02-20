@@ -109,3 +109,24 @@ CREATE TABLE IF NOT EXISTS contract_metadata
     CONSTRAINT fk_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
+-- 6) Таблица торговых событий (для отображения в Grafana)
+CREATE TABLE IF NOT EXISTS trade_events
+(
+    timeframe              varchar(20)    NOT NULL,
+    tag                    varchar(255)   NOT NULL,
+    timestamp              timestamp      NOT NULL,
+    uuid                   uuid           NOT NULL DEFAULT gen_random_uuid(),
+    event_type             varchar(50)    NOT NULL,
+    direction              varchar(10)    NOT NULL CHECK (direction IN ('LONG', 'SHORT')),
+    instrument             varchar(50)    NOT NULL,
+    event_price            numeric(18, 8) NOT NULL,
+    stop_loss_percentage   numeric(10, 4),
+    take_profit_percentage numeric(10, 4),
+    is_test                boolean        NOT NULL DEFAULT false,
+    created_at             timestamp      NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (timeframe, tag, timestamp)
+);
+
+-- Создаем гипертаблицу для trade_events
+SELECT create_hypertable('trade_events', 'timestamp', if_not_exists => TRUE);
+

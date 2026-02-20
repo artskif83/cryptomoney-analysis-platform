@@ -46,7 +46,7 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
                     highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                     closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                     candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
-                    12,
+                    6,
                     DecimalNum.valueOf(0.001),
                     DecimalNum.valueOf(0.005)
             );
@@ -54,8 +54,8 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
                     highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                     closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                     candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
-                    36,
-                    DecimalNum.valueOf(0.001),
+                    6,
+                    DecimalNum.valueOf(0.0005),
                     DecimalNum.valueOf(0.005)
             );
             case CANDLE_4H -> new ResistanceLevelIndicator(

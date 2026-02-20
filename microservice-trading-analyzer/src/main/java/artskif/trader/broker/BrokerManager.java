@@ -1,11 +1,12 @@
 package artskif.trader.broker;
 
 import artskif.trader.broker.client.TradingExecutorService;
+import artskif.trader.entity.TradeEventEntity;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.events.trade.TradeEventListener;
+import artskif.trader.repository.TradeEventRepository;
 import artskif.trader.strategy.event.common.Direction;
-import artskif.trader.strategy.event.common.TradeEventType;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.Startup;
 import io.quarkus.runtime.StartupEvent;
@@ -29,6 +30,7 @@ public class BrokerManager implements TradeEventListener {
     private static final Logger log = LoggerFactory.getLogger(BrokerManager.class);
 
     private final TradeEventBus tradeEventBus;
+    private final TradeEventRepository tradeEventRepository;
 
     // Внутренняя асинхронная шина событий
     private final BlockingQueue<Object> eventQueue = new ArrayBlockingQueue<>(1000);
@@ -37,9 +39,12 @@ public class BrokerManager implements TradeEventListener {
     private volatile boolean running = true;
 
     @Inject
-    public BrokerManager(TradeEventBus tradeEventBus, TradingExecutorService tradingExecutorService) {
+    public BrokerManager(TradeEventBus tradeEventBus,
+                        TradingExecutorService tradingExecutorService,
+                        TradeEventRepository tradeEventRepository) {
         this.tradeEventBus = tradeEventBus;
         this.tradingExecutorService = tradingExecutorService;
+        this.tradeEventRepository = tradeEventRepository;
         this.eventProcessor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "PositionManager-EventProcessor");
             t.setDaemon(false);
@@ -128,6 +133,30 @@ public class BrokerManager implements TradeEventListener {
     private void handleTradeEvent(TradeEvent event) {
         log.info("🔄 Обработка TradeEvent: {}", event);
 
+        try {
+            // Сохраняем событие в БД
+            TradeEventEntity entity = new TradeEventEntity(
+                    event.tradeEventData().type(),
+                    event.tradeEventData().direction(),
+                    event.instrument(),
+                    event.tradeEventData().eventPrice(),
+                    event.tradeEventData().stopLossPercentage(),
+                    event.tradeEventData().takeProfitPercentage(),
+                    event.tradeEventData().timeframe(),
+                    event.tag(),
+                    event.timestamp(),
+                    event.isTest()
+            );
+
+            tradeEventRepository.save(entity);
+            log.info("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
+            // Продолжаем обработку даже если сохранение не удалось
+        }
+
+        // Выполняем торговые действия
         if (event.tradeEventData().direction() == Direction.SHORT) {
             log.info("📈 Получен сигнал на открытие ШОРТ позиции");
             tradingExecutorService.openShort(event.instrument(), BigDecimal.valueOf(10));

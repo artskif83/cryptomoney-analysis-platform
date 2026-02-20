@@ -149,6 +149,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             return;
         }
 
+        Log.debugf("🕯️ [%s] Обработка свечи: timestamp=%s, close=%s", getName(), candle.getTimestamp(), candle.getClose());
         DatabaseSnapshot dbRow = snapshotBuilder.build(bar, getName() + "-lifetime", getLifetimeSchema(), additionalColumns, endIndex, true);
         // Сохраняем в БД
         dataService.insertFeatureRow(dbRow);
@@ -170,6 +171,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
                 tradeEventBus.publish(new TradeEvent(
                         eventData,
                         candle.getInstrument(),
+                        getName()+ "-lifetime",
                         candle.getTimestamp(),
                         false
                 ));

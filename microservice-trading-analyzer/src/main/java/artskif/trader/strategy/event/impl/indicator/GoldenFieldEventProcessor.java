@@ -44,7 +44,7 @@ public class GoldenFieldEventProcessor extends AbstractTradeEventProcessor {
         var tripleMARule = new IsEqualRule(tripleMAIndicatorM.getIndicator(getTimeframe(), isLiveSeries), -2);
         OverIndicatorRule resistance1m = new OverIndicatorRule(resistanceLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries), 5);
 
-        return tripleMARule.and(resistance1m);
+        return resistance1m;
     }
 
     @Override
