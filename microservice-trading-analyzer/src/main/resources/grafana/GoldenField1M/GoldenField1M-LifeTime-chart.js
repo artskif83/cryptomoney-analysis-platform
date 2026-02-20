@@ -2,8 +2,10 @@
 const frame = context.panel.data.series[0];
 if (!frame) return {};
 
-function col(name) {
-    const f = frame.fields.find(x => x.name === name);
+function col(name, frameIndex = 0) {
+    const targetFrame = context.panel.data.series[frameIndex];
+    if (!targetFrame) return [];
+    const f = targetFrame.fields.find(x => x.name === name);
     return f ? Array.from(f.values) : [];
 }
 
@@ -18,6 +20,14 @@ let basePrice = closes[closes.length - 1]; // например, последни
 const resistanceLevelRaw = col("metric_resistance_level_1m");
 const tripleMaValueRaw = col("metric_triple_ma_value_1m");
 
+// ===== Торговые события (из второго query) =====
+const eventTimes = col("time", 1);
+const eventTypes = col("event_type", 1);
+const eventDirections = col("direction", 1);
+const eventPrices = col("price", 1);
+const eventStopLoss = col("stop_loss_percentage", 1);
+const eventTakeProfit = col("take_profit_percentage", 1);
+const eventIsTest = col("is_test", 1);
 
 if (!times.length) return {};
 
@@ -39,6 +49,27 @@ const tripleMaValue = times.map((t, i) => [
     t,
     tripleMaValueRaw[i] == null ? null : tripleMaValueRaw[i]
 ]);
+
+// ===== Торговые события - подготовка данных =====
+const tradeEventsLong = [];
+const tradeEventsShort = [];
+
+for (let i = 0; i < eventTimes.length; i++) {
+    const eventData = {
+        value: [eventTimes[i], eventPrices[i]],
+        eventType: eventTypes[i],
+        direction: eventDirections[i],
+        stopLoss: eventStopLoss[i],
+        takeProfit: eventTakeProfit[i],
+        isTest: eventIsTest[i]
+    };
+
+    if (eventDirections[i] === 'LONG') {
+        tradeEventsLong.push(eventData);
+    } else if (eventDirections[i] === 'SHORT') {
+        tradeEventsShort.push(eventData);
+    }
+}
 
 
 // ===== Цвета =====
@@ -222,6 +253,42 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
+        },
+
+        // --- Торговые события: LONG ---
+        {
+            name: 'Trade Event LONG',
+            type: 'scatter',
+            data: tradeEventsLong,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'triangle',
+            symbolSize: 15,
+            symbolRotate: 0,
+            itemStyle: {
+                color: '#00FF00',
+                borderColor: '#00AA00',
+                borderWidth: 2
+            },
+            z: 10
+        },
+
+        // --- Торговые события: SHORT ---
+        {
+            name: 'Trade Event SHORT',
+            type: 'scatter',
+            data: tradeEventsShort,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'triangle',
+            symbolSize: 15,
+            symbolRotate: 180,
+            itemStyle: {
+                color: '#FF0000',
+                borderColor: '#AA0000',
+                borderWidth: 2
+            },
+            z: 10
         }
     ],
 
@@ -268,6 +335,12 @@ return {
 
             const tripleMaPoint = list.find(p => p.seriesName === 'Triple MA value (1m)');
             const tripleMaVal = tripleMaPoint && Array.isArray(tripleMaPoint.data) ? tripleMaPoint.data[1] : null;
+
+            // Торговые события
+            const tradeEventPoint = list.find(p =>
+                p.seriesName === 'Trade Event LONG' ||
+                p.seriesName === 'Trade Event SHORT'
+            );
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -322,6 +395,26 @@ return {
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (lVal != null) lines.push(`Resistance level: ${Math.round(lVal)}`);
             if (tripleMaVal != null) lines.push(`Triple MA value: ${tripleMaVal.toFixed(2)}`);
+
+            // Информация о торговых событиях
+            if (tradeEventPoint) {
+                const eventData = tradeEventPoint.data;
+                if (eventData && typeof eventData === 'object') {
+                    lines.push(''); // пустая строка для разделения
+                    lines.push(`<b style="color: #FFD700;">⚡ ${eventData.eventType || 'Trade Event'}</b>`);
+                    lines.push(`Direction: <b>${eventData.direction || 'N/A'}</b>`);
+                    lines.push(`Price: ${eventData.value ? Number(eventData.value[1]).toFixed(4) : 'N/A'}`);
+                    if (eventData.stopLoss != null) {
+                        lines.push(`Stop Loss: ${Number(eventData.stopLoss).toFixed(2)}%`);
+                    }
+                    if (eventData.takeProfit != null) {
+                        lines.push(`Take Profit: ${Number(eventData.takeProfit).toFixed(2)}%`);
+                    }
+                    if (eventData.isTest) {
+                        lines.push(`<span style="color: #FFA500;">[TEST]</span>`);
+                    }
+                }
+            }
 
             return lines.join('<br/>');
         },
