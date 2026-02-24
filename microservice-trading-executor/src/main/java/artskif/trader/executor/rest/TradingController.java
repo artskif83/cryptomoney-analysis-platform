@@ -223,5 +223,39 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }
+
+    /**
+     * Отменяет все текущие ордера или конкретный ордер по его ID
+     * @param clOrdId Опциональный параметр идентификатора ордера для отмены конкретного ордера
+     * @return Результат операции отмены
+     */
+    @DeleteMapping("/orders/cancel")
+    public TradingResponse<String> cancelOrders(
+            @RequestParam(value = "clOrdId", required = false) String clOrdId) {
+        log.info("📥 Получен запрос на отмену ордеров" +
+                (clOrdId != null ? " с clOrdId: " + clOrdId : " (все активные)"));
+
+        try {
+            boolean success = orderManagerService.cancelOrders(clOrdId);
+
+            if (success) {
+                String message = clOrdId != null
+                        ? "Ордер с ID " + clOrdId + " успешно отменен"
+                        : "Все ордера успешно отменены";
+                log.info("✅ Отмена ордеров выполнена: {}", message);
+                return TradingResponse.success(message);
+            } else {
+                String message = clOrdId != null
+                        ? "Не удалось отменить ордер с ID " + clOrdId
+                        : "Не удалось отменить все ордера";
+                log.error("❌ Ошибка при отмене ордеров: {}", message);
+                return TradingResponse.error("ORDER_CANCELLATION_FAILED", message);
+            }
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при отмене ордеров: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
 }
+
 

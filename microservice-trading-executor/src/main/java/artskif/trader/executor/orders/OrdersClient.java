@@ -65,4 +65,11 @@ public interface OrdersClient {
      * @return Список активных SWAP ордеров или пустой список в случае ошибки
      */
     java.util.List<java.util.Map<String, Object>> getPendingLimitSwapOrders(String instId);
+
+    /**
+     * Отменяет все текущие ордера или конкретный ордер по его ID
+     * @param clOrdId Опциональный идентификатор ордера для отмены конкретного ордера (может быть null для отмены всех ордеров)
+     * @return true если отмена прошла успешно, false в противном случае
+     */
+    boolean cancelOrders(String clOrdId);
 }

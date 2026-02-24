@@ -142,4 +142,19 @@ public final class OrderManagerService {
             return List.of();
         }
     }
+
+    /**
+     * Отменяет все текущие ордера или конкретный ордер по его ID
+     * @param clOrdId Опциональный идентификатор ордера для отмены конкретного ордера (может быть null для отмены всех ордеров)
+     * @return true если отмена прошла успешно, false в противном случае
+     */
+    public boolean cancelOrders(String clOrdId) {
+        try {
+            log.debug("🔄 Отмена ордеров" + (clOrdId != null ? " с clOrdId: " + clOrdId : " (все активные)"));
+            return exchange.cancelOrders(clOrdId);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при отмене ордеров: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 }
