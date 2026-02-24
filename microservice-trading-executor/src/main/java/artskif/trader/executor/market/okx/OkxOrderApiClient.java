@@ -791,4 +791,116 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             return Collections.emptyList();
         }
     }
+
+    /**
+     * Закрывает все текущие открытые позиции используя endpoint /api/v5/trade/close-position.
+     * @param instId Опциональный идентификатор инструмента для закрытия только конкретной позиции (может быть null для закрытия всех позиций)
+     * @return true если все позиции успешно закрыты, false в противном случае
+     */
+    @Override
+    public boolean closeAllPositions(String instId) {
+        try {
+            // Получаем список всех открытых позиций
+            List<Map<String, Object>> positions = getPositions(instId);
+
+            if (positions.isEmpty()) {
+                log.info("ℹ️ Нет открытых позиций для закрытия");
+                return true;
+            }
+
+            log.info("🔄 Начинаем закрытие {} открытых позиций", positions.size());
+
+            int successCount = 0;
+            int failCount = 0;
+
+            // Закрываем каждую позицию
+            for (Map<String, Object> position : positions) {
+                String posInstId = String.valueOf(position.get("instId"));
+                String posSide = String.valueOf(position.getOrDefault("posSide", "net"));
+                String mgnMode = String.valueOf(position.getOrDefault("mgnMode", "cross"));
+
+                Object posObj = position.get("pos");
+                if (posObj == null) {
+                    log.warn("⚠️ Позиция без размера, пропускаем: {}", posInstId);
+                    continue;
+                }
+
+                BigDecimal posSize = parseBigDec(posObj);
+                if (posSize == null || posSize.compareTo(BigDecimal.ZERO) == 0) {
+                    log.warn("⚠️ Позиция с нулевым размером, пропускаем: {}", posInstId);
+                    continue;
+                }
+
+                log.info("📍 Закрытие позиции: instId={}, posSide={}, mgnMode={}, size={}",
+                        posInstId, posSide, mgnMode, posSize);
+
+                try {
+                    // Закрываем позицию используя специализированный endpoint
+                    boolean closed = closePosition(posInstId, posSide, mgnMode);
+
+                    if (closed) {
+                        log.info("✅ Позиция {} успешно закрыта", posInstId);
+                        successCount++;
+                    } else {
+                        log.error("❌ Не удалось закрыть позицию {}", posInstId);
+                        failCount++;
+                    }
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при закрытии позиции {}: {}", posInstId, e.getMessage(), e);
+                    failCount++;
+                }
+            }
+
+            log.info("📊 Закрытие позиций завершено: успешно={}, неудачно={}", successCount, failCount);
+            return failCount == 0;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при закрытии всех позиций: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Закрывает конкретную позицию используя специализированный endpoint /api/v5/trade/close-position.
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @param posSide Направление позиции ("long", "short" или "net")
+     * @param mgnMode Режим маржи ("cross" или "isolated")
+     * @return true если позиция успешно закрыта, false в противном случае
+     */
+    private boolean closePosition(String instId, String posSide, String mgnMode) {
+        try {
+            // Формируем тело запроса для закрытия позиции
+            Map<String, Object> closeBody = new LinkedHashMap<>();
+            closeBody.put("instId", instId);
+            closeBody.put("mgnMode", mgnMode);
+            closeBody.put("autoCxl", "true");
+
+            // Для net режима posSide не передаётся, для long/short - передаётся
+            if (!"net".equals(posSide)) {
+                closeBody.put("posSide", posSide);
+            }
+
+            String requestBody = mapper.writeValueAsString(closeBody);
+
+            log.info("🔐 Закрытие позиции через /api/v5/trade/close-position: instId={}, posSide={}, mgnMode={}",
+                    instId, posSide, mgnMode);
+
+            // Закрываем позицию
+            Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/close-position", requestBody);
+
+            if (!isSuccessResponse(response)) {
+                log.error("❌ Не удалось закрыть позицию. {}", getErrorMessage(response));
+                return false;
+            }
+
+            // Метод /api/v5/trade/close-position возвращает только подтверждение успешного закрытия
+            // без информации об ordId закрывающего ордера
+            log.info("✅ Позиция {} успешно закрыта через /api/v5/trade/close-position", instId);
+            return true;
+
+        } catch (Exception e) {
+            log.error("❌ Ошибка при закрытии позиции {}: {}", instId, e.getMessage(), e);
+            return false;
+        }
+    }
 }

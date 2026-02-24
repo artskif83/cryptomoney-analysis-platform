@@ -172,4 +172,19 @@ public final class OrderManagerService {
             return List.of();
         }
     }
+
+    /**
+     * Закрывает все текущие открытые позиции рыночным ордером
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для закрытия всех позиций
+     * @return true если все позиции успешно закрыты, false в противном случае
+     */
+    public boolean closeAllPositions(String instId) {
+        try {
+            log.debug("🔄 Закрытие позиций" + (instId != null ? " для " + instId : " (все открытые)"));
+            return exchange.closeAllPositions(instId);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при закрытии позиций: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 }

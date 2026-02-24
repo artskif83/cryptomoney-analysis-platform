@@ -278,6 +278,39 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }
+
+    /**
+     * Закрывает все текущие открытые позиции рыночным ордером
+     * @param instId Опциональный параметр идентификатора инструмента для закрытия только конкретной позиции
+     * @return Результат операции закрытия
+     */
+    @PostMapping("/positions/close")
+    public TradingResponse<String> closeAllPositions(
+            @RequestParam(value = "instId", required = false) String instId) {
+        log.info("📥 Получен запрос на закрытие позиций" +
+                (instId != null ? " для " + instId : " (все открытые)"));
+
+        try {
+            boolean success = orderManagerService.closeAllPositions(instId);
+
+            if (success) {
+                String message = instId != null
+                        ? "Позиция для " + instId + " успешно закрыта"
+                        : "Все позиции успешно закрыты";
+                log.info("✅ Закрытие позиций выполнено: {}", message);
+                return TradingResponse.success(message);
+            } else {
+                String message = instId != null
+                        ? "Не удалось закрыть позицию для " + instId
+                        : "Не удалось закрыть все позиции";
+                log.error("❌ Ошибка при закрытии позиций: {}", message);
+                return TradingResponse.error("POSITION_CLOSE_FAILED", message);
+            }
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при закрытии позиций: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
 }
 
 

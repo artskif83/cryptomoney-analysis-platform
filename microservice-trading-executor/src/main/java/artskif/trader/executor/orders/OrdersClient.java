@@ -79,4 +79,11 @@ public interface OrdersClient {
      * @return Список открытых позиций или пустой список в случае ошибки
      */
     java.util.List<java.util.Map<String, Object>> getPositions(String instId);
+
+    /**
+     * Закрывает все текущие открытые позиции рыночным ордером
+     * @param instId Опциональный идентификатор инструмента для закрытия только конкретной позиции (может быть null для закрытия всех позиций)
+     * @return true если все позиции успешно закрыты, false в противном случае
+     */
+    boolean closeAllPositions(String instId);
 }
