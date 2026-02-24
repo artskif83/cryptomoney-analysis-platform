@@ -256,6 +256,28 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }
+
+    /**
+     * Получает список всех открытых позиций
+     * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
+     * @return Список открытых позиций
+     */
+    @GetMapping("/positions")
+    public TradingResponse<List<Map<String, Object>>> getPositions(
+            @RequestParam(value = "instId", required = false) String instId) {
+        log.info("📥 Получен запрос на получение списка открытых позиций" +
+                (instId != null ? " для " + instId : ""));
+
+        try {
+            List<Map<String, Object>> positions = orderManagerService.getPositions(instId);
+
+            log.info("✅ Получено {} открытых позиций", positions.size());
+            return TradingResponse.success(positions);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении списка позиций: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
 }
 
 

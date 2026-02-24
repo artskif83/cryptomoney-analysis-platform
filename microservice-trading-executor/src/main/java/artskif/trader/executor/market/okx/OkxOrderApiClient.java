@@ -734,4 +734,61 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             return false;
         }
     }
+
+    /**
+     * Получает список всех открытых позиций.
+     * @param instId Опциональный идентификатор инструмента (например, "BTC-USDT-SWAP") для фильтрации позиций
+     * @return Список открытых позиций или пустой список в случае ошибки
+     */
+    @Override
+    public List<Map<String, Object>> getPositions(String instId) {
+        try {
+            String endpoint = "/api/v5/account/positions?instType=SWAP";
+
+            // Добавляем параметр instId, если он указан
+            if (instId != null && !instId.isEmpty()) {
+                // Проверяем, есть ли уже суффикс -SWAP
+                if (!instId.endsWith("-SWAP")) {
+                    endpoint += "&instId=" + instId + "-SWAP";
+                } else {
+                    endpoint += "&instId=" + instId;
+                }
+            }
+
+            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+
+            if (!isSuccessResponse(response)) {
+                log.error("❌ Не удалось получить список позиций. {}", getErrorMessage(response));
+                return Collections.emptyList();
+            }
+
+            if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
+                List<Map<String, Object>> result = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> position = (Map<String, Object>) m;
+
+                        // Фильтруем позиции с ненулевым размером
+                        Object posObj = position.get("pos");
+                        if (posObj != null) {
+                            BigDecimal pos = parseBigDec(posObj);
+                            if (pos != null && pos.compareTo(BigDecimal.ZERO) != 0) {
+                                result.add(position);
+                            }
+                        }
+                    }
+                }
+                String instInfo = instId != null ? " для " + instId : "";
+                log.info("📋 Получено {} открытых позиций{}", result.size(), instInfo);
+                return result;
+            }
+
+            log.warn("⚠️ Открытые позиции отсутствуют или данные некорректны");
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.error("❌ Ошибка получения списка позиций: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
 }

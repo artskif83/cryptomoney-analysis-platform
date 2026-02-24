@@ -157,4 +157,19 @@ public final class OrderManagerService {
             return false;
         }
     }
+
+    /**
+     * Получает список всех открытых позиций
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех позиций
+     * @return Список открытых позиций
+     */
+    public List<Map<String, Object>> getPositions(String instId) {
+        try {
+            log.debug("📋 Получение списка открытых позиций" + (instId != null ? " для " + instId : ""));
+            return exchange.getPositions(instId);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении списка позиций: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
 }

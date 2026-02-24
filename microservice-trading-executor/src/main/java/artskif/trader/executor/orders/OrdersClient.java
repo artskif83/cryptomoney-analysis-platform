@@ -72,4 +72,11 @@ public interface OrdersClient {
      * @return true если отмена прошла успешно, false в противном случае
      */
     boolean cancelOrders(String clOrdId);
+
+    /**
+     * Получает список всех открытых позиций
+     * @param instId Опциональный идентификатор инструмента (например, "BTC-USDT-SWAP") для фильтрации позиций
+     * @return Список открытых позиций или пустой список в случае ошибки
+     */
+    java.util.List<java.util.Map<String, Object>> getPositions(String instId);
 }
