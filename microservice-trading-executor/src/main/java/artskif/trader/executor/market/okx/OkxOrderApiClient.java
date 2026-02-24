@@ -550,4 +550,57 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             return null;
         }
     }
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров.
+     * @return Список активных SWAP ордеров или пустой список в случае ошибки
+     */
+    @Override
+    public List<Map<String, Object>> getPendingOrders() {
+        return getPendingLimitSwapOrders(null);
+    }
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров для указанного инструмента.
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @return Список активных SWAP ордеров или пустой список в случае ошибки
+     */
+    @Override
+    public List<Map<String, Object>> getPendingLimitSwapOrders(String instId) {
+        try {
+            String endpoint = "/api/v5/trade/orders-pending?instType=SWAP";
+
+            // Добавляем параметр instId, если он указан
+            if (instId != null && !instId.isEmpty()) {
+                endpoint += "&instId=" + instId + "-SWAP";
+            }
+
+            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+
+            if (!isSuccessResponse(response)) {
+                log.error("❌ Не удалось получить список активных SWAP ордеров. {}", getErrorMessage(response));
+                return Collections.emptyList();
+            }
+
+            if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
+                List<Map<String, Object>> result = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> order = (Map<String, Object>) m;
+                        result.add(order);
+                    }
+                }
+                String instInfo = instId != null ? " для " + instId : "";
+                log.info("📋 Получено {} активных SWAP ордеров{}", result.size(), instInfo);
+                return result;
+            }
+
+            log.warn("⚠️ Активные SWAP ордера отсутствуют или данные некорректны");
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.error("❌ Ошибка получения списка активных SWAP ордеров: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
 }

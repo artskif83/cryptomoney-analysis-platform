@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -123,6 +125,21 @@ public final class OrderManagerService {
             return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех SWAP ордеров
+     * @return Список активных SWAP ордеров
+     */
+    public List<Map<String, Object>> getPendingOrders(String instId) {
+        try {
+            log.debug("📋 Получение списка активных SWAP ордеров" + (instId != null ? " для " + instId : ""));
+            return exchange.getPendingLimitSwapOrders(instId);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении списка активных SWAP ордеров: {}", e.getMessage(), e);
+            return List.of();
         }
     }
 }

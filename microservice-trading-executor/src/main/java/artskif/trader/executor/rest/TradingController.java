@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -196,6 +198,28 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
         } catch (Exception e) {
             log.error("❌ Непредвиденная ошибка при размещении фьючерсного шорт-ордера: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров
+     * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
+     * @return Список активных SWAP ордеров
+     */
+    @GetMapping("/orders/pending")
+    public TradingResponse<List<Map<String, Object>>> getPendingOrders(
+            @RequestParam(value = "instId", required = false) String instId) {
+        log.info("📥 Получен запрос на получение списка активных SWAP ордеров" +
+                (instId != null ? " для " + instId : ""));
+
+        try {
+            List<Map<String, Object>> orders = orderManagerService.getPendingOrders(instId);
+
+            log.info("✅ Получено {} активных SWAP ордеров", orders.size());
+            return TradingResponse.success(orders);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении списка активных SWAP ордеров: {}", e.getMessage(), e);
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }

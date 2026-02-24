@@ -52,4 +52,17 @@ public interface OrdersClient {
      */
     OrderExecutionResult placeFuturesLimitShort(Symbol symbol, BigDecimal limitPrice, BigDecimal positionSizeUsdt,
                                                 BigDecimal stopLossPercent, BigDecimal takeProfitPercent);
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров
+     * @return Список активных SWAP ордеров или пустой список в случае ошибки
+     */
+    java.util.List<java.util.Map<String, Object>> getPendingOrders();
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров для указанного инструмента
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @return Список активных SWAP ордеров или пустой список в случае ошибки
+     */
+    java.util.List<java.util.Map<String, Object>> getPendingLimitSwapOrders(String instId);
 }
