@@ -1,5 +1,6 @@
 package artskif.trader.resource;
 
+import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.candle.CandleEventType;
@@ -350,6 +351,389 @@ public class TestResource {
                             "message", e.getMessage(),
                             "base", instrument,
                             "quantity", quantity != null ? quantity.toString() : "null"
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для получения баланса USDT
+     *
+     * @return текущий баланс USDT
+     */
+    @GET
+    @Path("/balance")
+    public Response testGetBalance() {
+        try {
+            Log.info("🧪 Тестовый запрос баланса USDT");
+
+            BigDecimal balance = tradingExecutorService.getUsdtBalance();
+
+            Log.infof("✅ Баланс USDT получен: %s", balance);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Баланс успешно получен",
+                            "balance", balance.toString()
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении баланса USDT");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для получения текущей цены инструмента
+     *
+     * @param instrument инструмент (например, BTC-USDT)
+     * @return текущая цена инструмента
+     */
+    @GET
+    @Path("/price")
+    public Response testGetCurrentPrice(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос текущей цены для: %s", instrument);
+
+            BigDecimal price = tradingExecutorService.getCurrentPrice(instrument);
+
+            Log.infof("✅ Текущая цена %s получена: %s", instrument, price);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Цена успешно получена",
+                            "instrument", instrument,
+                            "price", price.toString()
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении цены для %s", instrument);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "instrument", instrument
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для размещения лимитного лонг-ордера на фьючерсах
+     *
+     * @param instrument инструмент (например, BTC-USDT-SWAP)
+     * @param limitPrice лимитная цена
+     * @param positionSizeUsdt размер позиции в USDT
+     * @param stopLossPercent процент стоп-лосса
+     * @param takeProfitPercent процент тейк-профита
+     * @return результат размещения ордера
+     */
+    @POST
+    @Path("/futures/long")
+    public Response testPlaceFuturesLimitLong(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
+            @QueryParam("limitPrice") @DefaultValue("50000") BigDecimal limitPrice,
+            @QueryParam("positionSizeUsdt") @DefaultValue("100") BigDecimal positionSizeUsdt,
+            @QueryParam("stopLossPercent") @DefaultValue("2.0") BigDecimal stopLossPercent,
+            @QueryParam("takeProfitPercent") @DefaultValue("5.0") BigDecimal takeProfitPercent
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос на размещение лимитного лонг-ордера: %s цена: %s размер: %s USDT",
+                    instrument, limitPrice, positionSizeUsdt);
+
+            // Валидация параметров
+            if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Лимитная цена должна быть больше нуля"
+                        ))
+                        .build();
+            }
+
+            if (positionSizeUsdt == null || positionSizeUsdt.compareTo(BigDecimal.ZERO) <= 0) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Размер позиции должен быть больше нуля"
+                        ))
+                        .build();
+            }
+
+            FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
+                    instrument,
+                    limitPrice,
+                    positionSizeUsdt,
+                    stopLossPercent,
+                    takeProfitPercent
+            );
+
+            OrderExecutionResult result = tradingExecutorService.placeFuturesLimitLong(request);
+
+            Log.infof("✅ Лимитный лонг-ордер размещен: orderId=%s, avgPrice=%s, executedQty=%s",
+                    result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Лимитный лонг-ордер успешно размещен",
+                            "order", Map.of(
+                                    "exchangeOrderId", result.exchangeOrderId(),
+                                    "avgPrice", result.avgPrice().toString(),
+                                    "executedBaseQty", result.executedBaseQty().toString(),
+                                    "instrument", instrument,
+                                    "limitPrice", limitPrice.toString(),
+                                    "positionSizeUsdt", positionSizeUsdt.toString()
+                            )
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при размещении лимитного лонг-ордера %s", instrument);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "instrument", instrument
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для размещения лимитного шорт-ордера на фьючерсах
+     *
+     * @param instrument инструмент (например, BTC-USDT-SWAP)
+     * @param limitPrice лимитная цена
+     * @param positionSizeUsdt размер позиции в USDT
+     * @param stopLossPercent процент стоп-лосса
+     * @param takeProfitPercent процент тейк-профита
+     * @return результат размещения ордера
+     */
+    @POST
+    @Path("/futures/short")
+    public Response testPlaceFuturesLimitShort(
+            @QueryParam("instrument") @DefaultValue("BTC-USDT-SWAP") String instrument,
+            @QueryParam("limitPrice") @DefaultValue("50000") BigDecimal limitPrice,
+            @QueryParam("positionSizeUsdt") @DefaultValue("100") BigDecimal positionSizeUsdt,
+            @QueryParam("stopLossPercent") @DefaultValue("2.0") BigDecimal stopLossPercent,
+            @QueryParam("takeProfitPercent") @DefaultValue("5.0") BigDecimal takeProfitPercent
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос на размещение лимитного шорт-ордера: %s цена: %s размер: %s USDT",
+                    instrument, limitPrice, positionSizeUsdt);
+
+            // Валидация параметров
+            if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Лимитная цена должна быть больше нуля"
+                        ))
+                        .build();
+            }
+
+            if (positionSizeUsdt == null || positionSizeUsdt.compareTo(BigDecimal.ZERO) <= 0) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Размер позиции должен быть больше нуля"
+                        ))
+                        .build();
+            }
+
+            FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
+                    instrument,
+                    limitPrice,
+                    positionSizeUsdt,
+                    stopLossPercent,
+                    takeProfitPercent
+            );
+
+            OrderExecutionResult result = tradingExecutorService.placeFuturesLimitShort(request);
+
+            Log.infof("✅ Лимитный шорт-ордер размещен: orderId=%s, avgPrice=%s, executedQty=%s",
+                    result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Лимитный шорт-ордер успешно размещен",
+                            "order", Map.of(
+                                    "exchangeOrderId", result.exchangeOrderId(),
+                                    "avgPrice", result.avgPrice().toString(),
+                                    "executedBaseQty", result.executedBaseQty().toString(),
+                                    "instrument", instrument,
+                                    "limitPrice", limitPrice.toString(),
+                                    "positionSizeUsdt", positionSizeUsdt.toString()
+                            )
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при размещении лимитного шорт-ордера %s", instrument);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage(),
+                            "instrument", instrument
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для получения списка активных ордеров
+     *
+     * @param instId опциональный идентификатор инструмента
+     * @return список активных ордеров
+     */
+    @GET
+    @Path("/orders/pending")
+    public Response testGetPendingOrders(
+            @QueryParam("instId") String instId
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос списка активных ордеров для: %s",
+                    instId != null ? instId : "всех инструментов");
+
+            var orders = tradingExecutorService.getPendingOrders(instId);
+
+            Log.infof("✅ Получено активных ордеров: %d", orders.size());
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Список активных ордеров успешно получен",
+                            "count", orders.size(),
+                            "orders", orders
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении списка активных ордеров");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для отмены ордеров
+     *
+     * @param clOrdId опциональный идентификатор ордера для отмены конкретного ордера
+     * @return результат операции отмены
+     */
+    @DELETE
+    @Path("/orders/cancel")
+    public Response testCancelOrders(
+            @QueryParam("clOrdId") String clOrdId
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос на отмену ордеров: %s",
+                    clOrdId != null ? "orderId=" + clOrdId : "всех ордеров");
+
+            String result = tradingExecutorService.cancelOrders(clOrdId);
+
+            Log.infof("✅ Ордера отменены: %s", result);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Ордера успешно отменены",
+                            "result", result
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при отмене ордеров");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для получения списка открытых позиций
+     *
+     * @param instId опциональный идентификатор инструмента
+     * @return список открытых позиций
+     */
+    @GET
+    @Path("/positions")
+    public Response testGetPositions(
+            @QueryParam("instId") String instId
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос списка открытых позиций для: %s",
+                    instId != null ? instId : "всех инструментов");
+
+            var positions = tradingExecutorService.getPositions(instId);
+
+            Log.infof("✅ Получено открытых позиций: %d", positions.size());
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Список открытых позиций успешно получен",
+                            "count", positions.size(),
+                            "positions", positions
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении списка открытых позиций");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Тестовый endpoint для закрытия всех позиций
+     *
+     * @param instId опциональный идентификатор инструмента для закрытия только конкретной позиции
+     * @return результат операции закрытия
+     */
+    @POST
+    @Path("/positions/close")
+    public Response testCloseAllPositions(
+            @QueryParam("instId") String instId
+    ) {
+        try {
+            Log.infof("🧪 Тестовый запрос на закрытие позиций: %s",
+                    instId != null ? "instId=" + instId : "всех позиций");
+
+            String result = tradingExecutorService.closeAllPositions(instId);
+
+            Log.infof("✅ Позиции закрыты: %s", result);
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Позиции успешно закрыты",
+                            "result", result
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при закрытии позиций");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
                     ))
                     .build();
         }
