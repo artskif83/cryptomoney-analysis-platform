@@ -1,5 +1,7 @@
 package artskif.trader.broker;
 
+import artskif.trader.entity.PendingOrder;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -12,13 +14,13 @@ public class AccountStateSnapshot {
 
     private final Instant timestamp;
     private final BigDecimal usdtBalance;
-    private final List<Map<String, Object>> pendingOrders;
+    private final List<PendingOrder> pendingOrders;
     private final List<Map<String, Object>> positions;
 
     public AccountStateSnapshot(
             Instant timestamp,
             BigDecimal usdtBalance,
-            List<Map<String, Object>> pendingOrders,
+            List<PendingOrder> pendingOrders,
             List<Map<String, Object>> positions
     ) {
         this.timestamp = timestamp;
@@ -35,7 +37,7 @@ public class AccountStateSnapshot {
         return usdtBalance;
     }
 
-    public List<Map<String, Object>> getPendingOrders() {
+    public List<PendingOrder> getPendingOrders() {
         return pendingOrders;
     }
 

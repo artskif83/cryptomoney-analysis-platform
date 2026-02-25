@@ -130,3 +130,27 @@ CREATE TABLE IF NOT EXISTS trade_events
 -- Создаем гипертаблицу для trade_events
 SELECT create_hypertable('trade_events', 'timestamp', if_not_exists => TRUE);
 
+-- 7) Таблица активных (ожидающих) ордеров
+CREATE TABLE IF NOT EXISTS pending_orders
+(
+    cl_ord_id  varchar(128)   PRIMARY KEY,
+    inst_id    varchar(50)    NOT NULL,
+    inst_type  varchar(20)    NOT NULL,
+    px         numeric(18, 8) NOT NULL,
+    sz         numeric(18, 8) NOT NULL,
+    side       varchar(10)    NOT NULL CHECK (side IN ('buy', 'sell')),
+    td_mode    varchar(20)    NOT NULL,
+    lever      numeric(5, 2),
+    ord_id     varchar(128),
+    state      varchar(20)    NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
+    ord_type   varchar(20),
+    created_at timestamp      NOT NULL DEFAULT NOW(),
+    updated_at timestamp      NOT NULL DEFAULT NOW()
+);
+
+-- Индексы для быстрого поиска
+CREATE INDEX IF NOT EXISTS pending_orders_inst_id_idx ON pending_orders(inst_id);
+CREATE INDEX IF NOT EXISTS pending_orders_inst_type_idx ON pending_orders(inst_type);
+CREATE INDEX IF NOT EXISTS pending_orders_state_idx ON pending_orders(state);
+CREATE INDEX IF NOT EXISTS pending_orders_created_at_idx ON pending_orders(created_at DESC);
+
