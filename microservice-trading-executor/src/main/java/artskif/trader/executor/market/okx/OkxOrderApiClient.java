@@ -321,7 +321,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             // 6. Формируем тело основного лимитного ордера со всеми защитными ордерами (SL + 3 TP)
             Map<String, Object> orderBody = new LinkedHashMap<>();
             orderBody.put("instId", instId);
-            orderBody.put("tdMode", "cross");  // cross margin mode
+            orderBody.put("tdMode", "isolated");  // cross margin mode
             orderBody.put("side", side);
             orderBody.put("ordType", "limit");
             orderBody.put("px", limitPrice.stripTrailingZeros().toPlainString());
