@@ -28,8 +28,8 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
     public PendingOrder save(PendingOrder order) {
         try {
             persist(order);
-            LOG.infof("✅ PendingOrder сохранен: clOrdId=%s, instId=%s, side=%s, px=%s",
-                    order.clOrdId, order.instId, order.side, order.px);
+            LOG.infof("✅ PendingOrder сохранен: ordId=%s, instId=%s, side=%s, px=%s",
+                    order.ordId, order.instId, order.side, order.px);
             return order;
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении PendingOrder: %s", order);
@@ -39,7 +39,7 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
 
     /**
      * Сохраняет или обновляет список ордеров
-     * Использует merge для обновления существующих записей
+     * Использует ordId как первичный ключ для проверки существования
      *
      * @param orders список ордеров
      */
@@ -51,13 +51,14 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
                 return;
             }
 
-            // Используем merge вместо persist для обновления существующих записей
+            // Используем ordId как первичный ключ для обновления существующих записей
             int updated = 0;
             int inserted = 0;
             for (PendingOrder order : orders) {
-                PendingOrder existing = findById(order.clOrdId);
+                PendingOrder existing = findById(order.ordId);
                 if (existing != null) {
                     // Обновляем существующий ордер
+                    existing.clOrdId = order.clOrdId;
                     existing.instId = order.instId;
                     existing.instType = order.instType;
                     existing.px = order.px;
@@ -65,7 +66,6 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
                     existing.side = order.side;
                     existing.tdMode = order.tdMode;
                     existing.lever = order.lever;
-                    existing.ordId = order.ordId;
                     existing.state = order.state;
                     existing.ordType = order.ordType;
                     existing.updatedAt = Instant.now();
@@ -104,24 +104,24 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
     }
 
     /**
-     * Находит ордер по клиентскому ID
+     * Находит ордер по ID ордера
      *
-     * @param clOrdId клиентский ID ордера
+     * @param ordId ID ордера
      * @return ордер или null
      */
-    public PendingOrder findByClOrdId(String clOrdId) {
-        return findById(clOrdId);
+    public PendingOrder findByOrdId(String ordId) {
+        return findById(ordId);
     }
 
     /**
      * Помечает ордера как CLOSED, которых нет в списке (используется для синхронизации)
      *
-     * @param clOrdIds список клиентских ID ордеров, которые должны остаться активными
+     * @param ordIds список ID ордеров, которые должны остаться активными
      * @return количество помеченных ордеров
      */
     @Transactional
-    public long markAsClosedNotIn(List<String> clOrdIds) {
-        if (clOrdIds.isEmpty()) {
+    public long markAsClosedNotIn(List<String> ordIds) {
+        if (ordIds.isEmpty()) {
             // Если список пуст, помечаем все как закрытые
             long updated = update("state = ?1 where state != ?2", OrderState.CLOSED, OrderState.CLOSED);
             if (updated > 0) {
@@ -129,8 +129,8 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
             }
             return updated;
         }
-        long updated = update("state = ?1 where clOrdId not in ?2 and state != ?3",
-                OrderState.CLOSED, clOrdIds, OrderState.CLOSED);
+        long updated = update("state = ?1 where ordId not in ?2 and state != ?3",
+                OrderState.CLOSED, ordIds, OrderState.CLOSED);
         if (updated > 0) {
             LOG.infof("🔒 Помечено ордеров как CLOSED: %d", updated);
         }

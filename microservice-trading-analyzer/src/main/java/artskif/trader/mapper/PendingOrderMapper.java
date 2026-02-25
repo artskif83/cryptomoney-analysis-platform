@@ -29,7 +29,8 @@ public class PendingOrderMapper {
             PendingOrder order = new PendingOrder();
 
             // Обязательные поля
-            order.clOrdId = getStringValue(data, "clOrdId");
+            order.ordId = getStringValue(data, "ordId"); // Первичный ключ - обязательно
+            order.clOrdId = getStringValue(data, "clOrdId"); // Опциональное поле
             order.instId = getStringValue(data, "instId");
             order.instType = getStringValue(data, "instType");
             order.px = getBigDecimalValue(data, "px");
@@ -39,13 +40,17 @@ public class PendingOrderMapper {
             order.lever = getBigDecimalValue(data, "lever");
 
             // Дополнительные поля
-            order.ordId = getStringValue(data, "ordId");
             order.state = OrderState.fromString(getStringValue(data, "state"));
             order.ordType = getStringValue(data, "ordType");
 
             // Временные метки
             order.createdAt = Instant.now();
             order.updatedAt = Instant.now();
+
+            // Валидация обязательного поля
+            if (order.ordId == null || order.ordId.isEmpty()) {
+                throw new IllegalArgumentException("ordId не может быть null или пустым");
+            }
 
             return order;
         } catch (Exception e) {

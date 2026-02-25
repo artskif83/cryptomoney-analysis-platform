@@ -15,10 +15,16 @@ import java.time.Instant;
 public class PendingOrder extends PanacheEntityBase {
 
     /**
-     * Клиентский ID ордера (clOrdId) - используется как первичный ключ
+     * ID ордера на бирже (ordId) - первичный ключ
      */
     @Id
-    @Column(name = "cl_ord_id", nullable = false, length = 128)
+    @Column(name = "ord_id", nullable = false, length = 128)
+    public String ordId;
+
+    /**
+     * Клиентский ID ордера (clOrdId) - опциональный, не всегда доступен
+     */
+    @Column(name = "cl_ord_id", length = 128)
     public String clOrdId;
 
     /**
@@ -76,11 +82,6 @@ public class PendingOrder extends PanacheEntityBase {
     @Column(name = "updated_at", nullable = false)
     public Instant updatedAt;
 
-    /**
-     * ID ордера на бирже (ordId) - для справки
-     */
-    @Column(name = "ord_id", length = 128)
-    public String ordId;
 
     /**
      * Состояние ордера: LIVE, PARTIALLY_FILLED, CLOSED
@@ -99,6 +100,7 @@ public class PendingOrder extends PanacheEntityBase {
     }
 
     public PendingOrder(
+            String ordId,
             String clOrdId,
             String instId,
             String instType,
@@ -108,6 +110,7 @@ public class PendingOrder extends PanacheEntityBase {
             String tdMode,
             BigDecimal lever
     ) {
+        this.ordId = ordId;
         this.clOrdId = clOrdId;
         this.instId = instId;
         this.instType = instType;
@@ -132,7 +135,8 @@ public class PendingOrder extends PanacheEntityBase {
     @Override
     public String toString() {
         return "PendingOrder{" +
-                "clOrdId='" + clOrdId + '\'' +
+                "ordId='" + ordId + '\'' +
+                ", clOrdId='" + clOrdId + '\'' +
                 ", instId='" + instId + '\'' +
                 ", instType='" + instType + '\'' +
                 ", px=" + px +

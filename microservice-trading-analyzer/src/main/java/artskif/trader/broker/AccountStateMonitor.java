@@ -70,7 +70,7 @@ public class AccountStateMonitor {
                     .collect(Collectors.toList());
 
             // Сохраняем ордера в БД
-            savePendingOrders(pendingOrdersData);
+            savePendingOrders(pendingOrders);
 
             // Получаем список всех открытых позиций (null означает все инструменты)
             List<Map<String, Object>> positions = tradingExecutorService.getPositions(null);
@@ -98,16 +98,11 @@ public class AccountStateMonitor {
      * Сохраняет список активных ордеров в БД
      * Помечает как CLOSED ордера, которых больше нет в списке (синхронизация с биржей)
      */
-    private void savePendingOrders(List<Map<String, Object>> pendingOrdersData) {
+    private void savePendingOrders(List<PendingOrder> orders) {
         try {
-            // Преобразуем Map в Entity
-            List<PendingOrder> orders = pendingOrdersData.stream()
-                    .map(pendingOrderMapper::mapToEntity)
-                    .collect(Collectors.toList());
-
-            // Получаем список текущих clOrdId для синхронизации
-            List<String> currentClOrdIds = orders.stream()
-                    .map(order -> order.clOrdId)
+            // Получаем список текущих ordId для синхронизации
+            List<String> currentOrdIds = orders.stream()
+                    .map(order -> order.ordId)
                     .collect(Collectors.toList());
 
             // Сохраняем или обновляем ордера
@@ -119,7 +114,7 @@ public class AccountStateMonitor {
             }
 
             // Помечаем как CLOSED ордера, которых нет в текущем списке
-            pendingOrderRepository.markAsClosedNotIn(currentClOrdIds);
+            pendingOrderRepository.markAsClosedNotIn(currentOrdIds);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении ордеров в БД", e);
