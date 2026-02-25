@@ -2,6 +2,8 @@ package artskif.trader.resource;
 
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
+import artskif.trader.broker.AccountStateMonitor;
+import artskif.trader.broker.AccountStateSnapshot;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.candle.CandleEventType;
 import artskif.trader.candle.CandleTimeframe;
@@ -39,6 +41,9 @@ public class TestResource {
 
     @Inject
     TradingExecutorService tradingExecutorService;
+
+    @Inject
+    AccountStateMonitor accountStateMonitor;
 
     /**
      * Симулировать событие CANDLE_TICK
@@ -738,5 +743,86 @@ public class TestResource {
                     .build();
         }
     }
+
+    /**
+     * Получить текущий снимок состояния аккаунта
+     *
+     * @return снимок состояния аккаунта с балансом, ордерами и позициями
+     */
+    @GET
+    @Path("/account/snapshot")
+    public Response getAccountSnapshot() {
+        try {
+            Log.info("🧪 Запрос текущего снимка состояния аккаунта");
+
+            AccountStateSnapshot snapshot = accountStateMonitor.getCurrentSnapshot();
+
+            if (snapshot == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of(
+                                "status", "error",
+                                "message", "Снимок состояния аккаунта еще не собран. Подождите минуту или вызовите /api/test/account/snapshot/force"
+                        ))
+                        .build();
+            }
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "timestamp", snapshot.getTimestamp().toString(),
+                            "usdtBalance", snapshot.getUsdtBalance(),
+                            "pendingOrders", snapshot.getPendingOrders(),
+                            "positions", snapshot.getPositions()
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при получении снимка состояния аккаунта");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
+
+    /**
+     * Принудительно обновить снимок состояния аккаунта
+     *
+     * @return результат операции обновления
+     */
+    @POST
+    @Path("/account/snapshot/force")
+    public Response forceAccountSnapshot() {
+        try {
+            Log.info("🧪 Запрос принудительного обновления снимка состояния аккаунта");
+
+            accountStateMonitor.forceCollect();
+
+            AccountStateSnapshot snapshot = accountStateMonitor.getCurrentSnapshot();
+
+            return Response.ok()
+                    .entity(Map.of(
+                            "status", "success",
+                            "message", "Снимок состояния аккаунта успешно обновлен",
+                            "timestamp", snapshot.getTimestamp().toString(),
+                            "usdtBalance", snapshot.getUsdtBalance(),
+                            "pendingOrdersCount", snapshot.getPendingOrders().size(),
+                            "positionsCount", snapshot.getPositions().size()
+                    ))
+                    .build();
+        } catch (Exception e) {
+            Log.errorf(e, "❌ Ошибка при принудительном обновлении снимка состояния аккаунта");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of(
+                            "status", "error",
+                            "message", e.getMessage()
+                    ))
+                    .build();
+        }
+    }
 }
+
+
+
 
