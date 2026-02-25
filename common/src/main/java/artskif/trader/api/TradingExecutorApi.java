@@ -9,6 +9,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 /**
  * API интерфейс для взаимодействия с сервисом Trading Executor
@@ -70,4 +72,40 @@ public interface TradingExecutorApi {
     @POST
     @Path("/futures/limit/short")
     TradingResponse<OrderExecutionResult> placeFuturesLimitShort(FuturesLimitOrderRequest request);
+
+    /**
+     * Получает список всех активных (ожидающих) SWAP ордеров
+     * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
+     * @return Список активных SWAP ордеров
+     */
+    @GET
+    @Path("/orders/pending")
+    TradingResponse<List<Map<String, Object>>> getPendingOrders(@QueryParam("instId") String instId);
+
+    /**
+     * Отменяет все текущие ордера или конкретный ордер по его ID
+     * @param clOrdId Опциональный параметр идентификатора ордера для отмены конкретного ордера
+     * @return Результат операции отмены
+     */
+    @DELETE
+    @Path("/orders/cancel")
+    TradingResponse<String> cancelOrders(@QueryParam("clOrdId") String clOrdId);
+
+    /**
+     * Получает список всех открытых позиций
+     * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
+     * @return Список открытых позиций
+     */
+    @GET
+    @Path("/positions")
+    TradingResponse<List<Map<String, Object>>> getPositions(@QueryParam("instId") String instId);
+
+    /**
+     * Закрывает все текущие открытые позиции рыночным ордером
+     * @param instId Опциональный параметр идентификатора инструмента для закрытия только конкретной позиции
+     * @return Результат операции закрытия
+     */
+    @POST
+    @Path("/positions/close")
+    TradingResponse<String> closeAllPositions(@QueryParam("instId") String instId);
 }

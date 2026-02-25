@@ -159,7 +159,7 @@ public class BrokerManager implements TradeEventListener {
         // Выполняем торговые действия
         if (event.tradeEventData().direction() == Direction.SHORT) {
             log.info("📈 Получен сигнал на открытие ШОРТ позиции");
-            tradingExecutorService.openShort(event.instrument(), BigDecimal.valueOf(10));
+            tradingExecutorService.placeSpotMarketSell(event.instrument(), BigDecimal.valueOf(10));
         }
     }
 }

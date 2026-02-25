@@ -263,7 +263,7 @@ public class TestResource {
             }
 
             // Выполнение покупки
-            OrderExecutionResult result = tradingExecutorService.openLong(instrument, quantity);
+            OrderExecutionResult result = tradingExecutorService.placeSpotMarketBuy(instrument, quantity);
 
             Log.infof("✅ Покупка выполнена: orderId=%s, avgPrice=%s, executedQty=%s",
                     result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
@@ -323,7 +323,7 @@ public class TestResource {
             }
 
             // Выполнение продажи
-            OrderExecutionResult result = tradingExecutorService.openShort(instrument, quantity);
+            OrderExecutionResult result = tradingExecutorService.placeSpotMarketSell(instrument, quantity);
 
             Log.infof("✅ Продажа выполнена: orderId=%s, avgPrice=%s, executedQty=%s",
                     result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
