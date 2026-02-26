@@ -87,6 +87,13 @@ public class Position extends PanacheEntityBase {
     public OrderState state;
 
     /**
+     * Цена триггера стоп-лосса, привязанного к позиции.
+     * Извлекается из поля closeOrderAlgo (массив SL/TP ордеров) ответа OKX API.
+     */
+    @Column(name = "sl_trigger_px", precision = 18, scale = 8)
+    public BigDecimal slTriggerPx;
+
+    /**
      * Время создания позиции/события в источнике (если доступно)
      */
     @Column(name = "c_time")
@@ -160,6 +167,7 @@ public class Position extends PanacheEntityBase {
                 ", tdMode='" + tdMode + '\'' +
                 ", lever=" + lever +
                 ", state='" + state + '\'' +
+                ", slTriggerPx=" + slTriggerPx +
                 ", cTime=" + cTime +
                 ", uTime=" + uTime +
                 ", createdAt=" + createdAt +

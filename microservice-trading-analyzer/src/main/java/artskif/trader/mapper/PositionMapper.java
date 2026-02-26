@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,6 +54,8 @@ public class PositionMapper {
 
             // side храним как posSide (long/short/net)
             position.posSide = resolvedPosSide;
+
+            position.slTriggerPx = extractStopLossPrice(data);
 
             position.cTime = getInstantFromMillis(data, "cTime");
             position.uTime = getInstantFromMillis(data, "uTime");
@@ -109,6 +112,42 @@ public class PositionMapper {
             return OrderState.CLOSED;
         }
         return pos.compareTo(BigDecimal.ZERO) == 0 ? OrderState.CLOSED : OrderState.LIVE;
+    }
+
+    /**
+     * Извлекает цену триггера стоп-лосса из closeOrderAlgo.
+     * OKX возвращает массив SL/TP алго-ордеров в поле closeOrderAlgo позиции.
+     * Берём первую запись, в которой заполнено slTriggerPx.
+     *
+     * @param data данные позиции из API OKX
+     * @return цена триггера стоп-лосса или null, если не найдена
+     */
+    private BigDecimal extractStopLossPrice(Map<String, Object> data) {
+        try {
+            Object closeOrderAlgoObj = data.get("closeOrderAlgo");
+
+            if (closeOrderAlgoObj == null) {
+                return null;
+            }
+
+            if (closeOrderAlgoObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> closeOrderAlgo = (List<Map<String, Object>>) closeOrderAlgoObj;
+
+                for (Map<String, Object> algoOrd : closeOrderAlgo) {
+                    BigDecimal slTriggerPx = getBigDecimalValue(algoOrd, "slTriggerPx");
+                    if (slTriggerPx != null) {
+                        log.debug("📍 Найден SL позиции с ценой триггера: {}", slTriggerPx);
+                        return slTriggerPx;
+                    }
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка при извлечении SL из closeOrderAlgo: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String getStringValue(Map<String, Object> data, String key) {
