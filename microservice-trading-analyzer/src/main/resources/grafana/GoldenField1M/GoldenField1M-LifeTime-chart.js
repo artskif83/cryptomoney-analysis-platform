@@ -38,6 +38,15 @@ const stopLossPrices = col("stop_loss_price", 2);
 const orderPosSides = col("pos_side", 2);
 const orderStates = col("state", 2);
 
+// ===== Positions (из четвёртого query) =====
+const posTimes = col("time", 3);
+const posEndTimes = col("end_time", 3);
+const posIds = col("pos_id", 3);
+const posPrices = col("position_price", 3);
+const posSlPrices = col("stop_loss_price", 3);
+const posPosSides = col("pos_side", 3);
+const posStates = col("state", 3);
+
 if (!times.length) return {};
 
 // ===== Свечи =====
@@ -154,6 +163,57 @@ for (let i = 0; i < orderTimes.length; i++) {
             posSide: posSide,
             state: state,
             price: stopLossPrice
+        });
+    }
+}
+
+
+// ===== Positions - подготовка линий =====
+const positionLines = [];
+const positionSlLines = [];
+
+for (let i = 0; i < posTimes.length; i++) {
+    const startTime = posTimes[i];
+    const endTime = posEndTimes[i];
+    const posPrice = posPrices[i];
+    const posSlPrice = posSlPrices[i];
+    const posId = posIds[i];
+    const posSide = posPosSides[i];
+    const posState = posStates[i];
+
+    // Цвет линии позиции: long → зелёный, short → красный, net → жёлтый
+    const posLineColor = posSide === 'long' ? '#00FF00'
+        : posSide === 'short' ? '#FF4D4D'
+        : '#FFD700'; // net
+
+    // Сплошная линия для позиции
+    if (posPrice != null && startTime != null && endTime != null) {
+        positionLines.push({
+            id: `pos_${posId}`,
+            data: [
+                [startTime, posPrice],
+                [endTime, posPrice]
+            ],
+            posId: posId,
+            posSide: posSide,
+            state: posState,
+            price: posPrice,
+            lineColor: posLineColor
+        });
+    }
+
+    // Пунктирная линия для стоп-лосса позиции
+    if (posSlPrice != null && startTime != null && endTime != null) {
+        positionSlLines.push({
+            id: `pos_sl_${posId}`,
+            data: [
+                [startTime, posSlPrice],
+                [endTime, posSlPrice]
+            ],
+            posId: posId,
+            posSide: posSide,
+            state: posState,
+            price: posSlPrice
         });
     }
 }
@@ -421,6 +481,58 @@ return {
                 formatter: () => {
                     return `<b>Stop Loss</b><br/>
                             Order ID: ${sl.orderId}<br/>
+                            Pos Side: ${sl.posSide}<br/>
+                            State: ${sl.state}<br/>
+                            Price: ${Number(sl.price).toFixed(4)}`;
+                }
+            }
+        })),
+
+        // --- Positions (сплошные линии, цвет зависит от pos_side) ---
+        ...positionLines.map(pos => ({
+            name: `Position ${pos.posId}`,
+            type: 'line',
+            data: pos.data,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            lineStyle: {
+                color: pos.lineColor,
+                width: 2,
+                type: 'solid',
+                opacity: 0.9
+            },
+            z: 6,
+            tooltip: {
+                formatter: () => {
+                    return `<b>Position</b><br/>
+                            ID: ${pos.posId}<br/>
+                            Pos Side: ${pos.posSide}<br/>
+                            State: ${pos.state}<br/>
+                            Price: ${Number(pos.price).toFixed(4)}`;
+                }
+            }
+        })),
+
+        // --- Position Stop Loss (красные пунктирные линии) ---
+        ...positionSlLines.map(sl => ({
+            name: `Position SL ${sl.posId}`,
+            type: 'line',
+            data: sl.data,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            lineStyle: {
+                color: '#FF0000',
+                width: 1,
+                type: 'dashed',
+                opacity: 0.8
+            },
+            z: 6,
+            tooltip: {
+                formatter: () => {
+                    return `<b>Position Stop Loss</b><br/>
+                            Pos ID: ${sl.posId}<br/>
                             Pos Side: ${sl.posSide}<br/>
                             State: ${sl.state}<br/>
                             Price: ${Number(sl.price).toFixed(4)}`;
