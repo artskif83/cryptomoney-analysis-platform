@@ -68,6 +68,7 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
                     existing.lever = order.lever;
                     existing.state = order.state;
                     existing.ordType = order.ordType;
+                    existing.slTriggerPx = order.slTriggerPx;
                     existing.updatedAt = Instant.now();
                     updated++;
                 } else {

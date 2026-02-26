@@ -43,6 +43,9 @@ public class PendingOrderMapper {
             order.state = OrderState.fromString(getStringValue(data, "state"));
             order.ordType = getStringValue(data, "ordType");
 
+            // Обработка стоп-лосса из attachAlgoOrds
+            order.slTriggerPx = extractStopLossPrice(data);
+
             // Временные метки
             order.createdAt = Instant.now();
             order.updatedAt = Instant.now();
@@ -102,5 +105,41 @@ public class PendingOrderMapper {
 
         log.warn("⚠️ Неожиданный тип данных для поля '{}': {}", key, value.getClass().getName());
         return null;
+    }
+
+    /**
+     * Извлекает цену срабатывания стоп-лосса из attachAlgoOrds
+     * Берем первую попавшуюся запись где заполнено значение slTriggerPx
+     *
+     * @param data данные ордера из API OKX
+     * @return цена триггера стоп-лосса или null если нет
+     */
+    private BigDecimal extractStopLossPrice(Map<String, Object> data) {
+        try {
+            Object attachAlgoOrdsObj = data.get("attachAlgoOrds");
+
+            if (attachAlgoOrdsObj == null) {
+                return null;
+            }
+
+            if (attachAlgoOrdsObj instanceof java.util.List) {
+                @SuppressWarnings("unchecked")
+                java.util.List<Map<String, Object>> attachAlgoOrds = (java.util.List<Map<String, Object>>) attachAlgoOrdsObj;
+
+                // Ищем первую запись с заполненным slTriggerPx
+                for (Map<String, Object> algoOrd : attachAlgoOrds) {
+                    BigDecimal slTriggerPx = getBigDecimalValue(algoOrd, "slTriggerPx");
+                    if (slTriggerPx != null) {
+                        log.debug("📍 Найден SL с ценой триггера: {}", slTriggerPx);
+                        return slTriggerPx;
+                    }
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.warn("⚠️ Ошибка при извлечении SL из attachAlgoOrds: {}", e.getMessage());
+            return null;
+        }
     }
 }

@@ -96,6 +96,13 @@ public class PendingOrder extends PanacheEntityBase {
     @Column(name = "ord_type", length = 20)
     public String ordType;
 
+    /**
+     * Цена срабатывания стоп-лосса (из attachAlgoOrds)
+     * SL всегда один, хранится цена триггера
+     */
+    @Column(name = "sl_trigger_px", precision = 18, scale = 8)
+    public BigDecimal slTriggerPx;
+
     public PendingOrder() {
     }
 
@@ -108,7 +115,8 @@ public class PendingOrder extends PanacheEntityBase {
             BigDecimal sz,
             String side,
             String tdMode,
-            BigDecimal lever
+            BigDecimal lever,
+            BigDecimal slTriggerPx
     ) {
         this.ordId = ordId;
         this.clOrdId = clOrdId;
@@ -119,6 +127,7 @@ public class PendingOrder extends PanacheEntityBase {
         this.side = side;
         this.tdMode = tdMode;
         this.lever = lever;
+        this.slTriggerPx = slTriggerPx;
         this.state = OrderState.LIVE; // По умолчанию активный
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -146,6 +155,7 @@ public class PendingOrder extends PanacheEntityBase {
                 ", lever=" + lever +
                 ", state='" + state + '\'' +
                 ", ordType='" + ordType + '\'' +
+                ", slTriggerPx=" + slTriggerPx +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
