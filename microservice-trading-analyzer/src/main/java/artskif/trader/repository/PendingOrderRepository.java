@@ -29,7 +29,7 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
         try {
             persist(order);
             LOG.infof("✅ PendingOrder сохранен: ordId=%s, instId=%s, side=%s, px=%s",
-                    order.ordId, order.instId, order.side, order.px);
+                    order.ordId, order.instId, order.posSide, order.px);
             return order;
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении PendingOrder: %s", order);

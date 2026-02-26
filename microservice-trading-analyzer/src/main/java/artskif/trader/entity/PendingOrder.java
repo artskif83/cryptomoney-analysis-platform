@@ -52,11 +52,10 @@ public class PendingOrder extends PanacheEntityBase {
     public BigDecimal sz;
 
     /**
-     * Направление (side): buy или sell
-     * buy для long, sell для short
+     * Направление (posSide): long или short
      */
-    @Column(name = "side", nullable = false, length = 10)
-    public String side;
+    @Column(name = "pos_side", nullable = false, length = 10)
+    public String posSide;
 
     /**
      * Режим торговли (tdMode): cross, isolated, cash
@@ -125,7 +124,7 @@ public class PendingOrder extends PanacheEntityBase {
             String instType,
             BigDecimal px,
             BigDecimal sz,
-            String side,
+            String posSide,
             String tdMode,
             BigDecimal lever,
             BigDecimal slTriggerPx,
@@ -138,7 +137,7 @@ public class PendingOrder extends PanacheEntityBase {
         this.instType = instType;
         this.px = px;
         this.sz = sz;
-        this.side = side;
+        this.posSide = posSide;
         this.tdMode = tdMode;
         this.lever = lever;
         this.slTriggerPx = slTriggerPx;
@@ -166,7 +165,7 @@ public class PendingOrder extends PanacheEntityBase {
                 ", instType='" + instType + '\'' +
                 ", px=" + px +
                 ", sz=" + sz +
-                ", side='" + side + '\'' +
+                ", side='" + posSide + '\'' +
                 ", tdMode='" + tdMode + '\'' +
                 ", lever=" + lever +
                 ", state='" + state + '\'' +

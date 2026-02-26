@@ -2,8 +2,11 @@ package artskif.trader.broker;
 
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.entity.PendingOrder;
+import artskif.trader.entity.Position;
 import artskif.trader.mapper.PendingOrderMapper;
+import artskif.trader.mapper.PositionMapper;
 import artskif.trader.repository.PendingOrderRepository;
+import artskif.trader.repository.PositionRepository;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,6 +40,12 @@ public class AccountStateMonitor {
 
     @Inject
     PendingOrderMapper pendingOrderMapper;
+
+    @Inject
+    PositionRepository positionRepository;
+
+    @Inject
+    PositionMapper positionMapper;
 
     private final AtomicReference<AccountStateSnapshot> currentSnapshot = new AtomicReference<>();
 
@@ -73,8 +82,16 @@ public class AccountStateMonitor {
             savePendingOrders(pendingOrders);
 
             // Получаем список всех открытых позиций (null означает все инструменты)
-            List<Map<String, Object>> positions = tradingExecutorService.getPositions(null);
-            log.debug("📈 Количество открытых позиций: {}", positions.size());
+            List<Map<String, Object>> positionsData = tradingExecutorService.getPositions(null);
+            log.debug("📈 Количество открытых позиций: {}", positionsData.size());
+
+            // Преобразуем в Entity
+            List<Position> positions = positionsData.stream()
+                    .map(positionMapper::mapToEntity)
+                    .collect(Collectors.toList());
+
+            // Сохраняем позиции в БД
+            savePositions(positions);
 
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
@@ -118,6 +135,29 @@ public class AccountStateMonitor {
 
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении ордеров в БД", e);
+        }
+    }
+
+    /**
+     * Сохраняет список открытых позиций в БД.
+     * Удаляет позиции, которых нет в текущем списке (синхронизация с биржей).
+     */
+    private void savePositions(List<Position> positions) {
+        try {
+            List<String> currentPosIds = positions.stream()
+                    .map(p -> p.posId)
+                    .collect(Collectors.toList());
+
+            if (!positions.isEmpty()) {
+                positionRepository.saveAll(positions);
+                log.debug("✅ Обработано открытых позиций: {}", positions.size());
+            } else {
+                log.debug("📭 Открытых позиций нет");
+            }
+
+            positionRepository.markAsClosedNotIn(currentPosIds);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при сохранении позиций в БД", e);
         }
     }
 

@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Map;
 
 /**
  * Mapper для преобразования данных из OKX API в сущность PendingOrder
@@ -36,7 +35,13 @@ public class PendingOrderMapper {
             order.instType = getStringValue(data, "instType");
             order.px = getBigDecimalValue(data, "px");
             order.sz = getBigDecimalValue(data, "sz");
-            order.side = getStringValue(data, "side");
+
+            // posSide хотим в терминах позиций: long/short, вычисляем по side
+            order.posSide = resolvePosSideFromSideOrFallback(
+                    getStringValue(data, "side"),
+                    getStringValue(data, "posSide")
+            );
+
             order.tdMode = getStringValue(data, "tdMode");
             order.lever = getBigDecimalValue(data, "lever");
 
@@ -61,6 +66,23 @@ public class PendingOrderMapper {
             log.error("❌ Ошибка при преобразовании Map в PendingOrder: {}", data, e);
             throw new RuntimeException("Ошибка преобразования данных ордера", e);
         }
+    }
+
+    /**
+     * Определяем posSide ("long"/"short") из side ("buy"/"sell").
+     * Если side пустой/неизвестный — используем fallbackPosSide как есть.
+     */
+    private String resolvePosSideFromSideOrFallback(String side, String fallbackPosSide) {
+        if (side != null && !side.isBlank()) {
+            String normalizedSide = side.trim().toLowerCase();
+            if ("buy".equals(normalizedSide)) {
+                return "long";
+            }
+            if ("sell".equals(normalizedSide)) {
+                return "short";
+            }
+        }
+        return fallbackPosSide;
     }
 
     /**
