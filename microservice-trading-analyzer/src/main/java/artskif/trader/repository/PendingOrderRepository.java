@@ -51,28 +51,22 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
                 return;
             }
 
-            // Используем ordId как первичный ключ для обновления существующих записей
             int updated = 0;
             int inserted = 0;
             for (PendingOrder order : orders) {
                 PendingOrder existing = findById(order.ordId);
                 if (existing != null) {
-                    // Обновляем существующий ордер
-                    existing.clOrdId = order.clOrdId;
-                    existing.instId = order.instId;
-                    existing.instType = order.instType;
-                    existing.px = order.px;
-                    existing.sz = order.sz;
-                    existing.side = order.side;
-                    existing.tdMode = order.tdMode;
-                    existing.lever = order.lever;
-                    existing.state = order.state;
-                    existing.ordType = order.ordType;
-                    existing.slTriggerPx = order.slTriggerPx;
-                    existing.updatedAt = Instant.now();
+                    // Обновляем timestamp и сохраняем
+                    order.createdAt = existing.createdAt; // сохраняем оригинальное время создания
+                    order.updatedAt = Instant.now();
+                    // Hibernate/Panache автоматически обновит все поля managed entity
+                    getEntityManager().merge(order);
                     updated++;
                 } else {
                     // Вставляем новый ордер
+                    // Временные метки
+                    order.createdAt = Instant.now();
+                    order.updatedAt = Instant.now();
                     persist(order);
                     inserted++;
                 }

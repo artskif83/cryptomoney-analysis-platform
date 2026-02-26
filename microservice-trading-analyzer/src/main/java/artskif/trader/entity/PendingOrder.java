@@ -103,6 +103,18 @@ public class PendingOrder extends PanacheEntityBase {
     @Column(name = "sl_trigger_px", precision = 18, scale = 8)
     public BigDecimal slTriggerPx;
 
+    /**
+     * Время создания ордера из API OKX
+     */
+    @Column(name = "c_time")
+    public Instant cTime;
+
+    /**
+     * Время обновления ордера из API OKX
+     */
+    @Column(name = "u_time")
+    public Instant uTime;
+
     public PendingOrder() {
     }
 
@@ -116,7 +128,9 @@ public class PendingOrder extends PanacheEntityBase {
             String side,
             String tdMode,
             BigDecimal lever,
-            BigDecimal slTriggerPx
+            BigDecimal slTriggerPx,
+            Instant cTime,
+            Instant uTime
     ) {
         this.ordId = ordId;
         this.clOrdId = clOrdId;
@@ -128,6 +142,8 @@ public class PendingOrder extends PanacheEntityBase {
         this.tdMode = tdMode;
         this.lever = lever;
         this.slTriggerPx = slTriggerPx;
+        this.cTime = cTime;
+        this.uTime = uTime;
         this.state = OrderState.LIVE; // По умолчанию активный
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -156,6 +172,8 @@ public class PendingOrder extends PanacheEntityBase {
                 ", state='" + state + '\'' +
                 ", ordType='" + ordType + '\'' +
                 ", slTriggerPx=" + slTriggerPx +
+                ", cTime=" + cTime +
+                ", uTime=" + uTime +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';

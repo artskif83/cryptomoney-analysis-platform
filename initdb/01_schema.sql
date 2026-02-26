@@ -145,6 +145,8 @@ CREATE TABLE IF NOT EXISTS pending_orders
     state      varchar(20)    NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
     ord_type   varchar(20),
     sl_trigger_px numeric(18, 8),
+    c_time     timestamp,
+    u_time     timestamp,
     created_at timestamp      NOT NULL DEFAULT NOW(),
     updated_at timestamp      NOT NULL DEFAULT NOW()
 );

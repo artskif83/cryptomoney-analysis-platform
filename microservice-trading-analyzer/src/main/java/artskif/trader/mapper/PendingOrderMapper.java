@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Map;
 
 /**
  * Mapper для преобразования данных из OKX API в сущность PendingOrder
@@ -46,9 +47,9 @@ public class PendingOrderMapper {
             // Обработка стоп-лосса из attachAlgoOrds
             order.slTriggerPx = extractStopLossPrice(data);
 
-            // Временные метки
-            order.createdAt = Instant.now();
-            order.updatedAt = Instant.now();
+            // Время создания и обновления из API OKX (преобразуем из миллисекунд в Instant)
+            order.cTime = getInstantFromMillis(data, "cTime");
+            order.uTime = getInstantFromMillis(data, "uTime");
 
             // Валидация обязательного поля
             if (order.ordId == null || order.ordId.isEmpty()) {
@@ -139,6 +140,40 @@ public class PendingOrderMapper {
             return null;
         } catch (Exception e) {
             log.warn("⚠️ Ошибка при извлечении SL из attachAlgoOrds: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Получает Instant из Unix timestamp в миллисекундах
+     */
+    private Instant getInstantFromMillis(Map<String, Object> data, String key) {
+        Object value = data.get(key);
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            long millis;
+
+            if (value instanceof Long) {
+                millis = (Long) value;
+            } else if (value instanceof Number) {
+                millis = ((Number) value).longValue();
+            } else if (value instanceof String) {
+                String strValue = (String) value;
+                if (strValue.isEmpty()) {
+                    return null;
+                }
+                millis = Long.parseLong(strValue);
+            } else {
+                log.warn("⚠️ Неожиданный тип данных для поля '{}': {}", key, value.getClass().getName());
+                return null;
+            }
+
+            return Instant.ofEpochMilli(millis);
+        } catch (Exception e) {
+            log.warn("⚠️ Не удалось преобразовать значение '{}' в Instant для поля '{}'", value, key);
             return null;
         }
     }
