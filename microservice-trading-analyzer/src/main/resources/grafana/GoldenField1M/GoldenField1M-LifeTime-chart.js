@@ -29,6 +29,15 @@ const eventStopLoss = col("stop_loss_percentage", 1);
 const eventTakeProfit = col("take_profit_percentage", 1);
 const eventIsTest = col("is_test", 1);
 
+// ===== Pending Orders (из третьего query) =====
+const orderTimes = col("time", 2);
+const orderEndTimes = col("end_time", 2);
+const orderIds = col("ord_id", 2);
+const orderPrices = col("order_price", 2);
+const stopLossPrices = col("stop_loss_price", 2);
+const orderSides = col("side", 2);
+const orderStates = col("state", 2);
+
 if (!times.length) return {};
 
 // ===== Свечи =====
@@ -95,6 +104,51 @@ for (let i = 0; i < eventTimes.length; i++) {
         tradeEventsLong.push(eventData);
     } else if (direction === 'SHORT') {
         tradeEventsShort.push(eventData);
+    }
+}
+
+
+// ===== Pending Orders - подготовка линий =====
+const orderLines = [];
+const stopLossLines = [];
+
+for (let i = 0; i < orderTimes.length; i++) {
+    const startTime = orderTimes[i];
+    const endTime = orderEndTimes[i];
+    const orderPrice = orderPrices[i];
+    const stopLossPrice = stopLossPrices[i];
+    const orderId = orderIds[i];
+    const side = orderSides[i];
+    const state = orderStates[i];
+
+    // Создаем линию для ордера (зеленая пунктирная)
+    if (orderPrice != null && startTime != null && endTime != null) {
+        orderLines.push({
+            id: `order_${orderId}`,
+            data: [
+                [startTime, orderPrice],
+                [endTime, orderPrice]
+            ],
+            orderId: orderId,
+            side: side,
+            state: state,
+            price: orderPrice
+        });
+    }
+
+    // Создаем линию для стоп-лосса (красная пунктирная)
+    if (stopLossPrice != null && startTime != null && endTime != null) {
+        stopLossLines.push({
+            id: `sl_${orderId}`,
+            data: [
+                [startTime, stopLossPrice],
+                [endTime, stopLossPrice]
+            ],
+            orderId: orderId,
+            side: side,
+            state: state,
+            price: stopLossPrice
+        });
     }
 }
 
@@ -316,7 +370,59 @@ return {
                 borderWidth: 2
             },
             z: 10
-        }
+        },
+
+        // --- Pending Orders (зеленые пунктирные линии) ---
+        ...orderLines.map(order => ({
+            name: `Order ${order.orderId}`,
+            type: 'line',
+            data: order.data,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            lineStyle: {
+                color: '#00FF00',
+                width: 2,
+                type: 'dashed',
+                opacity: 0.8
+            },
+            z: 5,
+            tooltip: {
+                formatter: () => {
+                    return `<b>Pending Order</b><br/>
+                            ID: ${order.orderId}<br/>
+                            Side: ${order.side}<br/>
+                            State: ${order.state}<br/>
+                            Price: ${Number(order.price).toFixed(4)}`;
+                }
+            }
+        })),
+
+        // --- Stop Loss (красные пунктирные линии) ---
+        ...stopLossLines.map(sl => ({
+            name: `Stop Loss ${sl.orderId}`,
+            type: 'line',
+            data: sl.data,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            symbol: 'none',
+            lineStyle: {
+                color: '#FF0000',
+                width: 2,
+                type: 'dashed',
+                opacity: 0.8
+            },
+            z: 5,
+            tooltip: {
+                formatter: () => {
+                    return `<b>Stop Loss</b><br/>
+                            Order ID: ${sl.orderId}<br/>
+                            Side: ${sl.side}<br/>
+                            State: ${sl.state}<br/>
+                            Price: ${Number(sl.price).toFixed(4)}`;
+                }
+            }
+        }))
     ],
 
     tooltip: {
