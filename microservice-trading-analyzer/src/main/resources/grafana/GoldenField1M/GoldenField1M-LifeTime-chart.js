@@ -380,7 +380,7 @@ return {
             symbol: 'none',
             lineStyle: {
                 color: '#00FF00',
-                width: 2,
+                width: 1,
                 type: 'dashed',
                 opacity: 0.8
             },
@@ -406,7 +406,7 @@ return {
             symbol: 'none',
             lineStyle: {
                 color: '#FF0000',
-                width: 2,
+                width: 1,
                 type: 'dashed',
                 opacity: 0.8
             },
