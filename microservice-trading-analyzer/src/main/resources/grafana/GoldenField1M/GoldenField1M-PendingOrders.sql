@@ -1,7 +1,8 @@
 -- Pending Orders for GoldenField1M strategy
 -- This query fetches pending orders to display them on the chart
 -- Orders are displayed as dashed lines from c_time to updated_at
--- Green lines represent order price, red lines represent stop-loss price
+-- Line color depends on pos_side: long → green, short → red, net → yellow
+-- Red dashed lines represent stop-loss price
 
 SELECT
     c_time AS time,
@@ -11,7 +12,7 @@ SELECT
     inst_id,
     px AS order_price,
     sl_trigger_px AS stop_loss_price,
-    side,
+    pos_side,
     state,
     sz AS size,
     lever

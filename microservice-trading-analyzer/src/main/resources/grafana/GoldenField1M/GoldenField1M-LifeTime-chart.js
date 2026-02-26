@@ -35,7 +35,7 @@ const orderEndTimes = col("end_time", 2);
 const orderIds = col("ord_id", 2);
 const orderPrices = col("order_price", 2);
 const stopLossPrices = col("stop_loss_price", 2);
-const orderSides = col("side", 2);
+const orderPosSides = col("pos_side", 2);
 const orderStates = col("state", 2);
 
 if (!times.length) return {};
@@ -118,10 +118,15 @@ for (let i = 0; i < orderTimes.length; i++) {
     const orderPrice = orderPrices[i];
     const stopLossPrice = stopLossPrices[i];
     const orderId = orderIds[i];
-    const side = orderSides[i];
+    const posSide = orderPosSides[i];
     const state = orderStates[i];
 
-    // Создаем линию для ордера (зеленая пунктирная)
+    // Цвет линии ордера зависит от pos_side: long → зелёный, short → красный, net → жёлтый
+    const orderLineColor = posSide === 'long' ? '#00FF00'
+        : posSide === 'short' ? '#FF4D4D'
+        : '#FFD700'; // net
+
+    // Создаем линию для ордера (пунктирная, цвет по pos_side)
     if (orderPrice != null && startTime != null && endTime != null) {
         orderLines.push({
             id: `order_${orderId}`,
@@ -130,9 +135,10 @@ for (let i = 0; i < orderTimes.length; i++) {
                 [endTime, orderPrice]
             ],
             orderId: orderId,
-            side: side,
+            posSide: posSide,
             state: state,
-            price: orderPrice
+            price: orderPrice,
+            lineColor: orderLineColor
         });
     }
 
@@ -145,7 +151,7 @@ for (let i = 0; i < orderTimes.length; i++) {
                 [endTime, stopLossPrice]
             ],
             orderId: orderId,
-            side: side,
+            posSide: posSide,
             state: state,
             price: stopLossPrice
         });
@@ -370,7 +376,7 @@ return {
             z: 10
         },
 
-        // --- Pending Orders (зеленые пунктирные линии) ---
+        // --- Pending Orders (пунктирные линии, цвет зависит от pos_side) ---
         ...orderLines.map(order => ({
             name: `Order ${order.orderId}`,
             type: 'line',
@@ -379,7 +385,7 @@ return {
             yAxisIndex: 0,
             symbol: 'none',
             lineStyle: {
-                color: '#00FF00',
+                color: order.lineColor,
                 width: 1,
                 type: 'dashed',
                 opacity: 0.8
@@ -389,7 +395,7 @@ return {
                 formatter: () => {
                     return `<b>Pending Order</b><br/>
                             ID: ${order.orderId}<br/>
-                            Side: ${order.side}<br/>
+                            Pos Side: ${order.posSide}<br/>
                             State: ${order.state}<br/>
                             Price: ${Number(order.price).toFixed(4)}`;
                 }
@@ -415,7 +421,7 @@ return {
                 formatter: () => {
                     return `<b>Stop Loss</b><br/>
                             Order ID: ${sl.orderId}<br/>
-                            Side: ${sl.side}<br/>
+                            Pos Side: ${sl.posSide}<br/>
                             State: ${sl.state}<br/>
                             Price: ${Number(sl.price).toFixed(4)}`;
                 }
