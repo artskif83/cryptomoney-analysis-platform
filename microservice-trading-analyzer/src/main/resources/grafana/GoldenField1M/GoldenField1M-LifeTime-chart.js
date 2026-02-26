@@ -285,8 +285,6 @@ return {
         {
             type: 'inside',
             xAxisIndex: [0, 1, 2],
-            start: 98,
-            end: 100,
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,

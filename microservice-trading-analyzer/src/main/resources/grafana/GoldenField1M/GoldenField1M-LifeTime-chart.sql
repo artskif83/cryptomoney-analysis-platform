@@ -10,5 +10,6 @@ SELECT
 FROM wide_candles
 WHERE
     tf = '1m' AND
-    tag = 'GoldenField1M-lifetime'
+    tag = 'GoldenField1M-lifetime' AND
+    ts BETWEEN $__timeFrom() AND $__timeTo()
 ORDER BY ts;
