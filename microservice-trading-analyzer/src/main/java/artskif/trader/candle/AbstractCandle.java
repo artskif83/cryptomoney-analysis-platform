@@ -132,7 +132,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      */
     @ActivateRequestContext
     protected void initRestoreLiveBuffer() {
-        log().infof("💾 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
+        log().debugf("💾 [%s] Восстанавливаем актуальный буфер из базы данных", getName());
         getLiveBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxLiveBufferSize(), getCandleTimeframe(), getSymbol(), true));
         getLiveBuffer().incrementVersion();
     }
@@ -143,21 +143,21 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
      */
     @ActivateRequestContext
     protected void initRestoreHistoricalBuffer() {
-        log().infof("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
+        log().debugf("📥 [%s] Восстанавливаем исторический буфер из базы данных", getName());
         getHistoricalBuffer().putItems(getBufferRepository().restoreFromStorage(getMaxHistoryBufferSize(), getCandleTimeframe(), getSymbol(), false));
         getHistoricalBuffer().incrementVersion();
     }
 
     protected void initSaveLiveBuffer() {
         if (!isSaveLiveEnabled()) {
-            log().infof("💾 [%s] Активировано сохранение активного буфера по расписанию", getName());
+            log().debugf("💾 [%s] Активировано сохранение активного буфера по расписанию", getName());
         }
         saveLiveEnabled.set(true);
     }
 
     protected void initSaveHistoricalBuffer() {
         if (!isSaveHistoricalEnabled()) {
-            log().infof("💾 [%s] Активировано сохранение исторического буфера по расписанию", getName());
+            log().debugf("💾 [%s] Активировано сохранение исторического буфера по расписанию", getName());
         }
         saveHistoricalEnabled.set(true);
     }
@@ -273,7 +273,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
                                     BaseBarSeries series,
                                     ReadWriteLock lock,
                                     String seriesName) {
-        log().infof("🔄 [%s] Начинаем копирование %s буфера в %s серию", getName(), seriesName, seriesName);
+        log().debugf("🔄 [%s] Начинаем копирование %s буфера в %s серию", getName(), seriesName, seriesName);
 
         // Получаем элементы для копирования вне блокировки
         Map<Instant, CandlestickDto> itemsToCopy;

@@ -2,6 +2,7 @@ package artskif.trader.strategy.strategy;
 
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.AbstractStrategy;
 import artskif.trader.strategy.StrategyDataService;
@@ -10,19 +11,20 @@ import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
 import artskif.trader.strategy.event.impl.indicator.GoldenFieldEventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+@Startup
 @ApplicationScoped
 public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     private final AbstractSchema tf1mBacktestSchema;
     private final AbstractSchema tf1mLifetimeSchema;
 
-
     // Конструктор без параметров для CDI proxy
     protected GoldenField1MLifetimeStrategy() {
-        super(null, null, null, null, null);
+        super(null, null, null, null, null, null);
         this.tf1mBacktestSchema = null;
         this.tf1mLifetimeSchema = null;
     }
@@ -34,8 +36,9 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
                                          StrategyDataService dataService,
                                          TF1mBacktestSchema tf1mBacktestSchema,
                                          TF1mLifetimeSchema tf1mLifetimeSchema,
-                                         TradeEventBus tradeEventBus) {
-        super(candle, eventProcessor, snapshotBuilder, dataService, tradeEventBus);
+                                         TradeEventBus tradeEventBus,
+                                         CandleEventBus candleEventBus) {
+        super(candle, eventProcessor, snapshotBuilder, dataService, tradeEventBus, candleEventBus);
         this.tf1mBacktestSchema = tf1mBacktestSchema;
         this.tf1mLifetimeSchema = tf1mLifetimeSchema;
 
@@ -44,6 +47,11 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
     @Override
     public String getName() {
         return "GoldenField1M";
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
     @Override

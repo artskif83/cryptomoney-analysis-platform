@@ -4,8 +4,12 @@ import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
+import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.events.candle.CandleEventListener;
 import artskif.trader.candle.CandleEventType;
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.event.Observes;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
 import artskif.trader.strategy.database.columns.impl.PositionColumn;
@@ -31,6 +35,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractStrategy implements CandleEventListener {
@@ -41,7 +50,17 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     protected Integer lastProcessedBarIndex = null;
     protected BaseBarSeries lifetimeBarSeries;
-    private final AtomicBoolean running = new AtomicBoolean(false); // флаг запуска старатегии
+
+    /**
+     * Если true — при старте стратегия прогоняет всю накопленную серию баров через processCandleSeries.
+     * Если false — стратегия сразу переходит в режим ожидания новых баров без переобработки истории.
+     */
+    protected boolean reprocessCandleSeries = true;
+
+    // Промежуточная шина событий (отдельный поток)
+    private final BlockingQueue<CandleEvent> eventQueue = new ArrayBlockingQueue<>(1000);
+    private final ExecutorService threadProcessor;
+    private volatile boolean processorRunning = true;
 
     // Общие зависимости для всех стратегий
     protected final Candle candle;
@@ -49,82 +68,146 @@ public abstract class AbstractStrategy implements CandleEventListener {
     protected final StrategyDataService dataService;
     protected final DatabaseSnapshotBuilder snapshotBuilder;
     protected final TradeEventBus tradeEventBus;
-
-    protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
-                               DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService) {
-        this(candle, tradeEventProcessor, snapshotBuilder, dataService, null);
-    }
+    protected final CandleEventBus candleEventBus;
 
     protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
                                DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                               TradeEventBus tradeEventBus) {
+                               TradeEventBus tradeEventBus, CandleEventBus candleEventBus) {
         this.candle = candle;
         this.tradeEventProcessor = tradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
         this.tradeEventBus = tradeEventBus;
-
-        Log.infof("📦 Запущен инстанс стратегии: %s", this.getClass().getSimpleName());
+        this.candleEventBus = candleEventBus;
+        this.threadProcessor = (candle != null) ? Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "Strategy-EventProcessor-" + getClass().getSimpleName());
+            t.setDaemon(false);
+            return t;
+        }) : null;
     }
 
-    public boolean startStrategy() {
-        Log.infof("🚀 Запуск стратегии для лайв-торговли: %s", getName());
+    void onStart(@Observes StartupEvent event) {
+        if (candleEventBus == null || threadProcessor == null) {
+            Log.warnf("⚠️ Стратегия %s не может быть запущена: candleEventBus или threadProcessor не инициализированы", getName());
+            return;
+        }
+
+        if (!isEnabled()) {
+            Log.infof("⏸️ Стратегия %s отключена (isEnabled=false), пропускаем запуск", getName());
+            return;
+        }
+
+        Log.infof("🔧 Стратегия %s запускается...", getName());
+
         dataService.checkColumnsExist(getLifetimeSchema());
         lifetimeBarSeries = candle.getInstance(getTimeframe()).getLiveBarSeries();
-        if (lifetimeBarSeries.getBarCount() < lifetimeBarSeries.getMaximumBarCount()) {
-            Log.warnf("⚠️ Серия баров для стратегии %s содержит меньше баров (%d), чем рабочий размер серии (%d). Стратегия еще не готова к запуску.",
-                    getName(), lifetimeBarSeries.getBarCount(), lifetimeBarSeries.getMaximumBarCount());
-            return false;
-        }
-        setRunning(true);
-        processCandleSeries(lifetimeBarSeries, getName() + "-lifetime", getLifetimeSchema(), true);
-        Log.infof("🚀 Стратегия запущена: %s", getName());
+        // Запускаем поток обработки событий
+        threadProcessor.submit(this::processEvents);
+        candleEventBus.subscribe(this);
+        processorRunning = true;
 
-        return true;
+        Log.infof("✅ Стратегия запущена: %s", getName());
     }
 
-    public void stopStrategy() {
-        Log.infof("🛑 Остановка стратегии для лайв-торговли: %s", getName());
+    void onShutdown(@Observes ShutdownEvent event) {
+        if (candleEventBus == null || threadProcessor == null) {
+            return;
+        }
+
+        if (!isEnabled()) {
+            return;
+        }
+
+        Log.infof("🛑 Стратегия %s останавливается...", getName());
+
+        // Отписываемся от событий
+        candleEventBus.unsubscribe(this);
+
         lifetimeBarSeries = null;
-        setRunning(false);
+        // Останавливаем поток обработки
+        processorRunning = false;
+        threadProcessor.shutdown();
+        try {
+            if (!threadProcessor.awaitTermination(30, TimeUnit.SECONDS)) {
+                threadProcessor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            threadProcessor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        Log.infof("🛑 Стратегия %s остановлена", getName());
     }
 
     /**
-     * Установить статус запуска стратегии
+     * Основной цикл обработки событий в отдельном потоке
      */
-    public void setRunning(boolean isRunning) {
-        this.running.set(isRunning);
-        if (!isRunning) {
-            lastProcessedBarIndex = null; // Сбрасываем при остановке
+    private void processEvents() {
+        Log.debugf("⚡ Поток обработки событий стратегии %s запущен", getName());
+
+        while (processorRunning) {
+            try {
+                if (reprocessCandleSeries && lifetimeBarSeries.getBarCount() == lifetimeBarSeries.getMaximumBarCount()) {
+                    Log.infof("🔧 Начало создания лайф графика для стратегии %s", getName());
+                    processCandleSeries(lifetimeBarSeries, getName() + "-lifetime", getLifetimeSchema(), true);
+                    reprocessCandleSeries = false; // Сбрасываем флаг после первой обработки серии
+                    Log.infof("✅ Стратегия %s завершила создание лайф графика", getName());
+                }
+
+                CandleEvent event = eventQueue.poll(1, TimeUnit.SECONDS);
+
+                if (event == null) {
+                    continue;
+                }
+
+                handleCandleEvent(event);
+
+            } catch (InterruptedException e) {
+                Log.infof("🛑 Поток обработки событий стратегии %s прерван", getName());
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                Log.errorf(e, "❌ Ошибка при обработке события в стратегии %s", getName());
+            }
+        }
+
+        Log.infof("🛑 Поток обработки событий стратегии %s остановлен", getName());
+    }
+
+    /**
+     * Внутренний обработчик события свечи — выполняется в отдельном потоке
+     */
+    private void handleCandleEvent(CandleEvent event) {
+        if (event.period() != getTimeframe()) {
+            return;
+        }
+
+        if (event.type() == CandleEventType.CANDLE_TICK) {
+            CandlestickDto candleDto = event.candle();
+            if (candleDto == null) {
+                return;
+            }
+
+            onBar(candleDto);
+        } else if (event.type() == CandleEventType.CANDLE_HISTORY){
+            reprocessCandleSeries = true; // Устанавливаем флаг для переобработки серии при следующем цикле
         }
     }
 
     public abstract String getName();
 
-    public boolean isRunning() {
-        return running.get();
-    }
+    /**
+     * Определяет, включена ли стратегия.
+     * Если возвращает false — стратегия не запускается при старте приложения.
+     */
+    public abstract boolean isEnabled();
 
     @Override
     public void onCandle(CandleEvent event) {
-        if (event.type() != CandleEventType.CANDLE_TICK) {
-            return;
+        // Асинхронно добавляем событие в очередь, не блокируя вызывающий поток
+        if (!eventQueue.offer(event)) {
+            Log.warnf("⚠️ Очередь событий стратегии %s переполнена, отбрасываем CandleEvent: %s", getName(), event);
         }
-
-        if (!running.get()) {
-            return;
-        }
-
-        if (event.period() != getTimeframe()) {
-            return;
-        }
-
-        CandlestickDto candle = event.candle();
-        if (candle == null) {
-            return;
-        }
-
-        onBar(candle);
     }
 
     /**
@@ -177,6 +260,8 @@ public abstract class AbstractStrategy implements CandleEventListener {
                 ));
             }
         }
+        Log.infof("✅ [%s] Свеча обработана стратегией: timestamp=%s, close=%s", getName(), candle.getTimestamp(), candle.getClose());
+
     }
 
     /**

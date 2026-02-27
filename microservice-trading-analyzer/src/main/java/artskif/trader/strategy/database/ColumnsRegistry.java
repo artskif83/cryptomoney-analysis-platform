@@ -26,7 +26,7 @@ public class ColumnsRegistry {
         columns.forEach(column -> {
             List<String> valueNames = column.getColumnNames();
             valueNames.forEach(name -> columnMap.put(name, column));
-            Log.infof("📝 Зарегистрирована колонка %s со значениями: %s", column.getClass().getSimpleName(), valueNames);
+            Log.debugf("📝 Зарегистрирована колонка %s со значениями: %s", column.getClass().getSimpleName(), valueNames);
         });
     }
 

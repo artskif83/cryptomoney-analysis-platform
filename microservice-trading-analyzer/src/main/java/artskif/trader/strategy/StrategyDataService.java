@@ -110,7 +110,7 @@ public class StrategyDataService {
                 .getSingleResult();
 
         if (existingCount > 0) {
-            Log.infof("⚠️ Найдено %d существующих записей для стратегии %s. Удаляем их...",
+            Log.debugf("⚠️ Найдено %d существующих записей для стратегии %s. Удаляем их...",
                     existingCount, firstRow.tag());
 
             String deleteSql = "DELETE FROM wide_candles WHERE contract_hash = :contract_hash";
@@ -118,7 +118,7 @@ public class StrategyDataService {
                     .setParameter("contract_hash", firstRow.contractHash())
                     .executeUpdate();
 
-            Log.infof("✅ Удалено %d записей для стратегии %s", deleted, firstRow.tag());
+            Log.debugf("✅ Удалено %d записей для стратегии %s", deleted, firstRow.tag());
         }
 
         // Собираем все строки обратно в список для формирования CSV
@@ -167,7 +167,7 @@ public class StrategyDataService {
                 }
             });
 
-            Log.infof("✅ Завершено пакетное сохранение: %d строк", affected[0]);
+            Log.debugf("✅ Завершено пакетное сохранение: %d строк", affected[0]);
 
         } catch (RuntimeException ex) {
             Log.errorf(ex, "❌ Ошибка при сохранении фич через COPY -> stage_wide_candles");
@@ -315,7 +315,7 @@ public class StrategyDataService {
      */
     @Transactional
     public void ensureColumnExist(String metadataName) {
-        Log.infof("🔧 Проверка существования колонки: %s", metadataName);
+        Log.debugf("🔧 Проверка существования колонки: %s", metadataName);
 
         Optional<Column> column = registry.getColumn(metadataName);
 

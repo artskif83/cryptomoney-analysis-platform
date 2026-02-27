@@ -70,11 +70,11 @@ public abstract class AbstractSchema {
      * 3. Если не существует - создание нового с метаданными
      */
     protected void initSchema() {
-        Log.infof("🔧 Инициализация схемы '%s'...", getName());
+        Log.infof("🔧 Создание схемы '%s'...", getName());
         // Сначала проверяем, существует ли контракт
         Contract existingContract = dataService.findContractByName(getName());
         if (existingContract != null) {
-            Log.infof("📋 Схема '%s' уже существует в БД (id: %d), используем существующую",
+            Log.infof("✅ Схема '%s' уже существует в БД (id: %d), используем существующую",
                     getName(), existingContract.id);
             this.contract = existingContract;
             this.contractHash = existingContract.contractHash;
@@ -92,6 +92,8 @@ public abstract class AbstractSchema {
         newContract.contractHash = generateContractHash(newContract);
         this.contract = dataService.saveNewContract(newContract);
         this.contractHash = this.contract.contractHash;
+        Log.infof("✅ Схема '%s' создана",getName());
+
     }
 
     /**
