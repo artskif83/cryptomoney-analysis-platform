@@ -316,7 +316,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             // Выводим прогресс каждые progressStep свечей
             if (index > 0 && (index % progressStep == 0 || index == totalBars - 1)) {
                 double progressPercent = ((double) processedCount / totalBars) * 100;
-                Log.infof("⏳ Прогресс выполнения: %.1f%% (%d/%d свечей)",
+                Log.debugf("⏳ Прогресс выполнения: %.1f%% (%d/%d свечей)",
                         progressPercent, processedCount, totalBars);
             }
         }
