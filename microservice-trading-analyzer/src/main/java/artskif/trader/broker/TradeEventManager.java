@@ -45,14 +45,14 @@ public class TradeEventManager implements TradeEventListener {
         this.tradingExecutorService = tradingExecutorService;
         this.tradeEventRepository = tradeEventRepository;
         this.threadProcessor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "PositionManager-EventProcessor");
+            Thread t = new Thread(r, "TradeEventManager-EventProcessor");
             t.setDaemon(false);
             return t;
         });
     }
 
     void onStart(@Observes StartupEvent event) {
-        log.info("🚀 PositionManager запускается...");
+        log.info("🚀 TradeEventManager запускается...");
 
         // Подписываемся на события
         tradeEventBus.subscribe(this);
@@ -60,11 +60,11 @@ public class TradeEventManager implements TradeEventListener {
         // Запускаем обработчик событий в отдельном потоке
         threadProcessor.submit(this::processEvents);
 
-        log.info("📡 PositionManager запущен и подписан на события");
+        log.info("📡 TradeEventManager запущен и подписан на события");
     }
 
     void onShutdown(@Observes ShutdownEvent event) {
-        log.info("🛑 PositionManager останавливается...");
+        log.info("🛑 TradeEventManager останавливается...");
 
         running = false;
 
@@ -82,7 +82,7 @@ public class TradeEventManager implements TradeEventListener {
             Thread.currentThread().interrupt();
         }
 
-        log.info("✅ PositionManager остановлен");
+        log.info("✅ TradeEventManager остановлен");
     }
 
     @Override

@@ -1,5 +1,7 @@
 package artskif.trader.broker;
 
+import artskif.trader.candle.CandleEventType;
+import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
 import artskif.trader.events.candle.CandleEventBus;
 import artskif.trader.events.candle.CandleEventListener;
@@ -21,9 +23,10 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
     private static final Logger log = LoggerFactory.getLogger(AbstractOrdersManager.class);
 
     protected final CandleEventBus candleEventBus;
+    protected final BrokerConfig brokerConfig;
 
     // Промежуточная шина событий
-    private final BlockingQueue<Object> eventQueue = new ArrayBlockingQueue<>(1000);
+    private final BlockingQueue<CandleEvent> eventQueue = new ArrayBlockingQueue<>(1000);
     private final ExecutorService threadProcessor;
     private volatile boolean running = true;
 
@@ -31,11 +34,13 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
     protected AbstractOrdersManager() {
         this.candleEventBus = null;
         this.threadProcessor = null;
+        this.brokerConfig = null;
     }
 
     @Inject
-    public AbstractOrdersManager(CandleEventBus candleEventBus) {
+    public AbstractOrdersManager(CandleEventBus candleEventBus, BrokerConfig brokerConfig) {
         this.candleEventBus = candleEventBus;
+        this.brokerConfig = brokerConfig;
         this.threadProcessor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "OrdersManager-EventProcessor");
             t.setDaemon(false);
@@ -94,17 +99,20 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
         while (running) {
             try {
                 // Ждем события из очереди с таймаутом
-                Object event = eventQueue.poll(1, TimeUnit.SECONDS);
+                CandleEvent event = eventQueue.poll(1, TimeUnit.SECONDS);
 
                 if (event == null) {
                     continue;
                 }
 
-                if (event instanceof CandleEvent candleEvent) {
-                    handleCandleEvent(candleEvent);
-                } else {
-                    log.warn("⚠️ Неизвестный тип события: {}", event.getClass());
+                if (event.type() == CandleEventType.CANDLE_TICK) {
+                    CandlestickDto candleDto = event.candle();
+                    if (candleDto == null) {
+                        return;
+                    }
+                    handleCandleEvent(candleDto);
                 }
+
 
             } catch (InterruptedException e) {
                 log.info("🛑 Поток обработки событий OrdersManager прерван");
@@ -121,5 +129,5 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
     /**
      * Обработка события свечи — реализуется в дочернем классе
      */
-    protected abstract void handleCandleEvent(CandleEvent event);
+    protected abstract void handleCandleEvent(CandlestickDto dto);
 }
