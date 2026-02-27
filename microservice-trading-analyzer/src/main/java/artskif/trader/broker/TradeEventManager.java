@@ -16,7 +16,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -25,27 +24,27 @@ import java.util.concurrent.TimeUnit;
 
 @Startup
 @ApplicationScoped
-public class BrokerManager implements TradeEventListener {
+public class TradeEventManager implements TradeEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(BrokerManager.class);
+    private static final Logger log = LoggerFactory.getLogger(TradeEventManager.class);
 
     private final TradeEventBus tradeEventBus;
     private final TradeEventRepository tradeEventRepository;
 
     // Внутренняя асинхронная шина событий
     private final BlockingQueue<Object> eventQueue = new ArrayBlockingQueue<>(1000);
-    private final ExecutorService eventProcessor;
+    private final ExecutorService threadProcessor;
     private final TradingExecutorService tradingExecutorService;
     private volatile boolean running = true;
 
     @Inject
-    public BrokerManager(TradeEventBus tradeEventBus,
-                        TradingExecutorService tradingExecutorService,
-                        TradeEventRepository tradeEventRepository) {
+    public TradeEventManager(TradeEventBus tradeEventBus,
+                             TradingExecutorService tradingExecutorService,
+                             TradeEventRepository tradeEventRepository) {
         this.tradeEventBus = tradeEventBus;
         this.tradingExecutorService = tradingExecutorService;
         this.tradeEventRepository = tradeEventRepository;
-        this.eventProcessor = Executors.newSingleThreadExecutor(r -> {
+        this.threadProcessor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "PositionManager-EventProcessor");
             t.setDaemon(false);
             return t;
@@ -59,7 +58,7 @@ public class BrokerManager implements TradeEventListener {
         tradeEventBus.subscribe(this);
 
         // Запускаем обработчик событий в отдельном потоке
-        eventProcessor.submit(this::processEvents);
+        threadProcessor.submit(this::processEvents);
 
         log.info("📡 PositionManager запущен и подписан на события");
     }
@@ -73,13 +72,13 @@ public class BrokerManager implements TradeEventListener {
         tradeEventBus.unsubscribe(this);
 
         // Останавливаем обработчик
-        eventProcessor.shutdown();
+        threadProcessor.shutdown();
         try {
-            if (!eventProcessor.awaitTermination(30, TimeUnit.SECONDS)) {
-                eventProcessor.shutdownNow();
+            if (!threadProcessor.awaitTermination(30, TimeUnit.SECONDS)) {
+                threadProcessor.shutdownNow();
             }
         } catch (InterruptedException e) {
-            eventProcessor.shutdownNow();
+            threadProcessor.shutdownNow();
             Thread.currentThread().interrupt();
         }
 
@@ -159,7 +158,7 @@ public class BrokerManager implements TradeEventListener {
         // Выполняем торговые действия
         if (event.tradeEventData().direction() == Direction.SHORT) {
             log.info("📈 Получен сигнал на открытие ШОРТ позиции");
-            tradingExecutorService.placeSpotMarketSell(event.instrument(), BigDecimal.valueOf(10));
+            //tradingExecutorService.placeSpotMarketSell(event.instrument(), BigDecimal.valueOf(10));
         }
     }
 }
