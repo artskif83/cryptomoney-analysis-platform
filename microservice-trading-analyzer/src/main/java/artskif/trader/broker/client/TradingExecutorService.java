@@ -191,15 +191,20 @@ public class TradingExecutorService {
     }
 
     /**
-     * Отменить все ордера или конкретный ордер
-     * @param clOrdId опциональный идентификатор ордера для отмены конкретного ордера
+     * Отменить ордера по заданным критериям.
+     * @param ordId   опциональный биржевой идентификатор ордера
+     * @param clOrdId опциональный клиентский идентификатор ордера
      * @return результат операции отмены
      * @throws TradingExecutionException если произошла ошибка при отмене ордеров
      */
-    public String cancelOrders(String clOrdId) {
-        log.info("🔄 Отмена ордеров: {}", clOrdId != null ? "orderId=" + clOrdId : "всех ордеров");
+    public String cancelOrders(String ordId, String clOrdId) {
+        String desc = ordId != null && clOrdId != null ? "ordId=" + ordId + ", clOrdId=" + clOrdId
+                    : ordId != null   ? "ordId=" + ordId
+                    : clOrdId != null ? "clOrdId=" + clOrdId
+                    : "всех ордеров";
+        log.info("🔄 Отмена ордеров: {}", desc);
 
-        TradingResponse<String> response = executorClient.cancelOrders(clOrdId);
+        TradingResponse<String> response = executorClient.cancelOrders(ordId, clOrdId);
 
         if (!response.success()) {
             log.error("❌ Ошибка при отмене ордеров: {} - {}", response.errorCode(), response.errorMessage());

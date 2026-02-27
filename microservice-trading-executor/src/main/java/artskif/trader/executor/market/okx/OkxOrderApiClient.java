@@ -605,20 +605,30 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     }
 
     /**
-     * Отменяет все текущие ордера или конкретный ордер по его ID.
-     * @param clOrdId Опциональный идентификатор ордера для отмены конкретного ордера (может быть null для отмены всех ордеров)
+     * Отменяет ордера по заданным критериям.
+     * <ul>
+     *   <li>Оба null — отменяются все активные ордера</li>
+     *   <li>Только ordId не null — ищем ордер с совпадающим ordId</li>
+     *   <li>Только clOrdId не null — ищем ордер с совпадающим clOrdId</li>
+     *   <li>Оба не null — ищем ордер, у которого совпадают оба значения</li>
+     * </ul>
+     * @param ordId   Опциональный биржевой идентификатор ордера
+     * @param clOrdId Опциональный клиентский идентификатор ордера
      * @return true если отмена прошла успешно, false в противном случае
      */
     @Override
-    public boolean cancelOrders(String clOrdId) {
+    public boolean cancelOrders(String ordId, String clOrdId) {
         try {
-            // Если указан конкретный clOrdId, отменяем только этот ордер
-            if (clOrdId != null && !clOrdId.isEmpty()) {
-                return cancelOrderByClientId(clOrdId);
+            boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+            boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+
+            if (!hasOrdId && !hasClOrdId) {
+                // Оба null — отменяем все
+                return cancelAllPendingOrders();
             }
 
-            // Иначе отменяем все активные ордера
-            return cancelAllPendingOrders();
+            // Ищем нужный ордер среди активных
+            return cancelOrderByIds(ordId, clOrdId);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при отмене ордеров: {}", e.getMessage(), e);
@@ -627,53 +637,68 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     }
 
     /**
-     * Отменяет конкретный ордер по его client order ID.
-     * @param clOrdId Client order ID
-     * @return true если отмена прошла успешно, false в противном случае
+     * Отменяет конкретный ордер, найденный по ordId и/или clOrdId.
+     * Если передан только один из параметров, ищем совпадение по нему.
+     * Если переданы оба — оба должны совпасть с одним ордером.
      */
-    private boolean cancelOrderByClientId(String clOrdId) {
+    private boolean cancelOrderByIds(String ordId, String clOrdId) {
         try {
-            // Получаем список всех активных ордеров
+            boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+            boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+
             List<Map<String, Object>> pendingOrders = getPendingOrders();
 
-            // Ищем ордер с нужным clOrdId
             Map<String, Object> targetOrder = null;
             for (Map<String, Object> order : pendingOrders) {
+                String orderOrdId   = String.valueOf(order.getOrDefault("ordId",   ""));
                 String orderClOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
-                if (clOrdId.equals(orderClOrdId)) {
+
+                boolean ordIdMatch   = hasOrdId   && ordId.equals(orderOrdId);
+                boolean clOrdIdMatch = hasClOrdId && clOrdId.equals(orderClOrdId);
+
+                boolean matched;
+                if (hasOrdId && hasClOrdId) {
+                    // Оба должны совпасть
+                    matched = ordIdMatch && clOrdIdMatch;
+                } else {
+                    // Достаточно одного совпадения
+                    matched = ordIdMatch || clOrdIdMatch;
+                }
+
+                if (matched) {
                     targetOrder = order;
                     break;
                 }
             }
 
             if (targetOrder == null) {
-                log.warn("⚠️ Ордер с clOrdId {} не найден среди активных ордеров", clOrdId);
+                log.warn("⚠️ Ордер не найден среди активных: ordId={}, clOrdId={}", ordId, clOrdId);
                 return false;
             }
 
-            String ordId = String.valueOf(targetOrder.get("ordId"));
-            String instId = String.valueOf(targetOrder.get("instId"));
+            String foundOrdId   = String.valueOf(targetOrder.get("ordId"));
+            String foundInstId  = String.valueOf(targetOrder.get("instId"));
+            String foundClOrdId = String.valueOf(targetOrder.getOrDefault("clOrdId", ""));
 
-            log.info("🔍 Найден ордер для отмены: ordId={}, clOrdId={}, instId={}", ordId, clOrdId, instId);
+            log.info("🔍 Найден ордер для отмены: ordId={}, clOrdId={}, instId={}", foundOrdId, foundClOrdId, foundInstId);
 
-            // Отменяем ордер
             Map<String, Object> cancelBody = new LinkedHashMap<>();
-            cancelBody.put("instId", instId);
-            cancelBody.put("ordId", ordId);
+            cancelBody.put("instId", foundInstId);
+            cancelBody.put("ordId", foundOrdId);
 
             String requestBody = mapper.writeValueAsString(cancelBody);
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/cancel-order", requestBody);
 
             if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось отменить ордер с clOrdId {}. {}", clOrdId, getErrorMessage(response));
+                log.error("❌ Не удалось отменить ордер ordId={}, clOrdId={}. {}", foundOrdId, foundClOrdId, getErrorMessage(response));
                 return false;
             }
 
-            log.info("✅ Ордер с clOrdId {} успешно отменен", clOrdId);
+            log.info("✅ Ордер ordId={}, clOrdId={} успешно отменен", foundOrdId, foundClOrdId);
             return true;
 
         } catch (Exception e) {
-            log.error("❌ Ошибка при отмене ордера с clOrdId {}: {}", clOrdId, e.getMessage(), e);
+            log.error("❌ Ошибка при отмене ордера ordId={}, clOrdId={}: {}", ordId, clOrdId, e.getMessage(), e);
             return false;
         }
     }

@@ -144,14 +144,20 @@ public final class OrderManagerService {
     }
 
     /**
-     * Отменяет все текущие ордера или конкретный ордер по его ID
-     * @param clOrdId Опциональный идентификатор ордера для отмены конкретного ордера (может быть null для отмены всех ордеров)
+     * Отменяет ордера по заданным критериям.
+     * @param ordId   Опциональный биржевой идентификатор ордера (ordId)
+     * @param clOrdId Опциональный клиентский идентификатор ордера (clOrdId)
      * @return true если отмена прошла успешно, false в противном случае
      */
-    public boolean cancelOrders(String clOrdId) {
+    public boolean cancelOrders(String ordId, String clOrdId) {
         try {
-            log.debug("🔄 Отмена ордеров" + (clOrdId != null ? " с clOrdId: " + clOrdId : " (все активные)"));
-            return exchange.cancelOrders(clOrdId);
+            String desc = ordId != null && clOrdId != null
+                    ? "ordId=" + ordId + " и clOrdId=" + clOrdId
+                    : ordId != null ? "ordId=" + ordId
+                    : clOrdId != null ? "clOrdId=" + clOrdId
+                    : "всех активных";
+            log.debug("🔄 Отмена ордеров ({})", desc);
+            return exchange.cancelOrders(ordId, clOrdId);
         } catch (Exception e) {
             log.error("❌ Ошибка при отмене ордеров: {}", e.getMessage(), e);
             return false;

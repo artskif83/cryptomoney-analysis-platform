@@ -225,29 +225,36 @@ public class TradingController implements TradingExecutorApi {
     }
 
     /**
-     * Отменяет все текущие ордера или конкретный ордер по его ID
-     * @param clOrdId Опциональный параметр идентификатора ордера для отмены конкретного ордера
+     * Отменяет ордера по заданным критериям.
+     * @param ordId   Опциональный биржевой идентификатор ордера
+     * @param clOrdId Опциональный клиентский идентификатор ордера
      * @return Результат операции отмены
      */
     @DeleteMapping("/orders/cancel")
     public TradingResponse<String> cancelOrders(
+            @RequestParam(value = "ordId",   required = false) String ordId,
             @RequestParam(value = "clOrdId", required = false) String clOrdId) {
-        log.info("📥 Получен запрос на отмену ордеров" +
-                (clOrdId != null ? " с clOrdId: " + clOrdId : " (все активные)"));
+        boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+        boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+        String desc = hasOrdId && hasClOrdId ? "ordId=" + ordId + " и clOrdId=" + clOrdId
+                    : hasOrdId   ? "ordId=" + ordId
+                    : hasClOrdId ? "clOrdId=" + clOrdId
+                    : "все активные";
+        log.info("📥 Получен запрос на отмену ордеров ({})", desc);
 
         try {
-            boolean success = orderManagerService.cancelOrders(clOrdId);
+            boolean success = orderManagerService.cancelOrders(ordId, clOrdId);
 
             if (success) {
-                String message = clOrdId != null
-                        ? "Ордер с ID " + clOrdId + " успешно отменен"
-                        : "Все ордера успешно отменены";
+                String message = (!hasOrdId && !hasClOrdId)
+                        ? "Все ордера успешно отменены"
+                        : "Ордер (" + desc + ") успешно отменен";
                 log.info("✅ Отмена ордеров выполнена: {}", message);
                 return TradingResponse.success(message);
             } else {
-                String message = clOrdId != null
-                        ? "Не удалось отменить ордер с ID " + clOrdId
-                        : "Не удалось отменить все ордера";
+                String message = (!hasOrdId && !hasClOrdId)
+                        ? "Не удалось отменить все ордера"
+                        : "Не удалось отменить ордер (" + desc + ")";
                 log.error("❌ Ошибка при отмене ордеров: {}", message);
                 return TradingResponse.error("ORDER_CANCELLATION_FAILED", message);
             }

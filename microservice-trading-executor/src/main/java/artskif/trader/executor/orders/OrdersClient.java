@@ -67,11 +67,18 @@ public interface OrdersClient {
     java.util.List<java.util.Map<String, Object>> getPendingLimitSwapOrders(String instId);
 
     /**
-     * Отменяет все текущие ордера или конкретный ордер по его ID
-     * @param clOrdId Опциональный идентификатор ордера для отмены конкретного ордера (может быть null для отмены всех ордеров)
+     * Отменяет все текущие ордера или конкретный ордер по его ID.
+     * <ul>
+     *   <li>Оба null — отменяются все активные ордера</li>
+     *   <li>Только ordId не null — отменяется ордер по ordId</li>
+     *   <li>Только clOrdId не null — отменяется ордер по clOrdId</li>
+     *   <li>Оба не null — отменяется ордер, у которого совпадают оба значения</li>
+     * </ul>
+     * @param ordId   Опциональный биржевой идентификатор ордера (ordId)
+     * @param clOrdId Опциональный клиентский идентификатор ордера (clOrdId)
      * @return true если отмена прошла успешно, false в противном случае
      */
-    boolean cancelOrders(String clOrdId);
+    boolean cancelOrders(String ordId, String clOrdId);
 
     /**
      * Получает список всех открытых позиций

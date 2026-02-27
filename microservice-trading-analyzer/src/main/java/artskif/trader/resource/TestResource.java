@@ -635,19 +635,26 @@ public class TestResource {
     /**
      * Тестовый endpoint для отмены ордеров
      *
-     * @param clOrdId опциональный идентификатор ордера для отмены конкретного ордера
+     * @param ordId   опциональный биржевой идентификатор ордера
+     * @param clOrdId опциональный клиентский идентификатор ордера
      * @return результат операции отмены
      */
     @DELETE
     @Path("/orders/cancel")
     public Response testCancelOrders(
+            @QueryParam("ordId")   String ordId,
             @QueryParam("clOrdId") String clOrdId
     ) {
         try {
-            Log.infof("🧪 Тестовый запрос на отмену ордеров: %s",
-                    clOrdId != null ? "orderId=" + clOrdId : "всех ордеров");
+            boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+            boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+            String desc = hasOrdId && hasClOrdId ? "ordId=" + ordId + ", clOrdId=" + clOrdId
+                        : hasOrdId   ? "ordId=" + ordId
+                        : hasClOrdId ? "clOrdId=" + clOrdId
+                        : "всех ордеров";
+            Log.infof("🧪 Тестовый запрос на отмену ордеров: %s", desc);
 
-            String result = tradingExecutorService.cancelOrders(clOrdId);
+            String result = tradingExecutorService.cancelOrders(ordId, clOrdId);
 
             Log.infof("✅ Ордера отменены: %s", result);
 

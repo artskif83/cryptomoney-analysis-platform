@@ -83,13 +83,14 @@ public interface TradingExecutorApi {
     TradingResponse<List<Map<String, Object>>> getPendingOrders(@QueryParam("instId") String instId);
 
     /**
-     * Отменяет все текущие ордера или конкретный ордер по его ID
-     * @param clOrdId Опциональный параметр идентификатора ордера для отмены конкретного ордера
+     * Отменяет ордера по заданным критериям.
+     * @param ordId   Опциональный биржевой идентификатор ордера
+     * @param clOrdId Опциональный клиентский идентификатор ордера
      * @return Результат операции отмены
      */
     @DELETE
     @Path("/orders/cancel")
-    TradingResponse<String> cancelOrders(@QueryParam("clOrdId") String clOrdId);
+    TradingResponse<String> cancelOrders(@QueryParam("ordId") String ordId, @QueryParam("clOrdId") String clOrdId);
 
     /**
      * Получает список всех открытых позиций
