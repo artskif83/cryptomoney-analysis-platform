@@ -127,7 +127,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при размещении ордера
      */
     public OrderExecutionResult placeFuturesLimitLong(FuturesLimitOrderRequest request) {
-        log.info("🔄 Размещение лимитного лонг-ордера: {}, цена: {}, размер: {} USDT",
+        log.debug("🔄 Размещение лимитного лонг-ордера: {}, цена: {}, размер: {} USDT",
                 request.instrument(), request.limitPrice(), request.positionSizeUsdt());
 
         TradingResponse<OrderExecutionResult> response = executorClient.placeFuturesLimitLong(request);
@@ -151,7 +151,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при размещении ордера
      */
     public OrderExecutionResult placeFuturesLimitShort(FuturesLimitOrderRequest request) {
-        log.info("🔄 Размещение лимитного шорт-ордера: {}, цена: {}, размер: {} USDT",
+        log.debug("🔄 Размещение лимитного шорт-ордера: {}, цена: {}, размер: {} USDT",
                 request.instrument(), request.limitPrice(), request.positionSizeUsdt());
 
         TradingResponse<OrderExecutionResult> response = executorClient.placeFuturesLimitShort(request);
@@ -175,7 +175,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при получении ордеров
      */
     public List<Map<String, Object>> getPendingOrders(String instId) {
-        log.info("🔄 Запрос списка активных ордеров для: {}", instId != null ? instId : "всех инструментов");
+        log.debug("🔄 Запрос списка активных ордеров для: {}", instId != null ? instId : "всех инструментов");
 
         TradingResponse<List<Map<String, Object>>> response = executorClient.getPendingOrders(instId);
 

@@ -6,6 +6,7 @@ import artskif.trader.broker.AbstractTradeEventManager;
 import artskif.trader.broker.AccountStateMonitor;
 import artskif.trader.broker.BrokerConfig;
 import artskif.trader.broker.client.TradingExecutorService;
+import artskif.trader.entity.PendingOrder;
 import artskif.trader.entity.TradeEventEntity;
 import artskif.trader.events.trade.TradeEvent;
 import artskif.trader.events.trade.TradeEventBus;
@@ -45,7 +46,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
     @Override
     protected void handleTradeEvent(TradeEvent event) {
-        log.info("🔄 Обработка TradeEvent: {}", event);
+        log.debug("🔄 Обработка TradeEvent: {}", event);
 
         try {
             // Сохраняем событие в БД
@@ -63,7 +64,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             );
 
             tradeEventRepository.save(entity);
-            log.info("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
+            log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
@@ -71,33 +72,43 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         // Выполняем торговые действия
-        List<Position> positions = accountStateMonitor.getCurrentSnapshot().getPositions();
         Direction direction = event.tradeEventData().direction();
         if (direction == Direction.SHORT || direction == Direction.LONG) {
-            openPosition(event, positions, direction);
+            openPosition(event, direction);
         }
     }
 
     /**
      * Закрывает противоположную позицию (если есть) и открывает новую в заданном направлении.
      */
-    private void openPosition(TradeEvent event, List<Position> positions, Direction direction) {
+    private void openPosition(TradeEvent event, Direction direction) {
         boolean isShort = direction == Direction.SHORT;
         String dirLabel = isShort ? "ШОРТ" : "ЛОНГ";
         String oppositeLabel = isShort ? "ЛОНГ" : "ШОРТ";
 
-        log.info("📈 Получен сигнал на открытие {} позиции", dirLabel);
+        log.debug("📈 Получен сигнал на открытие {} позиции", dirLabel);
 
-        boolean hasOpposite = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
-        boolean hasSame     = isShort ? hasShortPosition(positions) : hasLongPosition(positions);
+        var snapshot = accountStateMonitor.getCurrentSnapshot();
+        if (snapshot == null) {
+            log.warn("⚠️ Снимок состояния аккаунта недоступен, пропускаем обработку сигнала");
+            return;
+        }
 
-        if (hasOpposite) {
-            log.info("📊 Есть открытая {} позиция", oppositeLabel);
+        List<PendingOrder> pendingOrders = snapshot.getPendingOrders();
+        List<Position> positions = snapshot.getPositions();
+
+        boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
+        boolean hasSamePosition     = isShort ? hasShortPosition(positions) : hasLongPosition(positions);
+
+        boolean hasSameOrder     = isShort ? hasShortOrder(pendingOrders) : hasLongOrder(pendingOrders);
+
+        if (hasOppositePosition) {
+            log.debug("📊 Есть открытая {} позиция", oppositeLabel);
             tradingExecutorService.closeAllPositions(event.instrument());
         }
 
-        if (!hasSame) {
-            log.info("📊 Нет открытых {} позиций, открываем новую", dirLabel);
+        if (!hasSamePosition && !hasSameOrder) {
+            log.debug("📊 Нет открытых {} позиций и ордеров, открываем новую", dirLabel);
             FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
                     event.instrument(),
                     event.tradeEventData().eventPrice(),
@@ -110,6 +121,8 @@ public class TradeEventManager extends AbstractTradeEventManager {
             } else {
                 tradingExecutorService.placeFuturesLimitLong(request);
             }
+        } else {
+            log.debug("📊 Уже есть открытая {} позиция или ордер, не открываем новую", dirLabel);
         }
     }
 
@@ -170,6 +183,34 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
         return positions.stream()
                 .anyMatch(p -> "short".equalsIgnoreCase(p.posSide));
+    }
+
+    /**
+     * Проверяет, есть ли хотя бы один открытый ШОРТ ордер.
+     *
+     * @param pendingOrders список текущих ожидающих ордеров
+     * @return true, если среди ордеров есть хотя бы один в шорт
+     */
+    private boolean hasShortOrder(List<PendingOrder> pendingOrders) {
+        if (pendingOrders == null || pendingOrders.isEmpty()) {
+            return false;
+        }
+        return pendingOrders.stream()
+                .anyMatch(o -> "short".equalsIgnoreCase(o.posSide));
+    }
+
+    /**
+     * Проверяет, есть ли хотя бы один открытый ЛОНГ ордер.
+     *
+     * @param pendingOrders список текущих ожидающих ордеров
+     * @return true, если среди ордеров есть хотя бы один в лонг
+     */
+    private boolean hasLongOrder(List<PendingOrder> pendingOrders) {
+        if (pendingOrders == null || pendingOrders.isEmpty()) {
+            return false;
+        }
+        return pendingOrders.stream()
+                .anyMatch(o -> "long".equalsIgnoreCase(o.posSide));
     }
 }
 

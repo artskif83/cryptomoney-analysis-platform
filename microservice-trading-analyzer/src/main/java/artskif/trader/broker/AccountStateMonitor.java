@@ -51,6 +51,7 @@ public class AccountStateMonitor {
 
     /**
      * Получить последний снимок состояния аккаунта
+     *
      * @return последний снимок состояния или null, если данные еще не собраны
      */
     public AccountStateSnapshot getCurrentSnapshot() {
@@ -58,9 +59,9 @@ public class AccountStateMonitor {
     }
 
     /**
-     * Метод вызывается каждую минуту для сбора данных о состоянии аккаунта
+     * Метод вызывается для сбора данных о состоянии аккаунта
      */
-    @Scheduled(delay = 1, delayUnit = TimeUnit.SECONDS, every = "60s")
+    @Scheduled(delay = 1, delayUnit = TimeUnit.SECONDS, every = "15s")
     void collectAccountState() {
         log.info("📊 Начинается сбор данных о состоянии аккаунта...");
 
@@ -112,18 +113,18 @@ public class AccountStateMonitor {
      */
     private void savePendingOrders(List<PendingOrder> orders) {
         try {
+            if (orders.isEmpty()) {
+                return;
+            }
             // Получаем список текущих ordId для синхронизации
             List<String> currentOrdIds = orders.stream()
                     .map(order -> order.ordId)
                     .collect(Collectors.toList());
 
             // Сохраняем или обновляем ордера
-            if (!orders.isEmpty()) {
-                pendingOrderRepository.saveAll(orders);
-                log.debug("✅ Обработано активных ордеров: {}", orders.size());
-            } else {
-                log.debug("📭 Активных ордеров нет");
-            }
+            pendingOrderRepository.saveAll(orders);
+            log.debug("✅ Обработано активных ордеров: {}", orders.size());
+
 
             // Помечаем как CLOSED ордера, которых нет в текущем списке
             pendingOrderRepository.markAsClosedNotIn(currentOrdIds);
@@ -139,16 +140,15 @@ public class AccountStateMonitor {
      */
     private void savePositions(List<Position> positions) {
         try {
+            if (positions.isEmpty()) {
+                return;
+            }
             List<String> currentPosIds = positions.stream()
                     .map(p -> p.posId)
-                    .collect(Collectors.toList());
+                    .toList();
+            positionRepository.saveAll(positions);
+            log.debug("✅ Обработано открытых позиций: {}", positions.size());
 
-            if (!positions.isEmpty()) {
-                positionRepository.saveAll(positions);
-                log.debug("✅ Обработано открытых позиций: {}", positions.size());
-            } else {
-                log.debug("📭 Открытых позиций нет");
-            }
 
             positionRepository.markAsClosedNotIn(currentPosIds);
         } catch (Exception e) {
