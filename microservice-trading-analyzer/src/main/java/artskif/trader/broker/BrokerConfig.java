@@ -14,10 +14,10 @@ public class BrokerConfig {
 
     /**
      * Расстояние до ордера (в процентах), при котором ордер может быть отменён.
-     * По умолчанию: 1%
+     * По умолчанию: 0.3%
      */
     @Inject
-    @ConfigProperty(name = "broker.order-cancel-distance-percent", defaultValue = "1.0")
+    @ConfigProperty(name = "broker.order-cancel-distance-percent", defaultValue = "0.3")
     double orderCancelDistancePercent;
 
     /**

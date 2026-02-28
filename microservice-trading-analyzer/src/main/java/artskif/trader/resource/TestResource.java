@@ -162,7 +162,7 @@ public class TestResource {
     @Path("/trade-event")
     public Response testTradeEvent(
             @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
-            @QueryParam("type") @DefaultValue("BREAKOUT") String type,
+            @QueryParam("type") @DefaultValue("GOLDEN_FIELD") String type,
             @QueryParam("direction") @DefaultValue("LONG") String direction,
             @QueryParam("timeframe") @DefaultValue("5m") String timeframe,
             @QueryParam("tag") @DefaultValue("test-strategy") String tag,
@@ -224,7 +224,7 @@ public class TestResource {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of(
                             "status", "error",
-                            "message", "Неверные параметры. Доступные значения: type=[PULLBACK,BREAKOUT,FALSE_BREAKOUT,EVENT_CANCELLED], direction=[LONG,SHORT], timeframe=[1m,5m,15m,1h,4h,1d,1w]",
+                            "message", "Неверные параметры. Доступные значения: direction=[LONG,SHORT], timeframe=[CANDLE_1M,CANDLE_5M...]",
                             "type", type,
                             "direction", direction,
                             "timeframe", timeframe
@@ -777,7 +777,6 @@ public class TestResource {
                     .entity(Map.of(
                             "status", "success",
                             "timestamp", snapshot.getTimestamp().toString(),
-                            "usdtBalance", snapshot.getUsdtBalance(),
                             "pendingOrders", snapshot.getPendingOrders(),
                             "positions", snapshot.getPositions()
                     ))
@@ -813,7 +812,6 @@ public class TestResource {
                             "status", "success",
                             "message", "Снимок состояния аккаунта успешно обновлен",
                             "timestamp", snapshot.getTimestamp().toString(),
-                            "usdtBalance", snapshot.getUsdtBalance(),
                             "pendingOrdersCount", snapshot.getPendingOrders().size(),
                             "positionsCount", snapshot.getPositions().size()
                     ))

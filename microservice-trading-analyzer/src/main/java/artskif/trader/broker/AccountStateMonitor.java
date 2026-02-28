@@ -65,10 +65,6 @@ public class AccountStateMonitor {
         log.info("📊 Начинается сбор данных о состоянии аккаунта...");
 
         try {
-            // Получаем баланс USDT
-            BigDecimal balance = tradingExecutorService.getUsdtBalance();
-            log.debug("💰 Баланс USDT: {}", balance);
-
             // Получаем список всех активных ордеров (null означает все инструменты)
             List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingOrders(null);
             log.debug("📋 Количество активных ордеров: {}", pendingOrdersData.size());
@@ -96,7 +92,6 @@ public class AccountStateMonitor {
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
                     Instant.now(),
-                    balance,
                     pendingOrders,
                     positions
             );
