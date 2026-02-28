@@ -9,6 +9,7 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+@NoArgsConstructor(force = true)
 public abstract class AbstractOrdersManager implements CandleEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractOrdersManager.class);
@@ -29,13 +31,6 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
     private final BlockingQueue<CandleEvent> eventQueue = new ArrayBlockingQueue<>(1000);
     private final ExecutorService threadProcessor;
     private volatile boolean running = true;
-
-    // Требуется для CDI-прокси дочерних классов
-    protected AbstractOrdersManager() {
-        this.candleEventBus = null;
-        this.threadProcessor = null;
-        this.brokerConfig = null;
-    }
 
     @Inject
     public AbstractOrdersManager(CandleEventBus candleEventBus, BrokerConfig brokerConfig) {
