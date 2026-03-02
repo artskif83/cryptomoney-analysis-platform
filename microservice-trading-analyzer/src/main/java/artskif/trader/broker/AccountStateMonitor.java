@@ -14,7 +14,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,7 @@ public class AccountStateMonitor {
 
         try {
             // Получаем список всех активных ордеров (null означает все инструменты)
-            List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingOrders(null);
+            List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingOrders("BTC-USDT");
             log.debug("📋 Количество активных ордеров: {}", pendingOrdersData.size());
 
             // Преобразуем в Entity
@@ -79,7 +78,7 @@ public class AccountStateMonitor {
             savePendingOrders(pendingOrders);
 
             // Получаем список всех открытых позиций (null означает все инструменты)
-            List<Map<String, Object>> positionsData = tradingExecutorService.getPositions(null);
+            List<Map<String, Object>> positionsData = tradingExecutorService.getPositions("BTC-USDT");
             log.debug("📈 Количество открытых позиций: {}", positionsData.size());
 
             // Преобразуем в Entity
@@ -90,11 +89,24 @@ public class AccountStateMonitor {
             // Сохраняем позиции в БД
             savePositions(positions);
 
+            // Вычисляем Unix timestamp 24 часа назад в миллисекундах
+            String before24h = String.valueOf(Instant.now().minusSeconds(24 * 60 * 60).toEpochMilli());
+
+            // Получаем историю позиций за последние 24 часа
+            List<Map<String, Object>> positionsHistoryData = tradingExecutorService.getPositionsHistory("BTC-USDT", before24h);
+            log.debug("📜 Количество записей истории позиций за 24 часа: {}", positionsHistoryData.size());
+
+            // Преобразуем историю позиций в Entity
+            List<Position> positionsHistory = positionsHistoryData.stream()
+                    .map(positionMapper::mapToEntity)
+                    .collect(Collectors.toList());
+
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
                     Instant.now(),
                     pendingOrders,
-                    positions
+                    positions,
+                    positionsHistory
             );
 
             // Сохраняем снимок

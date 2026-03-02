@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public final class AccountManagerService {
@@ -30,6 +32,18 @@ public final class AccountManagerService {
             log.error("❌ Не удалось получить баланс USDT");
         }
         return balance;
+    }
+
+    /**
+     * Получает историю закрытых SWAP позиций по инструменту.
+     *
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP"), может быть null
+     * @param before Unix timestamp в миллисекундах (строка), может быть null
+     * @return Список записей истории позиций или null в случае ошибки
+     */
+    public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
+        log.debug("📋 Запрос истории позиций: instId={}, before={}", instId, before);
+        return accountClient.getPositionsHistory(instId, before);
     }
 }
 

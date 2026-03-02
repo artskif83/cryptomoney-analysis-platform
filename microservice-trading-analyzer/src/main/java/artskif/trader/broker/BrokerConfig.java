@@ -38,12 +38,20 @@ public class BrokerConfig {
     Duration betInterval;
 
     /**
-     * Максимальное количество убыточных ставок в день.
+     * Минимальное количество минут ожидания перед открытием следующей позиции.
+     * По умолчанию: 60 минут
+     */
+    @Inject
+    @ConfigProperty(name = "broker.minutes-between-positions", defaultValue = "60")
+    int minutesBetweenPositions;
+
+    /**
+     * Максимальное количество позиций, которые можно открыть за последние 24 часа.
      * По умолчанию: 5
      */
     @Inject
-    @ConfigProperty(name = "broker.max-losing-bets-per-day", defaultValue = "5")
-    int maxLosingBetsPerDay;
+    @ConfigProperty(name = "broker.max-positions-per-day", defaultValue = "5")
+    int maxPositionsPerDay;
 
     public double getOrderCancelDistancePercent() {
         return orderCancelDistancePercent;
@@ -57,7 +65,11 @@ public class BrokerConfig {
         return betInterval;
     }
 
-    public int getMaxLosingBetsPerDay() {
-        return maxLosingBetsPerDay;
+    public int getMinutesBetweenPositions() {
+        return minutesBetweenPositions;
+    }
+
+    public int getMaxPositionsPerDay() {
+        return maxPositionsPerDay;
     }
 }

@@ -109,4 +109,16 @@ public interface TradingExecutorClient {
     @POST
     @Path("/positions/close")
     TradingResponse<String> closeAllPositions(@QueryParam("instId") String instId);
+
+    /**
+     * Получает историю закрытых SWAP позиций.
+     * @param instId Опциональный идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @param before Опциональный Unix timestamp в мс — возвращать записи позже этого момента
+     * @return Список записей истории позиций или ошибка
+     */
+    @GET
+    @Path("/positions/history")
+    TradingResponse<List<Map<String, Object>>> getPositionsHistory(
+            @QueryParam("instId") String instId,
+            @QueryParam("before") String before);
 }

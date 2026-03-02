@@ -318,6 +318,34 @@ public class TradingController implements TradingExecutorApi {
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
         }
     }
+
+    /**
+     * Получает историю закрытых SWAP позиций
+     * @param instId Опциональный идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @param before Опциональный Unix timestamp в мс — возвращать записи позже этого момента
+     * @return Список записей истории позиций
+     */
+    @GetMapping("/positions/history")
+    public TradingResponse<List<Map<String, Object>>> getPositionsHistory(
+            @RequestParam(value = "instId", required = false) String instId,
+            @RequestParam(value = "before", required = false) String before) {
+        log.info("📥 Получен запрос на историю позиций: instId={}, before={}", instId, before);
+
+        try {
+            List<Map<String, Object>> history = accountManagerService.getPositionsHistory(instId, before);
+
+            if (history != null) {
+                log.info("✅ История позиций получена: {} записей", history.size());
+                return TradingResponse.success(history);
+            } else {
+                log.error("❌ Не удалось получить историю позиций");
+                return TradingResponse.error("POSITIONS_HISTORY_FAILED", "Не удалось получить историю позиций");
+            }
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении истории позиций: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
 }
 
 

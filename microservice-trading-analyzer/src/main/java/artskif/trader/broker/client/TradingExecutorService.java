@@ -260,5 +260,28 @@ public class TradingExecutorService {
 
         return result;
     }
+
+    /**
+     * Получить историю закрытых SWAP позиций
+     * @param instId опциональный идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @param before опциональный Unix timestamp в мс — возвращать записи позже этого момента
+     * @return список записей истории позиций
+     * @throws TradingExecutionException если произошла ошибка при получении истории
+     */
+    public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
+        log.info("🔄 Запрос истории позиций: instId={}, before={}", instId, before);
+
+        TradingResponse<List<Map<String, Object>>> response = executorClient.getPositionsHistory(instId, before);
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при получении истории позиций: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        List<Map<String, Object>> history = response.result();
+        log.info("✅ История позиций получена: {} записей", history.size());
+
+        return history;
+    }
 }
 
