@@ -32,54 +32,41 @@ public class OkxAccountApiClient extends OkxApiClient implements AccountClient {
     }
 
     @Override
-    public BigDecimal getUsdtBalance() {
+    public BigDecimal getUsdtBalance() throws Exception {
         return getCurrencyBalance("USDT");
     }
 
     @Override
-    public BigDecimal getCurrencyBalance(String currency) {
-        try {
-            // Запрос баланса по API OKX: /api/v5/account/balance
-            String endpoint = "/api/v5/account/balance";
-            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+    public BigDecimal getCurrencyBalance(String currency) throws Exception {
+        String endpoint = "/api/v5/account/balance";
+        Map<String, Object> response = executeRestRequest("GET", endpoint, null);
 
-            // Проверяем код ответа
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось получить баланс аккаунта. {}", getErrorMessage(response));
-                return null;
-            }
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить баланс аккаунта. " + getErrorMessage(response));
+        }
 
-            // Извлекаем данные о балансе
-            if (response.containsKey("data") && response.get("data") instanceof List<?> dataList && !dataList.isEmpty()) {
-                Object first = dataList.getFirst();
-                if (first instanceof Map<?, ?> accountData) {
-                    // Получаем список балансов по валютам
-                    Object detailsObj = accountData.get("details");
-                    if (detailsObj instanceof List<?> details) {
-                        for (Object detailObj : details) {
-                            if (detailObj instanceof Map<?, ?> detail) {
-                                String ccy = String.valueOf(detail.get("ccy"));
-                                if (currency.equals(ccy)) {
-                                    // availBal - доступный баланс для торговли
-                                    BigDecimal availBalance = parseBigDec(detail.get("availBal"));
-                                    if (availBalance != null) {
-                                        log.info("💰 Доступный баланс {}: {}", currency, availBalance);
-                                        return availBalance;
-                                    }
+        if (response.containsKey("data") && response.get("data") instanceof List<?> dataList && !dataList.isEmpty()) {
+            Object first = dataList.getFirst();
+            if (first instanceof Map<?, ?> accountData) {
+                Object detailsObj = accountData.get("details");
+                if (detailsObj instanceof List<?> details) {
+                    for (Object detailObj : details) {
+                        if (detailObj instanceof Map<?, ?> detail) {
+                            String ccy = String.valueOf(detail.get("ccy"));
+                            if (currency.equals(ccy)) {
+                                BigDecimal availBalance = parseBigDec(detail.get("availBal"));
+                                if (availBalance != null) {
+                                    log.info("💰 Доступный баланс {}: {}", currency, availBalance);
+                                    return availBalance;
                                 }
                             }
                         }
                     }
                 }
             }
+        }
 
         log.warn("⚠️ {} баланс не найден в ответе API", currency);
         return BigDecimal.ZERO;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении баланса {}: {}", currency, e.getMessage(), e);
-            return null;
-        }
     }
 }
-

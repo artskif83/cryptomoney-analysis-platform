@@ -23,16 +23,11 @@ public final class AccountManagerService {
 
     /**
      * Получает доступный баланс USDT на торговом аккаунте
-     * @return Баланс USDT или null в случае ошибки
+     * @return Баланс USDT
      */
-    public BigDecimal getUsdtBalance() {
+    public BigDecimal getUsdtBalance() throws Exception {
         log.debug("💰 Запрос баланса USDT");
         BigDecimal balance = accountClient.getUsdtBalance();
-        if (balance != null) {
-            log.info("💰 Текущий баланс USDT: {}", balance);
-        } else {
-            log.error("❌ Не удалось получить баланс USDT");
-        }
         return balance;
     }
 
@@ -41,11 +36,10 @@ public final class AccountManagerService {
      *
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP"), может быть null
      * @param before Unix timestamp в миллисекундах (строка), может быть null
-     * @return Список записей истории позиций или null в случае ошибки
+     * @return Список записей истории позиций
      */
-    public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
+    public List<Map<String, Object>> getPositionsHistory(String instId, String before) throws Exception {
         log.debug("📋 Запрос истории позиций: instId={}, before={}", instId, before);
         return ordersClient.getPositionsHistory(instId, before);
     }
 }
-

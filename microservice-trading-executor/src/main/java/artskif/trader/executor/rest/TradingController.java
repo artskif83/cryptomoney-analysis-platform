@@ -91,14 +91,8 @@ public class TradingController implements TradingExecutorApi {
 
         try {
             BigDecimal balance = accountManagerService.getUsdtBalance();
-
-            if (balance != null) {
-                log.info("✅ Баланс USDT: {}", balance);
-                return TradingResponse.success(balance);
-            } else {
-                log.error("❌ Не удалось получить баланс USDT");
-                return TradingResponse.error("BALANCE_RETRIEVAL_FAILED", "Не удалось получить баланс USDT");
-            }
+            log.info("✅ Возвращаем баланс USDT: {}", balance);
+            return TradingResponse.success(balance);
         } catch (Exception e) {
             log.error("❌ Ошибка при получении баланса USDT: {}", e.getMessage(), e);
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
@@ -113,14 +107,8 @@ public class TradingController implements TradingExecutorApi {
         try {
             Symbol symbol = Symbol.fromInstrument(instrument);
             BigDecimal price = orderManagerService.getCurrentPrice(symbol);
-
-            if (price != null) {
-                log.info("✅ Текущая цена {} = {}", symbol.asPair(), price);
-                return TradingResponse.success(price);
-            } else {
-                log.error("❌ Не удалось получить текущую цену для {}", instrument);
-                return TradingResponse.error("PRICE_RETRIEVAL_FAILED", "Не удалось получить текущую цену для " + instrument);
-            }
+            log.info("✅ Текущая цена {} = {}", symbol.asPair(), price);
+            return TradingResponse.success(price);
         } catch (IllegalArgumentException e) {
             log.error("❌ Неверный формат инструмента: {}", instrument);
             return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
@@ -333,14 +321,8 @@ public class TradingController implements TradingExecutorApi {
 
         try {
             List<Map<String, Object>> history = accountManagerService.getPositionsHistory(instId, before);
-
-            if (history != null) {
-                log.info("✅ История позиций получена: {} записей", history.size());
-                return TradingResponse.success(history);
-            } else {
-                log.error("❌ Не удалось получить историю позиций");
-                return TradingResponse.error("POSITIONS_HISTORY_FAILED", "Не удалось получить историю позиций");
-            }
+            log.info("✅ История позиций получена: {} записей", history.size());
+            return TradingResponse.success(history);
         } catch (Exception e) {
             log.error("❌ Ошибка при получении истории позиций: {}", e.getMessage(), e);
             return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());

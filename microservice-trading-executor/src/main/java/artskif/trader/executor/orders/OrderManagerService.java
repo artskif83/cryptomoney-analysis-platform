@@ -25,7 +25,7 @@ public final class OrderManagerService {
         this.exchange = exchange;
     }
 
-    public OperationResult executeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OperationResult executeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
@@ -33,15 +33,12 @@ public final class OrderManagerService {
                     symbol.asPair(), symbol.quote(), percentOfDeposit);
             OrderExecutionResult result = exchange.placeSpotMarketBuy(symbol, percentOfDeposit);
             return OperationResult.success(result);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при выполнении покупки: {}", e.getMessage(), e);
-            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }
     }
 
-    public OperationResult executeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OperationResult executeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
@@ -49,9 +46,6 @@ public final class OrderManagerService {
                     symbol.asPair(), symbol.base(), percentOfDeposit);
             OrderExecutionResult result = exchange.placeSpotMarketSell(symbol, percentOfDeposit);
             return OperationResult.success(result);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при выполнении продажи: {}", e.getMessage(), e);
-            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -60,16 +54,11 @@ public final class OrderManagerService {
     /**
      * Получает текущую цену символа в квотируемой валюте
      * @param symbol Торговая пара
-     * @return Текущая цена или null в случае ошибки
+     * @return Текущая цена
      */
-    public BigDecimal getCurrentPrice(Symbol symbol) {
-        try {
-            log.debug("💹 Получение текущей цены для: {}", symbol.asPair());
-            return exchange.getCurrentPrice(symbol);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении цены: {}", e.getMessage(), e);
-            return null;
-        }
+    public BigDecimal getCurrentPrice(Symbol symbol) throws Exception {
+        log.debug("💹 Получение текущей цены для: {}", symbol.asPair());
+        return exchange.getCurrentPrice(symbol);
     }
 
     /**
@@ -83,7 +72,7 @@ public final class OrderManagerService {
      */
     public OperationResult executeFuturesLimitLong(Symbol symbol, BigDecimal limitPrice,
                                                    BigDecimal positionSizeUsdt,
-                                                   BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+                                                   BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
@@ -92,9 +81,6 @@ public final class OrderManagerService {
             OrderExecutionResult result = exchange.placeFuturesLimitLong(
                     symbol, limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
             return OperationResult.success(result);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при размещении фьючерсного лонг-ордера: {}", e.getMessage(), e);
-            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -111,7 +97,7 @@ public final class OrderManagerService {
      */
     public OperationResult executeFuturesLimitShort(Symbol symbol, BigDecimal limitPrice,
                                                     BigDecimal positionSizeUsdt,
-                                                    BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+                                                    BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
@@ -120,9 +106,6 @@ public final class OrderManagerService {
             OrderExecutionResult result = exchange.placeFuturesLimitShort(
                     symbol, limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
             return OperationResult.success(result);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при размещении фьючерсного шорт-ордера: {}", e.getMessage(), e);
-            return OperationResult.error("ORDER_EXECUTION_FAILED", e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -133,14 +116,9 @@ public final class OrderManagerService {
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех SWAP ордеров
      * @return Список активных SWAP ордеров
      */
-    public List<Map<String, Object>> getPendingOrders(String instId) {
-        try {
-            log.debug("📋 Получение списка активных SWAP ордеров" + (instId != null ? " для " + instId : ""));
-            return exchange.getPendingLimitSwapOrders(instId);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении списка активных SWAP ордеров: {}", e.getMessage(), e);
-            return List.of();
-        }
+    public List<Map<String, Object>> getPendingOrders(String instId) throws Exception {
+        log.debug("📋 Получение списка активных SWAP ордеров" + (instId != null ? " для " + instId : ""));
+        return exchange.getPendingLimitSwapOrders(instId);
     }
 
     /**
@@ -149,19 +127,14 @@ public final class OrderManagerService {
      * @param clOrdId Опциональный клиентский идентификатор ордера (clOrdId)
      * @return true если отмена прошла успешно, false в противном случае
      */
-    public boolean cancelOrders(String ordId, String clOrdId) {
-        try {
-            String desc = ordId != null && clOrdId != null
-                    ? "ordId=" + ordId + " и clOrdId=" + clOrdId
-                    : ordId != null ? "ordId=" + ordId
-                    : clOrdId != null ? "clOrdId=" + clOrdId
-                    : "всех активных";
-            log.debug("🔄 Отмена ордеров ({})", desc);
-            return exchange.cancelOrders(ordId, clOrdId);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при отмене ордеров: {}", e.getMessage(), e);
-            return false;
-        }
+    public boolean cancelOrders(String ordId, String clOrdId) throws Exception {
+        String desc = ordId != null && clOrdId != null
+                ? "ordId=" + ordId + " и clOrdId=" + clOrdId
+                : ordId != null ? "ordId=" + ordId
+                : clOrdId != null ? "clOrdId=" + clOrdId
+                : "всех активных";
+        log.debug("🔄 Отмена ордеров ({})", desc);
+        return exchange.cancelOrders(ordId, clOrdId);
     }
 
     /**
@@ -169,14 +142,9 @@ public final class OrderManagerService {
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех позиций
      * @return Список открытых позиций
      */
-    public List<Map<String, Object>> getPositions(String instId) {
-        try {
-            log.debug("📋 Получение списка открытых позиций" + (instId != null ? " для " + instId : ""));
-            return exchange.getPositions(instId);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении списка позиций: {}", e.getMessage(), e);
-            return List.of();
-        }
+    public List<Map<String, Object>> getPositions(String instId) throws Exception {
+        log.debug("📋 Получение списка открытых позиций" + (instId != null ? " для " + instId : ""));
+        return exchange.getPositions(instId);
     }
 
     /**
@@ -184,13 +152,8 @@ public final class OrderManagerService {
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для закрытия всех позиций
      * @return true если все позиции успешно закрыты, false в противном случае
      */
-    public boolean closeAllPositions(String instId) {
-        try {
-            log.debug("🔄 Закрытие позиций" + (instId != null ? " для " + instId : " (все открытые)"));
-            return exchange.closeAllPositions(instId);
-        } catch (Exception e) {
-            log.error("❌ Ошибка при закрытии позиций: {}", e.getMessage(), e);
-            return false;
-        }
+    public boolean closeAllPositions(String instId) throws Exception {
+        log.debug("🔄 Закрытие позиций" + (instId != null ? " для " + instId : " (все открытые)"));
+        return exchange.closeAllPositions(instId);
     }
 }

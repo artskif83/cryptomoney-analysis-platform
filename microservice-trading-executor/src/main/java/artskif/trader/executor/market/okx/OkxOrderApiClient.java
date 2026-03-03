@@ -51,12 +51,11 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Результат исполнения ордера
      */
     @Override
-    public OrderExecutionResult placeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OrderExecutionResult placeSpotMarketBuy(Symbol symbol, BigDecimal percentOfDeposit) throws Exception {
         // Получаем баланс квотируемой валюты (например, USDT)
         BigDecimal quoteBalance = accountClient.getCurrencyBalance(symbol.quote());
         if (quoteBalance == null || quoteBalance.compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("❌ Недостаточный баланс {} для покупки", symbol.quote());
-            return null;
+            throw new RuntimeException("Недостаточный баланс " + symbol.quote() + " для покупки");
         }
 
         // Вычисляем размер ордера как процент от баланса
@@ -64,11 +63,11 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 .multiply(percentOfDeposit)
                 .divide(BigDecimal.valueOf(100), 8, RoundingMode.DOWN);
 
-        log.info("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
+        log.debug("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
                 symbol.quote(), quoteBalance, percentOfDeposit, orderSize);
 
         var result = placeSpotMarket(symbol, "buy", orderSize, true);
-        log.info("📊 Результат покупки: {}", result);
+        log.debug("📊 Результат покупки: {}", result);
         return result;
     }
 
@@ -79,12 +78,11 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Результат исполнения ордера
      */
     @Override
-    public OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) {
+    public OrderExecutionResult placeSpotMarketSell(Symbol symbol, BigDecimal percentOfDeposit) throws Exception {
         // Получаем баланс базовой валюты (например, BTC)
         BigDecimal baseBalance = accountClient.getCurrencyBalance(symbol.base());
         if (baseBalance == null || baseBalance.compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("❌ Недостаточный баланс {} для продажи", symbol.base());
-            return null;
+            throw new RuntimeException("Недостаточный баланс " + symbol.base() + " для продажи");
         }
 
         // Вычисляем размер ордера как процент от баланса
@@ -92,11 +90,11 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 .multiply(percentOfDeposit)
                 .divide(BigDecimal.valueOf(100), 8, RoundingMode.DOWN);
 
-        log.info("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
+        log.debug("💰 Баланс {}: {}, процент: {}%, размер ордера: {}",
                 symbol.base(), baseBalance, percentOfDeposit, orderSize);
 
         var result = placeSpotMarket(symbol, "sell", orderSize, false);
-        log.info("📊 Результат продажи: {}", result);
+        log.debug("📊 Результат продажи: {}", result);
         return result;
     }
 
@@ -106,37 +104,29 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Текущая цена символа или null в случае ошибки
      */
     @Override
-    public BigDecimal getCurrentPrice(Symbol symbol) {
+    public BigDecimal getCurrentPrice(Symbol symbol) throws Exception {
         final String instId = symbol.base() + "-" + symbol.quote();
 
-        try {
-            String endpoint = "/api/v5/market/ticker?instId=" + instId;
-            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+        String endpoint = "/api/v5/market/ticker?instId=" + instId;
+        Map<String, Object> response = executeRestRequest("GET", endpoint, null);
 
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось получить текущую цену для {}. {}", instId, getErrorMessage(response));
-                return null;
-            }
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить текущую цену для " + instId + ". " + getErrorMessage(response));
+        }
 
-            if (response.containsKey("data") && response.get("data") instanceof List<?> list && !list.isEmpty()) {
-                Object first = list.getFirst();
-                if (first instanceof Map<?, ?> m) {
-                    // Используем last price как текущую цену
-                    Object lastPrice = m.get("last");
-                    if (lastPrice != null) {
-                        BigDecimal price = parseBigDec(lastPrice);
-                        log.debug("💹 Текущая цена для {}: {}", instId, price);
-                        return price;
-                    }
+        if (response.containsKey("data") && response.get("data") instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map<?, ?> m) {
+                Object lastPrice = m.get("last");
+                if (lastPrice != null) {
+                    BigDecimal price = parseBigDec(lastPrice);
+                    log.debug("💹 Текущая цена для {}: {}", instId, price);
+                    return price;
                 }
             }
-
-            log.warn("⚠️ Не удалось извлечь цену из ответа для {}", instId);
-            return null;
-        } catch (Exception e) {
-            log.error("❌ Ошибка получения текущей цены для {}: {}", instId, e.getMessage(), e);
-            return null;
         }
+
+        throw new RuntimeException("Не удалось извлечь цену из ответа для " + instId);
     }
 
     // ==== Futures Limit Orders ====
@@ -152,7 +142,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     public OrderExecutionResult placeFuturesLimitLong(Symbol symbol, BigDecimal limitPrice, BigDecimal positionSizeUsdt,
-                                                      BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+                                                      BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception {
         return placeFuturesLimit(symbol, "buy", limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
     }
 
@@ -167,7 +157,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     public OrderExecutionResult placeFuturesLimitShort(Symbol symbol, BigDecimal limitPrice, BigDecimal positionSizeUsdt,
-                                                       BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+                                                       BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception {
         return placeFuturesLimit(symbol, "sell", limitPrice, positionSizeUsdt, stopLossPercent, takeProfitPercent);
     }
 
@@ -183,27 +173,24 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     private OrderExecutionResult placeFuturesLimit(Symbol symbol, String side, BigDecimal limitPrice,
                                                    BigDecimal positionSizeUsdt,
-                                                   BigDecimal stopLossPercent, BigDecimal takeProfitPercent) {
+                                                   BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception {
         final String instId = symbol.base() + "-" + symbol.quote() + "-SWAP";
         final String clientId = UUID.randomUUID().toString().replace("-", "");
 
-        try {
-            // 1. Получаем параметры инструмента (ctVal и lotSz)
-            Map<String, Object> instrumentInfo = getInstrumentInfo(instId);
-            if (instrumentInfo == null) {
-                log.error("❌ Не удалось получить параметры инструмента {}", instId);
-                return null;
-            }
+        // 1. Получаем параметры инструмента (ctVal и lotSz)
+        Map<String, Object> instrumentInfo = getInstrumentInfo(instId);
+        if (instrumentInfo == null) {
+            throw new RuntimeException("Не удалось получить параметры инструмента " + instId);
+        }
 
-            BigDecimal ctVal = parseBigDec(instrumentInfo.get("ctVal"));
-            BigDecimal lotSz = parseBigDec(instrumentInfo.get("lotSz"));
+        BigDecimal ctVal = parseBigDec(instrumentInfo.get("ctVal"));
+        BigDecimal lotSz = parseBigDec(instrumentInfo.get("lotSz"));
 
-            if (ctVal == null || lotSz == null) {
-                log.error("❌ Некорректные параметры инструмента: ctVal={}, lotSz={}", ctVal, lotSz);
-                return null;
-            }
+        if (ctVal == null || lotSz == null) {
+            throw new RuntimeException("Некорректные параметры инструмента: ctVal=" + ctVal + ", lotSz=" + lotSz);
+        }
 
-            log.info("📊 Параметры инструмента {}: ctVal={}, lotSz={}", instId, ctVal, lotSz);
+            log.debug("📊 Параметры инструмента {}: ctVal={}, lotSz={}", instId, ctVal, lotSz);
 
             // 2. Вычисляем размер позиции в контрактах
             // Сначала вычисляем объем в базовой валюте (BTC)
@@ -215,13 +202,12 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             // Округляем вниз до кратного lotSz
             BigDecimal contractSize = contractsRaw.divide(lotSz, 0, RoundingMode.DOWN).multiply(lotSz);
 
-            if (contractSize.compareTo(BigDecimal.ZERO) <= 0) {
-                log.error("❌ Размер позиции слишком мал. volumeInBase={}, contractsRaw={}, contractSize={}",
-                        volumeInBase, contractsRaw, contractSize);
-                return null;
-            }
+        if (contractSize.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Размер позиции слишком мал: volumeInBase=" + volumeInBase +
+                    ", contractsRaw=" + contractsRaw + ", contractSize=" + contractSize);
+        }
 
-            log.info("🎯 Размещение фьючерсного {} ордера: instId={}, price={}, size={} контрактов (volumeInBase={}, lotSz={})",
+            log.debug("🎯 Размещение фьючерсного {} ордера: instId={}, price={}, size={} контрактов (volumeInBase={}, lotSz={})",
                     side, instId, limitPrice, contractSize, volumeInBase, lotSz);
 
             // 3. Вычисляем цену stop-loss
@@ -239,7 +225,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 );
             }
 
-            log.info("💰 Цены: Entry={}, SL={}", limitPrice, stopLossPrice);
+            log.debug("💰 Цены: Entry={}, SL={}", limitPrice, stopLossPrice);
 
             // 4. Вычисляем цены для 3 уровней TP (10%, 50%, 100% от целевого профита)
             BigDecimal[] tpPercentages = {
@@ -265,7 +251,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             slOrder.put("amendPxOnTriggerType", "1");  // SL на цену открытия позиции при срабатывании первого TP
             attachAlgoOrds.add(slOrder);
 
-            log.info("🛡️ Добавлен SL ордер: triggerPx={}, sz={}", stopLossPrice, contractSize);
+            log.debug("🛡️ Добавлен SL ордер: triggerPx={}, sz={}", stopLossPrice, contractSize);
 
             // 5.2. Добавляем 3 Take-Profit ордера
             BigDecimal totalTpSize = BigDecimal.ZERO;
@@ -293,7 +279,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 tpOrder.put("sz", tpSize.stripTrailingZeros().toPlainString());  // размер конкретного TP
                 attachAlgoOrds.add(tpOrder);
 
-                log.info("🎯 Добавлен TP{} ордер: tpOrdPx={}, sz={} ({}% от позиции)",
+                log.debug("🎯 Добавлен TP{} ордер: tpOrdPx={}, sz={} ({}% от позиции)",
                         i + 1, tpPrice, tpSize, sizePercentages[i].multiply(BigDecimal.valueOf(100)));
             }
 
@@ -310,13 +296,13 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
                 if (correctedSize.compareTo(BigDecimal.ZERO) > 0) {
                     lastTp.put("sz", correctedSize.stripTrailingZeros().toPlainString());
-                    log.info("✅ Скорректирован размер последнего TP: {}", correctedSize);
+                    log.debug("✅ Скорректирован размер последнего TP: {}", correctedSize);
                 } else {
                     log.error("❌ Не удалось скорректировать размер TP");
                 }
             }
 
-            log.info("📊 Всего создано {} защитных ордеров: 1 SL + 3 TP", attachAlgoOrds.size());
+            log.debug("📊 Всего создано {} защитных ордеров: 1 SL + 3 TP", attachAlgoOrds.size());
 
             // 6. Формируем тело основного лимитного ордера со всеми защитными ордерами (SL + 3 TP)
             Map<String, Object> orderBody = new LinkedHashMap<>();
@@ -331,7 +317,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
             String requestBody = mapper.writeValueAsString(orderBody);
 
-            log.info("🔐 Размещение ордера с защитой: 1 SL + 3 split TP");
+            log.debug("🔐 Размещение ордера с защитой: 1 SL + 3 split TP");
 
             // 7. Размещаем основной лимитный ордер со всеми защитными ордерами
             Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
@@ -356,15 +342,10 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                 throw new RuntimeException("Ордер размещен, но ordId не получен: " + safeJson(response));
             }
 
-            log.info("✅ Лимитный фьючерсный ордер размещен с полной защитой (SL + 3 split TP), ordId: {}", ordId);
+            log.debug("✅ Лимитный фьючерсный ордер размещен с полной защитой (SL + 3 split TP), ordId: {}", ordId);
 
             // 8. Возвращаем результат основного ордера
             return new OrderExecutionResult(ordId, limitPrice, contractSize);
-
-        } catch (Exception e) {
-            log.error("❌ Не удалось разместить фьючерсный лимитный ордер: {}", e.getMessage(), e);
-        }
-        return null;
     }
 
 
@@ -431,7 +412,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @param isQuoteCurrency true - размер указан в квотируемой валюте, false - в базовой валюте
      * @return Результат исполнения ордера
      */
-    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal size, boolean isQuoteCurrency) {
+    private OrderExecutionResult placeSpotMarket(Symbol symbol, String side, BigDecimal size, boolean isQuoteCurrency) throws Exception {
         final String clientId = UUID.randomUUID().toString().replace("-", "");
         final String instId = symbol.base() + "-" + symbol.quote();
 
@@ -453,75 +434,67 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
         orderBody.put("clOrdId", clientId);
 
-        try {
-            String requestBody = mapper.writeValueAsString(orderBody);
+        String requestBody = mapper.writeValueAsString(orderBody);
 
-            // Размещаем ордер
-            Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
+        // Размещаем ордер
+        Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/order", requestBody);
 
-            // Проверяем код ответа
-            if (!isSuccessResponse(response)) {
-                throw new RuntimeException("Order placement failed. " + getErrorMessage(response));
+        // Проверяем код ответа
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Order placement failed. " + getErrorMessage(response));
+        }
+
+        // Извлекаем ordId из ответа
+        String ordId = null;
+        if (response.containsKey("data") && response.get("data") instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map<?, ?> m) {
+                Object ord = m.get("ordId");
+                if (ord != null) ordId = String.valueOf(ord);
             }
+        }
 
-            // Извлекаем ordId из ответа
-            String ordId = null;
-            if (response.containsKey("data") && response.get("data") instanceof List<?> list && !list.isEmpty()) {
-                Object first = list.getFirst();
-                if (first instanceof Map<?, ?> m) {
-                    Object ord = m.get("ordId");
-                    if (ord != null) ordId = String.valueOf(ord);
+        if (ordId == null) {
+            throw new RuntimeException("Ордер размещен, но ordId не получен: " + safeJson(response));
+        }
+
+        log.debug("✅ Ордер размещен, ordId: {}", ordId);
+
+        // Получаем детали исполнения ордера с retry-логикой
+        BigDecimal avgPrice = null;
+        BigDecimal execBase = null;
+
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
 
-            if (ordId == null) {
-                log.error("❌ Ордер размещен, но ordId не получен: {}", ordId);
-                throw new RuntimeException("Ордер размещен, но ordId не получен: " + safeJson(response));
-            }
+            Map<String, Object> orderDetails = getOrderDetails(ordId, instId);
 
-            log.info("✅ Ордер размещен, ordId: {}", ordId);
+            if (orderDetails != null) {
+                String state = String.valueOf(orderDetails.getOrDefault("state", ""));
 
-            // Получаем детали исполнения ордера с retry-логикой
-            BigDecimal avgPrice = null;
-            BigDecimal execBase = null;
+                // Проверяем статус ордера
+                if ("filled".equals(state) || "partially_filled".equals(state)) {
+                    avgPrice = parseBigDec(orderDetails.get("avgPx"));
+                    execBase = parseBigDec(orderDetails.get("accFillSz"));
 
-            for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
-                if (attempt > 0) {
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    if (avgPrice != null && execBase != null) {
+                        log.debug("✅ Ордер исполнен: avgPrice={}, execBase={}", avgPrice, execBase);
                         break;
                     }
-                }
-
-                Map<String, Object> orderDetails = getOrderDetails(ordId, instId);
-
-                if (orderDetails != null) {
-                    String state = String.valueOf(orderDetails.getOrDefault("state", ""));
-
-                    // Проверяем статус ордера
-                    if ("filled".equals(state) || "partially_filled".equals(state)) {
-                        avgPrice = parseBigDec(orderDetails.get("avgPx"));
-                        execBase = parseBigDec(orderDetails.get("accFillSz"));
-
-                        if (avgPrice != null && execBase != null) {
-                            log.info("✅ Ордер исполнен: avgPrice={}, execBase={}", avgPrice, execBase);
-                            break;
-                        }
-                    } else if ("canceled".equals(state) || "rejected".equals(state)) {
-                        log.error("❌ Ордер был: {}", state + ": " + safeJson(orderDetails));
-                        throw new RuntimeException("Ордер был " + state + ": " + safeJson(orderDetails));
-                    }
+                } else if ("canceled".equals(state) || "rejected".equals(state)) {
+                    throw new RuntimeException("Ордер был " + state + ": " + safeJson(orderDetails));
                 }
             }
-
-            return new OrderExecutionResult(ordId, avgPrice, execBase);
-
-        } catch (Exception e) {
-            log.error("❌ Не удалось разместить ордер на спотовом рынке");
         }
-        return null;
+
+        return new OrderExecutionResult(ordId, avgPrice, execBase);
     }
 
     // Получение деталей ордера
@@ -556,7 +529,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Список активных SWAP ордеров или пустой список в случае ошибки
      */
     @Override
-    public List<Map<String, Object>> getPendingOrders() {
+    public List<Map<String, Object>> getPendingOrders() throws Exception {
         return getPendingLimitSwapOrders(null);
     }
 
@@ -566,42 +539,36 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Список активных SWAP ордеров или пустой список в случае ошибки
      */
     @Override
-    public List<Map<String, Object>> getPendingLimitSwapOrders(String instId) {
-        try {
-            String endpoint = "/api/v5/trade/orders-pending?instType=SWAP";
+    public List<Map<String, Object>> getPendingLimitSwapOrders(String instId) throws Exception {
+        String endpoint = "/api/v5/trade/orders-pending?instType=SWAP";
 
-            // Добавляем параметр instId, если он указан
-            if (instId != null && !instId.isEmpty()) {
-                endpoint += "&instId=" + instId + "-SWAP";
-            }
-
-            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
-
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось получить список активных SWAP ордеров. {}", getErrorMessage(response));
-                return Collections.emptyList();
-            }
-
-            if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
-                List<Map<String, Object>> result = new ArrayList<>();
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> m) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> order = (Map<String, Object>) m;
-                        result.add(order);
-                    }
-                }
-                String instInfo = instId != null ? " для " + instId : "";
-                log.info("📋 Получено {} активных SWAP ордеров{}", result.size(), instInfo);
-                return result;
-            }
-
-            log.warn("⚠️ Активные SWAP ордера отсутствуют или данные некорректны");
-            return Collections.emptyList();
-        } catch (Exception e) {
-            log.error("❌ Ошибка получения списка активных SWAP ордеров: {}", e.getMessage(), e);
-            return Collections.emptyList();
+        // Добавляем параметр instId, если он указан
+        if (instId != null && !instId.isEmpty()) {
+            endpoint += "&instId=" + instId + "-SWAP";
         }
+
+        Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить список активных SWAP ордеров. " + getErrorMessage(response));
+        }
+
+        if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> order = (Map<String, Object>) m;
+                    result.add(order);
+                }
+            }
+            String instInfo = instId != null ? " для " + instId : "";
+            log.debug("📋 Получено {} активных SWAP ордеров{}", result.size(), instInfo);
+            return result;
+        }
+
+        log.warn("⚠️ Активные SWAP ордера отсутствуют или данные некорректны");
+        return Collections.emptyList();
     }
 
     /**
@@ -617,23 +584,17 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return true если отмена прошла успешно, false в противном случае
      */
     @Override
-    public boolean cancelOrders(String ordId, String clOrdId) {
-        try {
-            boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
-            boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+    public boolean cancelOrders(String ordId, String clOrdId) throws Exception {
+        boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+        boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
 
-            if (!hasOrdId && !hasClOrdId) {
-                // Оба null — отменяем все
-                return cancelAllPendingOrders();
-            }
-
-            // Ищем нужный ордер среди активных
-            return cancelOrderByIds(ordId, clOrdId);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при отмене ордеров: {}", e.getMessage(), e);
-            return false;
+        if (!hasOrdId && !hasClOrdId) {
+            // Оба null — отменяем все
+            return cancelAllPendingOrders();
         }
+
+        // Ищем нужный ордер среди активных
+        return cancelOrderByIds(ordId, clOrdId);
     }
 
     /**
@@ -641,123 +602,111 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * Если передан только один из параметров, ищем совпадение по нему.
      * Если переданы оба — оба должны совпасть с одним ордером.
      */
-    private boolean cancelOrderByIds(String ordId, String clOrdId) {
-        try {
-            boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
-            boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
+    private boolean cancelOrderByIds(String ordId, String clOrdId) throws Exception {
+        boolean hasOrdId   = ordId   != null && !ordId.isEmpty();
+        boolean hasClOrdId = clOrdId != null && !clOrdId.isEmpty();
 
-            List<Map<String, Object>> pendingOrders = getPendingOrders();
+        List<Map<String, Object>> pendingOrders = getPendingOrders();
 
-            Map<String, Object> targetOrder = null;
-            for (Map<String, Object> order : pendingOrders) {
-                String orderOrdId   = String.valueOf(order.getOrDefault("ordId",   ""));
-                String orderClOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
+        Map<String, Object> targetOrder = null;
+        for (Map<String, Object> order : pendingOrders) {
+            String orderOrdId   = String.valueOf(order.getOrDefault("ordId",   ""));
+            String orderClOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
 
-                boolean ordIdMatch   = hasOrdId   && ordId.equals(orderOrdId);
-                boolean clOrdIdMatch = hasClOrdId && clOrdId.equals(orderClOrdId);
+            boolean ordIdMatch   = hasOrdId   && ordId.equals(orderOrdId);
+            boolean clOrdIdMatch = hasClOrdId && clOrdId.equals(orderClOrdId);
 
-                boolean matched;
-                if (hasOrdId && hasClOrdId) {
-                    // Оба должны совпасть
-                    matched = ordIdMatch && clOrdIdMatch;
-                } else {
-                    // Достаточно одного совпадения
-                    matched = ordIdMatch || clOrdIdMatch;
-                }
-
-                if (matched) {
-                    targetOrder = order;
-                    break;
-                }
+            boolean matched;
+            if (hasOrdId && hasClOrdId) {
+                // Оба должны совпасть
+                matched = ordIdMatch && clOrdIdMatch;
+            } else {
+                // Достаточно одного совпадения
+                matched = ordIdMatch || clOrdIdMatch;
             }
 
-            if (targetOrder == null) {
-                log.warn("⚠️ Ордер не найден среди активных: ordId={}, clOrdId={}", ordId, clOrdId);
-                return false;
+            if (matched) {
+                targetOrder = order;
+                break;
             }
+        }
 
-            String foundOrdId   = String.valueOf(targetOrder.get("ordId"));
-            String foundInstId  = String.valueOf(targetOrder.get("instId"));
-            String foundClOrdId = String.valueOf(targetOrder.getOrDefault("clOrdId", ""));
-
-            log.info("🔍 Найден ордер для отмены: ordId={}, clOrdId={}, instId={}", foundOrdId, foundClOrdId, foundInstId);
-
-            Map<String, Object> cancelBody = new LinkedHashMap<>();
-            cancelBody.put("instId", foundInstId);
-            cancelBody.put("ordId", foundOrdId);
-
-            String requestBody = mapper.writeValueAsString(cancelBody);
-            Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/cancel-order", requestBody);
-
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось отменить ордер ordId={}, clOrdId={}. {}", foundOrdId, foundClOrdId, getErrorMessage(response));
-                return false;
-            }
-
-            log.info("✅ Ордер ordId={}, clOrdId={} успешно отменен", foundOrdId, foundClOrdId);
-            return true;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при отмене ордера ordId={}, clOrdId={}: {}", ordId, clOrdId, e.getMessage(), e);
+        if (targetOrder == null) {
+            log.warn("⚠️ Ордер не найден среди активных: ordId={}, clOrdId={}", ordId, clOrdId);
             return false;
         }
+
+        String foundOrdId   = String.valueOf(targetOrder.get("ordId"));
+        String foundInstId  = String.valueOf(targetOrder.get("instId"));
+        String foundClOrdId = String.valueOf(targetOrder.getOrDefault("clOrdId", ""));
+
+        log.debug("🔍 Найден ордер для отмены: ordId={}, clOrdId={}, instId={}", foundOrdId, foundClOrdId, foundInstId);
+
+        Map<String, Object> cancelBody = new LinkedHashMap<>();
+        cancelBody.put("instId", foundInstId);
+        cancelBody.put("ordId", foundOrdId);
+
+        String requestBody = mapper.writeValueAsString(cancelBody);
+        Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/cancel-order", requestBody);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось отменить ордер ordId=" + foundOrdId +
+                    ", clOrdId=" + foundClOrdId + ". " + getErrorMessage(response));
+        }
+
+        log.debug("✅ Ордер ordId={}, clOrdId={} успешно отменен", foundOrdId, foundClOrdId);
+        return true;
     }
 
     /**
      * Отменяет все активные ордера.
      * @return true если все ордера успешно отменены, false если хотя бы одна отмена не удалась
      */
-    private boolean cancelAllPendingOrders() {
-        try {
-            // Получаем список всех активных ордеров
-            List<Map<String, Object>> pendingOrders = getPendingOrders();
+    private boolean cancelAllPendingOrders() throws Exception {
+        // Получаем список всех активных ордеров
+        List<Map<String, Object>> pendingOrders = getPendingOrders();
 
-            if (pendingOrders.isEmpty()) {
-                log.info("ℹ️ Нет активных ордеров для отмены");
-                return true;
-            }
-
-            log.info("🔄 Начинаем отмену {} активных ордеров", pendingOrders.size());
-
-            int successCount = 0;
-            int failCount = 0;
-
-            // Отменяем каждый ордер
-            for (Map<String, Object> order : pendingOrders) {
-                String ordId = String.valueOf(order.get("ordId"));
-                String instId = String.valueOf(order.get("instId"));
-                String clOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
-
-                try {
-                    Map<String, Object> cancelBody = new LinkedHashMap<>();
-                    cancelBody.put("instId", instId);
-                    cancelBody.put("ordId", ordId);
-
-                    String requestBody = mapper.writeValueAsString(cancelBody);
-                    Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/cancel-order", requestBody);
-
-                    if (!isSuccessResponse(response)) {
-                        log.error("❌ Не удалось отменить ордер ordId={}, clOrdId={}. {}",
-                                ordId, clOrdId, getErrorMessage(response));
-                        failCount++;
-                    } else {
-                        log.info("✅ Ордер ordId={}, clOrdId={} успешно отменен", ordId, clOrdId);
-                        successCount++;
-                    }
-                } catch (Exception e) {
-                    log.error("❌ Ошибка при отмене ордера ordId={}, clOrdId={}: {}",
-                            ordId, clOrdId, e.getMessage(), e);
-                    failCount++;
-                }
-            }
-
-            log.info("📊 Отмена завершена: успешно={}, неудачно={}", successCount, failCount);
-            return failCount == 0;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при отмене всех ордеров: {}", e.getMessage(), e);
-            return false;
+        if (pendingOrders.isEmpty()) {
+            log.debug("ℹ️ Нет активных ордеров для отмены");
+            return true;
         }
+
+        log.debug("🔄 Начинаем отмену {} активных ордеров", pendingOrders.size());
+
+        int successCount = 0;
+        int failCount = 0;
+
+        // Отменяем каждый ордер
+        for (Map<String, Object> order : pendingOrders) {
+            String ordId = String.valueOf(order.get("ordId"));
+            String instId = String.valueOf(order.get("instId"));
+            String clOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
+
+            try {
+                Map<String, Object> cancelBody = new LinkedHashMap<>();
+                cancelBody.put("instId", instId);
+                cancelBody.put("ordId", ordId);
+
+                String requestBody = mapper.writeValueAsString(cancelBody);
+                Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/cancel-order", requestBody);
+
+                if (!isSuccessResponse(response)) {
+                    log.error("❌ Не удалось отменить ордер ordId={}, clOrdId={}. {}",
+                            ordId, clOrdId, getErrorMessage(response));
+                    failCount++;
+                } else {
+                    log.debug("✅ Ордер ordId={}, clOrdId={} успешно отменен", ordId, clOrdId);
+                    successCount++;
+                }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при отмене ордера ordId={}, clOrdId={}: {}",
+                        ordId, clOrdId, e.getMessage(), e);
+                failCount++;
+            }
+        }
+
+        log.debug("📊 Отмена завершена: успешно={}, неудачно={}", successCount, failCount);
+        return failCount == 0;
     }
 
     /**
@@ -766,55 +715,49 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return Список открытых позиций или пустой список в случае ошибки
      */
     @Override
-    public List<Map<String, Object>> getPositions(String instId) {
-        try {
-            String endpoint = "/api/v5/account/positions?instType=SWAP";
+    public List<Map<String, Object>> getPositions(String instId) throws Exception {
+        String endpoint = "/api/v5/account/positions?instType=SWAP";
 
-            // Добавляем параметр instId, если он указан
-            if (instId != null && !instId.isEmpty()) {
-                // Проверяем, есть ли уже суффикс -SWAP
-                if (!instId.endsWith("-SWAP")) {
-                    endpoint += "&instId=" + instId + "-SWAP";
-                } else {
-                    endpoint += "&instId=" + instId;
-                }
+        // Добавляем параметр instId, если он указан
+        if (instId != null && !instId.isEmpty()) {
+            // Проверяем, есть ли уже суффикс -SWAP
+            if (!instId.endsWith("-SWAP")) {
+                endpoint += "&instId=" + instId + "-SWAP";
+            } else {
+                endpoint += "&instId=" + instId;
             }
+        }
 
-            Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+        Map<String, Object> response = executeRestRequest("GET", endpoint, null);
 
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось получить список позиций. {}", getErrorMessage(response));
-                return Collections.emptyList();
-            }
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить список позиций. " + getErrorMessage(response));
+        }
 
-            if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
-                List<Map<String, Object>> result = new ArrayList<>();
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> m) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> position = (Map<String, Object>) m;
+        if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> position = (Map<String, Object>) m;
 
-                        // Фильтруем позиции с ненулевым размером
-                        Object posObj = position.get("pos");
-                        if (posObj != null) {
-                            BigDecimal pos = parseBigDec(posObj);
-                            if (pos != null && pos.compareTo(BigDecimal.ZERO) != 0) {
-                                result.add(position);
-                            }
+                    // Фильтруем позиции с ненулевым размером
+                    Object posObj = position.get("pos");
+                    if (posObj != null) {
+                        BigDecimal pos = parseBigDec(posObj);
+                        if (pos != null && pos.compareTo(BigDecimal.ZERO) != 0) {
+                            result.add(position);
                         }
                     }
                 }
-                String instInfo = instId != null ? " для " + instId : "";
-                log.info("📋 Получено {} открытых позиций{}", result.size(), instInfo);
-                return result;
             }
-
-            log.warn("⚠️ Открытые позиции отсутствуют или данные некорректны");
-            return Collections.emptyList();
-        } catch (Exception e) {
-            log.error("❌ Ошибка получения списка позиций: {}", e.getMessage(), e);
-            return Collections.emptyList();
+            String instInfo = instId != null ? " для " + instId : "";
+            log.debug("📋 Получено {} открытых позиций{}", result.size(), instInfo);
+            return result;
         }
+
+        log.warn("⚠️ Открытые позиции отсутствуют или данные некорректны");
+        return Collections.emptyList();
     }
 
     /**
@@ -823,66 +766,59 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return true если все позиции успешно закрыты, false в противном случае
      */
     @Override
-    public boolean closeAllPositions(String instId) {
-        try {
-            // Получаем список всех открытых позиций
-            List<Map<String, Object>> positions = getPositions(instId);
+    public boolean closeAllPositions(String instId) throws Exception {
+        // Получаем список всех открытых позиций
+        List<Map<String, Object>> positions = getPositions(instId);
 
-            if (positions.isEmpty()) {
-                log.info("ℹ️ Нет открытых позиций для закрытия");
-                return true;
+        if (positions.isEmpty()) {
+            log.debug("ℹ️ Нет открытых позиций для закрытия");
+            return true;
+        }
+
+        log.debug("🔄 Начинаем закрытие {} открытых позиций", positions.size());
+
+        int successCount = 0;
+        int failCount = 0;
+
+        // Закрываем каждую позицию
+        for (Map<String, Object> position : positions) {
+            String posInstId = String.valueOf(position.get("instId"));
+            String posSide = String.valueOf(position.getOrDefault("posSide", "net"));
+            String mgnMode = String.valueOf(position.getOrDefault("mgnMode", "cross"));
+
+            Object posObj = position.get("pos");
+            if (posObj == null) {
+                log.warn("⚠️ Позиция без размера, пропускаем: {}", posInstId);
+                continue;
             }
 
-            log.info("🔄 Начинаем закрытие {} открытых позиций", positions.size());
+            BigDecimal posSize = parseBigDec(posObj);
+            if (posSize == null || posSize.compareTo(BigDecimal.ZERO) == 0) {
+                log.warn("⚠️ Позиция с нулевым размером, пропускаем: {}", posInstId);
+                continue;
+            }
 
-            int successCount = 0;
-            int failCount = 0;
+            log.debug("📍 Закрытие позиции: instId={}, posSide={}, mgnMode={}, size={}",
+                    posInstId, posSide, mgnMode, posSize);
 
-            // Закрываем каждую позицию
-            for (Map<String, Object> position : positions) {
-                String posInstId = String.valueOf(position.get("instId"));
-                String posSide = String.valueOf(position.getOrDefault("posSide", "net"));
-                String mgnMode = String.valueOf(position.getOrDefault("mgnMode", "cross"));
+            try {
+                boolean closed = closePosition(posInstId, posSide, mgnMode);
 
-                Object posObj = position.get("pos");
-                if (posObj == null) {
-                    log.warn("⚠️ Позиция без размера, пропускаем: {}", posInstId);
-                    continue;
-                }
-
-                BigDecimal posSize = parseBigDec(posObj);
-                if (posSize == null || posSize.compareTo(BigDecimal.ZERO) == 0) {
-                    log.warn("⚠️ Позиция с нулевым размером, пропускаем: {}", posInstId);
-                    continue;
-                }
-
-                log.info("📍 Закрытие позиции: instId={}, posSide={}, mgnMode={}, size={}",
-                        posInstId, posSide, mgnMode, posSize);
-
-                try {
-                    // Закрываем позицию используя специализированный endpoint
-                    boolean closed = closePosition(posInstId, posSide, mgnMode);
-
-                    if (closed) {
-                        log.info("✅ Позиция {} успешно закрыта", posInstId);
-                        successCount++;
-                    } else {
-                        log.error("❌ Не удалось закрыть позицию {}", posInstId);
-                        failCount++;
-                    }
-                } catch (Exception e) {
-                    log.error("❌ Ошибка при закрытии позиции {}: {}", posInstId, e.getMessage(), e);
+                if (closed) {
+                    log.debug("✅ Позиция {} успешно закрыта", posInstId);
+                    successCount++;
+                } else {
+                    log.error("❌ Не удалось закрыть позицию {}", posInstId);
                     failCount++;
                 }
+            } catch (Exception e) {
+                log.error("❌ Ошибка при закрытии позиции {}: {}", posInstId, e.getMessage(), e);
+                failCount++;
             }
-
-            log.info("📊 Закрытие позиций завершено: успешно={}, неудачно={}", successCount, failCount);
-            return failCount == 0;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при закрытии всех позиций: {}", e.getMessage(), e);
-            return false;
         }
+
+        log.debug("📊 Закрытие позиций завершено: успешно={}, неудачно={}", successCount, failCount);
+        return failCount == 0;
     }
 
     /**
@@ -892,41 +828,31 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @param mgnMode Режим маржи ("cross" или "isolated")
      * @return true если позиция успешно закрыта, false в противном случае
      */
-    private boolean closePosition(String instId, String posSide, String mgnMode) {
-        try {
-            // Формируем тело запроса для закрытия позиции
-            Map<String, Object> closeBody = new LinkedHashMap<>();
-            closeBody.put("instId", instId);
-            closeBody.put("mgnMode", mgnMode);
-            closeBody.put("autoCxl", "true");
+    private boolean closePosition(String instId, String posSide, String mgnMode) throws Exception {
+        // Формируем тело запроса для закрытия позиции
+        Map<String, Object> closeBody = new LinkedHashMap<>();
+        closeBody.put("instId", instId);
+        closeBody.put("mgnMode", mgnMode);
+        closeBody.put("autoCxl", "true");
 
-            // Для net режима posSide не передаётся, для long/short - передаётся
-            if (!"net".equals(posSide)) {
-                closeBody.put("posSide", posSide);
-            }
-
-            String requestBody = mapper.writeValueAsString(closeBody);
-
-            log.info("🔐 Закрытие позиции через /api/v5/trade/close-position: instId={}, posSide={}, mgnMode={}",
-                    instId, posSide, mgnMode);
-
-            // Закрываем позицию
-            Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/close-position", requestBody);
-
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось закрыть позицию. {}", getErrorMessage(response));
-                return false;
-            }
-
-            // Метод /api/v5/trade/close-position возвращает только подтверждение успешного закрытия
-            // без информации об ordId закрывающего ордера
-            log.info("✅ Позиция {} успешно закрыта через /api/v5/trade/close-position", instId);
-            return true;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при закрытии позиции {}: {}", instId, e.getMessage(), e);
-            return false;
+        // Для net режима posSide не передаётся, для long/short - передаётся
+        if (!"net".equals(posSide)) {
+            closeBody.put("posSide", posSide);
         }
+
+        String requestBody = mapper.writeValueAsString(closeBody);
+
+        log.debug("🔐 Закрытие позиции через /api/v5/trade/close-position: instId={}, posSide={}, mgnMode={}",
+                instId, posSide, mgnMode);
+
+        Map<String, Object> response = executeRestRequest("POST", "/api/v5/trade/close-position", requestBody);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось закрыть позицию. " + getErrorMessage(response));
+        }
+
+        log.debug("✅ Позиция {} успешно закрыта через /api/v5/trade/close-position", instId);
+        return true;
     }
 
     /**
@@ -941,45 +867,38 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
-        try {
-            // Формируем endpoint с query-параметрами
-            StringBuilder endpoint = new StringBuilder("/api/v5/account/positions-history?instType=SWAP");
-            if (instId != null && !instId.isBlank()) {
-                endpoint.append("&instId=").append(instId).append("-SWAP");
-            }
-            if (before != null && !before.isBlank()) {
-                endpoint.append("&before=").append(before);
-            }
-
-            String fullEndpoint = endpoint.toString();
-            log.debug("📋 Запрос истории позиций: {}", fullEndpoint);
-
-            Map<String, Object> response = executeRestRequest("GET", fullEndpoint, null);
-
-            if (!isSuccessResponse(response)) {
-                log.error("❌ Не удалось получить историю позиций. {}", getErrorMessage(response));
-                return null;
-            }
-
-            Object dataObj = response.get("data");
-            if (dataObj instanceof List<?> dataList) {
-                List<Map<String, Object>> result = new ArrayList<>();
-                for (Object item : dataList) {
-                    if (item instanceof Map<?, ?> entry) {
-                        result.add((Map<String, Object>) entry);
-                    }
-                }
-                log.info("📋 История позиций {}: получено {} записей", instId, result.size());
-                return result;
-            }
-
-            log.warn("⚠️ История позиций не найдена в ответе API для инструмента {}", instId);
-            return null;
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при получении истории позиций {}: {}", instId, e.getMessage(), e);
-            return null;
+    public List<Map<String, Object>> getPositionsHistory(String instId, String before) throws Exception {
+        // Формируем endpoint с query-параметрами
+        StringBuilder endpoint = new StringBuilder("/api/v5/account/positions-history?instType=SWAP");
+        if (instId != null && !instId.isBlank()) {
+            endpoint.append("&instId=").append(instId).append("-SWAP");
         }
+        if (before != null && !before.isBlank()) {
+            endpoint.append("&before=").append(before);
+        }
+
+        String fullEndpoint = endpoint.toString();
+        log.debug("📋 Запрос истории позиций: {}", fullEndpoint);
+
+        Map<String, Object> response = executeRestRequest("GET", fullEndpoint, null);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить историю позиций. " + getErrorMessage(response));
+        }
+
+        Object dataObj = response.get("data");
+        if (dataObj instanceof List<?> dataList) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : dataList) {
+                if (item instanceof Map<?, ?> entry) {
+                    result.add((Map<String, Object>) entry);
+                }
+            }
+            log.debug("📋 История позиций {}: получено {} записей", instId, result.size());
+            return result;
+        }
+
+        log.warn("⚠️ История позиций не найдена в ответе API для инструмента {}", instId);
+        return Collections.emptyList();
     }
 }
