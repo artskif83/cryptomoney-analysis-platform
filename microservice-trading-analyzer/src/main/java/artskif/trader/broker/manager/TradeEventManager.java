@@ -23,7 +23,11 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Startup
 @ApplicationScoped
@@ -106,6 +110,37 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         if (!hasSamePosition && !hasSameOrder) {
             log.debug("📊 Нет открытых {} позиций и ордеров, открываем новую", dirLabel);
+
+            // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
+            long losingCount = snapshot.getPositionsHistory() == null ? 0L :
+                    snapshot.getPositionsHistory().stream()
+                            .filter(p -> p.realizedPnl != null && p.realizedPnl.compareTo(BigDecimal.ZERO) < 0)
+                            .count();
+            int maxLosing = brokerConfig.getMaxLosingPositionsPerDay();
+            if (losingCount >= maxLosing) {
+                log.warn("🚫 Достигнут лимит убыточных позиций за последние 24 часа: {} из {}. Новая позиция не открывается.",
+                        losingCount, maxLosing);
+                return;
+            }
+
+            // Проверяем минимальный интервал между позициями по cTime последней позиции из истории
+            if (snapshot.getPositionsHistory() != null && !snapshot.getPositionsHistory().isEmpty()) {
+                Optional<Instant> lastPositionTime = snapshot.getPositionsHistory().stream()
+                        .map(p -> p.cTime)
+                        .filter(Objects::nonNull)
+                        .max(Instant::compareTo);
+
+                if (lastPositionTime.isPresent()) {
+                    long minutesSinceLast = Duration.between(lastPositionTime.get(), Instant.now()).toMinutes();
+                    int minMinutes = brokerConfig.getMinutesBetweenPositions();
+                    if (minutesSinceLast < minMinutes) {
+                        log.warn("⏳ С момента последней позиции прошло {} мин., минимум {} мин. Новая позиция не открывается.",
+                                minutesSinceLast, minMinutes);
+                        return;
+                    }
+                }
+            }
+
             FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
                     event.instrument(),
                     event.tradeEventData().eventPrice(),

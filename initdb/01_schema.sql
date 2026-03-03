@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS positions
     lever      numeric(5, 2),
     state      varchar(20)  NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
     sl_trigger_px numeric(18, 8),
+    realized_pnl  numeric(24, 8),
     c_time     timestamp,
     u_time     timestamp,
     created_at timestamp    NOT NULL DEFAULT NOW(),

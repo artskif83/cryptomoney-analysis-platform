@@ -13,6 +13,7 @@ SELECT
     px        AS position_price,
     sz        AS size,
     sl_trigger_px AS stop_loss_price,
+    realized_pnl,
     pos_side,
     lever,
     state

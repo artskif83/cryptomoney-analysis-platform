@@ -107,6 +107,14 @@ public class Position extends PanacheEntityBase {
     public BigDecimal slTriggerPx;
 
     /**
+     * Реализованный PnL позиции (realizedPnl).
+     * Для исторических данных: суммарная реализованная прибыль/убыток по закрытой позиции.
+     * Для live данных: текущая реализованная прибыль/убыток по открытой позиции.
+     */
+    @Column(name = "realized_pnl", precision = 24, scale = 8)
+    public BigDecimal realizedPnl;
+
+    /**
      * Время создания позиции/события в источнике (если доступно)
      */
     @Column(name = "c_time")
@@ -181,6 +189,7 @@ public class Position extends PanacheEntityBase {
                 ", lever=" + lever +
                 ", state='" + state + '\'' +
                 ", slTriggerPx=" + slTriggerPx +
+                ", realizedPnl=" + realizedPnl +
                 ", cTime=" + cTime +
                 ", uTime=" + uTime +
                 ", createdAt=" + createdAt +

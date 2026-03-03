@@ -119,7 +119,7 @@ public class AccountStateMonitor {
 
             // Преобразуем историю позиций в Entity
             List<Position> positionsHistory = positionsHistoryData.stream()
-                    .map(positionMapper::mapToClosedEntity)
+                    .map(positionMapper::mapToHistoryEntity)
                     .collect(Collectors.toList());
 
             // Сохраняем историю позиций в БД со статусом CLOSED

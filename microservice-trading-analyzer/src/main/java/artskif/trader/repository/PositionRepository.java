@@ -7,7 +7,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -172,6 +174,18 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
             LOG.debugf("🔒 Помечено CLOSED позиций, отсутствующих на бирже: %d", marked);
         }
         return marked;
+    }
+
+    /**
+     * Подсчитывает количество убыточных закрытых позиций за последние 24 часа.
+     * Убыточной считается позиция со статусом CLOSED и realizedPnl < 0.
+     *
+     * @return количество убыточных позиций за последние 24 часа
+     */
+    public long countLosingPositionsLast24Hours() {
+        Instant since = Instant.now().minus(24, ChronoUnit.HOURS);
+        return count("state = ?1 and realizedPnl < ?2 and updatedAt >= ?3",
+                OrderState.CLOSED, BigDecimal.ZERO, since);
     }
 
     /**

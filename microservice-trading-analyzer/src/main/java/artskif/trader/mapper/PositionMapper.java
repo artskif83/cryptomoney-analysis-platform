@@ -25,7 +25,7 @@ public class PositionMapper {
      * Маппит историческую позицию (из /account/positions-history) принудительно со статусом CLOSED.
      * Поля соответствуют ответу OKX API: /api/v5/account/positions-history
      */
-    public Position mapToClosedEntity(Map<String, Object> data) {
+    public Position mapToHistoryEntity(Map<String, Object> data) {
         try {
             Position position = new Position();
 
@@ -56,6 +56,9 @@ public class PositionMapper {
             // SL триггера в history нет в closeOrderAlgo, поле triggerPx может присутствовать
             BigDecimal triggerPx = getBigDecimalValue(data, "triggerPx");
             position.slTriggerPx = triggerPx;
+
+            // Реализованный PnL из поля realizedPnl
+            position.realizedPnl = getBigDecimalValue(data, "realizedPnl");
 
             position.cTime = getInstantFromMillis(data, "cTime");
             position.uTime = getInstantFromMillis(data, "uTime");
@@ -132,6 +135,9 @@ public class PositionMapper {
             position.posSide = resolvedPosSide;
 
             position.slTriggerPx = extractStopLossPrice(data);
+
+            // Реализованный PnL из поля realizedPnl (для live позиций — текущий)
+            position.realizedPnl = getBigDecimalValue(data, "realizedPnl");
 
             position.cTime = getInstantFromMillis(data, "cTime");
             position.uTime = getInstantFromMillis(data, "uTime");
