@@ -87,7 +87,7 @@ public class AccountStateMonitor {
                     .collect(Collectors.toList());
 
             // Сохраняем позиции в БД
-            savePositions(positions);
+            saveLivePositions(positions);
 
             // Вычисляем Unix timestamp 24 часа назад в миллисекундах
             String before24h = String.valueOf(Instant.now().minusSeconds(24 * 60 * 60).toEpochMilli());
@@ -98,8 +98,11 @@ public class AccountStateMonitor {
 
             // Преобразуем историю позиций в Entity
             List<Position> positionsHistory = positionsHistoryData.stream()
-                    .map(positionMapper::mapToEntity)
+                    .map(positionMapper::mapToClosedEntity)
                     .collect(Collectors.toList());
+
+            // Сохраняем историю позиций в БД со статусом CLOSED
+            savePositionsHistory(positionsHistory);
 
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
@@ -148,23 +151,35 @@ public class AccountStateMonitor {
 
     /**
      * Сохраняет список открытых позиций в БД.
-     * Удаляет позиции, которых нет в текущем списке (синхронизация с биржей).
+     * Удаляет LIVE-позиции, которых нет в текущем списке (синхронизация с биржей).
      */
-    private void savePositions(List<Position> positions) {
+    private void saveLivePositions(List<Position> positions) {
         try {
-            if (positions.isEmpty()) {
-                return;
-            }
             List<String> currentPosIds = positions.stream()
                     .map(p -> p.posId)
                     .toList();
-            positionRepository.saveAll(positions);
-            log.debug("✅ Обработано открытых позиций: {}", positions.size());
 
+            if (!positions.isEmpty()) {
+                positionRepository.saveAll(positions);
+                log.debug("✅ Обработано открытых позиций: {}", positions.size());
+            }
 
-            positionRepository.markAsClosedNotIn(currentPosIds);
+            positionRepository.deleteLiveNotIn(currentPosIds);
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении позиций в БД", e);
+        }
+    }
+
+    /**
+     * Сохраняет историю позиций в БД со статусом CLOSED.
+     * Не перезаписывает активные (LIVE) позиции историческими данными.
+     */
+    private void savePositionsHistory(List<Position> positionsHistory) {
+        try {
+            positionRepository.saveAllHistory(positionsHistory);
+            log.debug("✅ Обработано записей истории позиций: {}", positionsHistory.size());
+        } catch (Exception e) {
+            log.error("❌ Ошибка при сохранении истории позиций в БД", e);
         }
     }
 

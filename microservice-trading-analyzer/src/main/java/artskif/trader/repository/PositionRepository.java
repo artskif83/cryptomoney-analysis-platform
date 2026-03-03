@@ -78,23 +78,69 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Strin
     }
 
     /**
-     * Помечает позиции как CLOSED, которых нет в текущем списке (синхронизация с биржей).
+     * Сохраняет историческиe позиции со статусом CLOSED.
+     * Если позиция уже существует и имеет статус LIVE — не перезаписывает её историей.
+     * Если позиция уже существует со статусом CLOSED — обновляет данные.
+     * Если позиция новая — вставляет со статусом CLOSED.
      */
     @Transactional
-    public long markAsClosedNotIn(List<String> posIds) {
-        if (posIds.isEmpty()) {
-            long updated = update("state = ?1 where state != ?2", OrderState.CLOSED, OrderState.CLOSED);
-            if (updated > 0) {
-                LOG.infof("🔒 Помечено позиций как CLOSED: %d", updated);
+    public void saveAllHistory(List<Position> positions) {
+        try {
+            if (positions.isEmpty()) {
+                LOG.debug("Список исторических позиций пуст, нечего сохранять");
+                return;
             }
-            return updated;
+
+            int updated = 0;
+            int inserted = 0;
+            int skipped = 0;
+            for (Position position : positions) {
+                Position existing = findById(position.posId);
+                if (existing != null) {
+                    if (existing.state == OrderState.LIVE) {
+                        // Не трогаем активные позиции историческими данными
+                        skipped++;
+                        continue;
+                    }
+                    position.createdAt = existing.createdAt;
+                    position.updatedAt = Instant.now();
+                    position.state = OrderState.CLOSED;
+                    getEntityManager().merge(position);
+                    updated++;
+                } else {
+                    position.createdAt = Instant.now();
+                    position.updatedAt = Instant.now();
+                    position.state = OrderState.CLOSED;
+                    persist(position);
+                    inserted++;
+                }
+            }
+
+            LOG.debugf("✅ Исторические позиции обработаны: вставлено=%d, обновлено=%d, пропущено(LIVE)=%d",
+                    inserted, updated, skipped);
+        } catch (Exception e) {
+            LOG.errorf(e, "❌ Ошибка при сохранении исторических позиций");
+            throw e;
+        }
+    }
+
+    /**
+     * Удаляет позиции в статусе LIVE, которых нет в текущем списке (синхронизация с биржей).
+     */
+    @Transactional
+    public long deleteLiveNotIn(List<String> posIds) {
+        if (posIds.isEmpty()) {
+            long deleted = delete("state = ?1", OrderState.LIVE);
+            if (deleted > 0) {
+                LOG.debugf("🗑 Удалено LIVE-позиций (список пуст): %d", deleted);
+            }
+            return deleted;
         }
 
-        long updated = update("state = ?1 where posId not in ?2 and state != ?3",
-                OrderState.CLOSED, posIds, OrderState.CLOSED);
-        if (updated > 0) {
-            LOG.infof("🔒 Помечено позиций как CLOSED: %d", updated);
+        long deleted = delete("posId not in ?1 and state = ?2", posIds, OrderState.LIVE);
+        if (deleted > 0) {
+            LOG.debugf("🗑 Удалено LIVE-позиций, отсутствующих на бирже: %d", deleted);
         }
-        return updated;
+        return deleted;
     }
 }
