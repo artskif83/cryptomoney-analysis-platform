@@ -14,9 +14,11 @@ public final class AccountManagerService {
     private static final Logger log = LoggerFactory.getLogger(AccountManagerService.class);
 
     private final AccountClient accountClient;
+    private final OrdersClient ordersClient;
 
-    public AccountManagerService(AccountClient accountClient) {
+    public AccountManagerService(AccountClient accountClient, OrdersClient ordersClient) {
         this.accountClient = accountClient;
+        this.ordersClient = ordersClient;
     }
 
     /**
@@ -43,7 +45,7 @@ public final class AccountManagerService {
      */
     public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
         log.debug("📋 Запрос истории позиций: instId={}, before={}", instId, before);
-        return accountClient.getPositionsHistory(instId, before);
+        return ordersClient.getPositionsHistory(instId, before);
     }
 }
 

@@ -93,4 +93,15 @@ public interface OrdersClient {
      * @return true если все позиции успешно закрыты, false в противном случае
      */
     boolean closeAllPositions(String instId);
+
+    /**
+     * Получает историю закрытых позиций по инструменту.
+     * По умолчанию instType = SWAP, type = все закрытые позиции.
+     *
+     * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @param before Фильтр по времени: возвращать записи с временем обновления строго позже
+     *               этого значения (Unix timestamp в миллисекундах в виде строки)
+     * @return Список записей истории позиций или null в случае ошибки
+     */
+    java.util.List<java.util.Map<String, Object>> getPositionsHistory(String instId, String before);
 }
