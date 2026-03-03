@@ -152,15 +152,18 @@ CREATE TABLE IF NOT EXISTS pending_orders
 );
 
 -- 8) Таблица открытых позиций
+-- Уникальность позиции определяется комбинацией (pos_id, c_time),
+-- так как pos_id на OKX не является глобально уникальным идентификатором.
 CREATE TABLE IF NOT EXISTS positions
 (
-    pos_id     varchar(128) PRIMARY KEY,
+    id         bigserial    PRIMARY KEY,
+    pos_id     varchar(128) NOT NULL,
     cl_ord_id  varchar(128),
     inst_id    varchar(50)  NOT NULL,
     inst_type  varchar(20)  NOT NULL,
     px         numeric(18, 8),
     sz         numeric(18, 8),
-    pos_side       varchar(10)  CHECK (pos_side IN ('long', 'short', 'net')),
+    pos_side   varchar(10)  CHECK (pos_side IN ('long', 'short', 'net')),
     td_mode    varchar(20),
     lever      numeric(5, 2),
     state      varchar(20)  NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
@@ -168,5 +171,6 @@ CREATE TABLE IF NOT EXISTS positions
     c_time     timestamp,
     u_time     timestamp,
     created_at timestamp    NOT NULL DEFAULT NOW(),
-    updated_at timestamp    NOT NULL DEFAULT NOW()
+    updated_at timestamp    NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_positions_pos_id_c_time UNIQUE (pos_id, c_time)
 );

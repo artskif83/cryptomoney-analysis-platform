@@ -155,16 +155,19 @@ public class AccountStateMonitor {
      */
     private void saveLivePositions(List<Position> positions) {
         try {
-            List<String> currentPosIds = positions.stream()
-                    .map(p -> p.posId)
-                    .toList();
+            // Собираем составные ключи (posId::cTime) для синхронизации с биржей
+            List<String> currentPositionKeys = positions.stream()
+                    .map(p -> PositionRepository.buildPositionKey(p.posId, p.cTime))
+                    .collect(Collectors.toList());
 
             if (!positions.isEmpty()) {
                 positionRepository.saveAll(positions);
                 log.debug("✅ Обработано открытых позиций: {}", positions.size());
             }
 
-            positionRepository.deleteLiveNotIn(currentPosIds);
+            // Помечаем как CLOSED позиции, которых нет в текущем снимке
+            positionRepository.markAsClosedNotIn(currentPositionKeys);
+
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении позиций в БД", e);
         }

@@ -16,17 +16,30 @@ import java.time.Instant;
  * Когда будем подключать сохранение позиций, вероятно, стоит уточнить контракт и PK.
  */
 @Entity
-@Table(name = "positions")
+@Table(
+        name = "positions",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_positions_pos_id_c_time",
+                columnNames = {"pos_id", "c_time"}
+        )
+)
 public class Position extends PanacheEntityBase {
+
+    /**
+     * Суррогатный первичный ключ — генерируется БД.
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    public Long id;
 
     /**
      * Идентификатор позиции на бирже.
      *
-     * По аналогии с PendingOrder используем строковый ID как первичный ключ.
-     * Если в данных позиции отсутствует стабильный ID, можно будет заменить на surrogate key
-     * или на составной ключ.
+     * На OKX pos_id не является глобально уникальным: один и тот же pos_id может
+     * повторяться в разное время. Уникальность записи определяется комбинацией
+     * (pos_id, c_time).
      */
-    @Id
     @Column(name = "pos_id", nullable = false, length = 128)
     public String posId;
 
