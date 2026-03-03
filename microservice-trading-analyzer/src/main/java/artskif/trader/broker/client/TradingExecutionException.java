@@ -1,8 +1,11 @@
 package artskif.trader.broker.client;
 
+import lombok.Getter;
+
 /**
  * Исключение, выбрасываемое при ошибке выполнения торговой операции
  */
+@Getter
 public class TradingExecutionException extends RuntimeException {
 
     private final String errorCode;
@@ -17,8 +20,5 @@ public class TradingExecutionException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public String getErrorCode() {
-        return errorCode;
-    }
 }
 

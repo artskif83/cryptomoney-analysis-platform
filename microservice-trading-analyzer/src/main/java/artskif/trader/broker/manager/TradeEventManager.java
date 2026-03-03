@@ -46,7 +46,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
     @Override
     protected void handleTradeEvent(TradeEvent event) {
-        log.debug("🔄 Обработка TradeEvent: {}", event);
+        log.debug("🔄 Обработка торгового события: {}", event);
 
         try {
             // Сохраняем событие в БД
@@ -72,35 +72,32 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         // Выполняем торговые действия
-        Direction direction = event.tradeEventData().direction();
-        if (direction == Direction.SHORT || direction == Direction.LONG) {
-            openPosition(event, direction);
-        }
+        openPosition(event);
     }
 
     /**
      * Закрывает противоположную позицию (если есть) и открывает новую в заданном направлении.
      */
-    private void openPosition(TradeEvent event, Direction direction) {
-        boolean isShort = direction == Direction.SHORT;
+    private void openPosition(TradeEvent event) {
+        var snapshot = accountStateMonitor.getCurrentSnapshot();
+        if (snapshot == null || !accountStateMonitor.isSnapshotHealthy()) {
+            log.warn("⚠️ Снимок состояния аккаунта недоступен или неактуален, пропускаем торговое действие");
+            return;
+        }
+
+        boolean isShort = event.tradeEventData().direction() == Direction.SHORT;
         String dirLabel = isShort ? "ШОРТ" : "ЛОНГ";
         String oppositeLabel = isShort ? "ЛОНГ" : "ШОРТ";
 
         log.debug("📈 Получен сигнал на открытие {} позиции", dirLabel);
 
-        var snapshot = accountStateMonitor.getCurrentSnapshot();
-        if (snapshot == null) {
-            log.warn("⚠️ Снимок состояния аккаунта недоступен, пропускаем обработку сигнала");
-            return;
-        }
-
         List<PendingOrder> pendingOrders = snapshot.getPendingOrders();
         List<Position> positions = snapshot.getPositions();
 
         boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
-        boolean hasSamePosition     = isShort ? hasShortPosition(positions) : hasLongPosition(positions);
+        boolean hasSamePosition = isShort ? hasShortPosition(positions) : hasLongPosition(positions);
 
-        boolean hasSameOrder     = isShort ? hasShortOrder(pendingOrders) : hasLongOrder(pendingOrders);
+        boolean hasSameOrder = isShort ? hasShortOrder(pendingOrders) : hasLongOrder(pendingOrders);
 
         if (hasOppositePosition) {
             log.debug("📊 Есть открытая {} позиция", oppositeLabel);
