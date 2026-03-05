@@ -5,13 +5,16 @@ SELECT
     low,
     close,
     index_candle_1m,
-    metric_resistance_level_1m,
-    metric_triple_ma_value_1m,
+    metric_resistance_level_1m_on_5m,
+    metric_resistance_level_1m_on_4h,
+    metric_resistance_level_1m_on_1h,
+    metric_double_ma_value_1m_on_1h,
     additional_position_price_1m,
     additional_takeprofit_1m,
     additional_stoploss_1m
 FROM wide_candles
 WHERE
     tf = '1m' AND
-    tag = 'GoldenField1M-backtest'
+    tag = 'GoldenField1M-backtest' AND
+    ts BETWEEN $__timeFrom() AND $__timeTo()
 ORDER BY ts;
