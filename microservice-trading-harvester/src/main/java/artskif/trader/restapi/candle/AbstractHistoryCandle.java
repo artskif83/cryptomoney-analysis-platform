@@ -10,14 +10,19 @@ import artskif.trader.restapi.core.CryptoRestApiClient;
 import artskif.trader.restapi.core.RetryableHttpClient;
 import artskif.trader.restapi.okx.OKXHistoryRestApiClient;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.annotation.PostConstruct;
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -40,12 +45,51 @@ public abstract class AbstractHistoryCandle {
      */
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    @PostConstruct
-    void onStart() {
+    /**
+     * Флаг остановки приложения — при shutdown все циклы должны прерваться
+     */
+    private volatile boolean shuttingDown = false;
+
+    /**
+     * Отдельный поток для первоначальной синхронизации при старте.
+     * Хранится, чтобы можно было прервать при получении ShutdownEvent.
+     */
+    private final ExecutorService startupExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r);
+        t.setName("harvester-startup-" + getClass().getSimpleName());
+        t.setDaemon(true);
+        return t;
+    });
+    private volatile Future<?> startupFuture;
+
+    void onStop(@Observes ShutdownEvent ev) {
+        shuttingDown = true;
+        LOG.infof("🛑 Получен сигнал остановки харвестера %s, прерываем текущую синхронизацию...", getTimeframe());
+
+        // Прерываем поток, если он ещё выполняется
+        Future<?> future = startupFuture;
+        if (future != null && !future.isDone()) {
+            future.cancel(true); // true = interrupt the thread
+        }
+
+        startupExecutor.shutdownNow();
+        try {
+            if (!startupExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warnf("⚠️ Поток харвестера %s не завершился за 5 секунд", getTimeframe());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    void onStart(@Observes StartupEvent ev) {
         if (!isEnabled()) {
             LOG.infof("⚙️ Харвестер исторических свечей с таймфреймом %s отключен", getTimeframe());
+            return;
         }
-        syncScheduled();
+        // Запускаем в отдельном потоке, чтобы не блокировать поток StartupEvent
+        // и чтобы поток можно было корректно прервать при ShutdownEvent
+        startupFuture = startupExecutor.submit(this::syncScheduled);
     }
 
     /**
@@ -56,6 +100,11 @@ public abstract class AbstractHistoryCandle {
      */
     protected void syncScheduled() {
         if (!isEnabled()) {
+            return;
+        }
+
+        if (shuttingDown) {
+            LOG.infof("🛑 Приложение останавливается, пропускаем запуск синхронизации %s", getTimeframe());
             return;
         }
 
@@ -115,6 +164,11 @@ public abstract class AbstractHistoryCandle {
 
         // Обрабатываем каждый гап
         for (TimeGap gap : timeGaps) {
+            if (shuttingDown || Thread.currentThread().isInterrupted()) {
+                LOG.infof("🛑 Остановка во время обхода гапов для %s", timeframe);
+                break;
+            }
+
             gapNumber++;
             Long gapStartMs = gap.getStartEpochMs();
             Long gapEndMs = gap.getEndEpochMs();
@@ -163,7 +217,8 @@ public abstract class AbstractHistoryCandle {
 
         int pagesLoaded = 0;
 
-        while (config.pagesLimit() == 0 || pagesLoaded < config.pagesLimit()) {
+        while (!shuttingDown && !Thread.currentThread().isInterrupted() &&
+                (config.pagesLimit() == 0 || pagesLoaded < config.pagesLimit())) {
             CandleRequest request = CandleRequest.builder()
                     .instId(config.instId())
                     .timeframe(timeframe)
@@ -328,7 +383,8 @@ public abstract class AbstractHistoryCandle {
         try {
             Thread.sleep(ms);
         } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread().interrupt(); // восстанавливаем флаг — цикл завершится на следующей итерации
+            shuttingDown = true; // прерываем все циклы при остановке потока
         }
     }
 
