@@ -257,6 +257,7 @@ public class DoubleMAIndicatorColumn extends AbstractColumn<DoubleMAIndicatorM> 
 
             // Значение на старшем таймфрейме 1m
             case DOUBLE_MA_VALUE_1M_ON_4H:
+            case DOUBLE_MA_VALUE_1M_ON_1H:
                 return getHigherTimeframeValue(index, metadata.timeframe(),
                         metadata.higherTimeframe(), isLiveSeries);
 

@@ -137,7 +137,7 @@ public class AccountStateMonitor {
             currentSnapshot.set(snapshot);
             snapshotHealthy.set(true);
 
-            log.info("✅ Снимок состояния аккаунта успешно обновлен: {}", snapshot);
+            log.debug("✅ Снимок состояния аккаунта успешно обновлен: {}", snapshot);
 
         } catch (TradingExecutionException e) {
             // Критическая ошибка биржевого взаимодействия — снимок больше нельзя использовать

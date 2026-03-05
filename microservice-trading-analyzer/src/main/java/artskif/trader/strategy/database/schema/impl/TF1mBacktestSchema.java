@@ -41,8 +41,10 @@ public class TF1mBacktestSchema extends AbstractSchema {
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
-                List.of(TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_1M,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M,
+                List.of(DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_1H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_5M,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_1H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_4H,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M,
                         PositionColumn.PositionColumnType.POSITION_PRICE_1M,
                         PositionColumn.PositionColumnType.STOPLOSS_1M,
