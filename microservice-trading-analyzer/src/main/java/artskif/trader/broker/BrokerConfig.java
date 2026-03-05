@@ -4,8 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.time.Duration;
-
 /**
  * Конфигурация брокерского модуля.
  */
@@ -46,6 +44,15 @@ public class BrokerConfig {
     @ConfigProperty(name = "broker.max-losing-positions-per-day", defaultValue = "3")
     int maxLosingPositionsPerDay;
 
+    /**
+     * Флаг, разрешающий открытие позиций (торговлю).
+     * Если false — метод openPosition не вызывается и никакие покупки не осуществляются.
+     * По умолчанию: true
+     */
+    @Inject
+    @ConfigProperty(name = "broker.trading-enabled", defaultValue = "true")
+    boolean tradingEnabled;
+
     public double getOrderCancelDistancePercent() {
         return orderCancelDistancePercent;
     }
@@ -60,5 +67,9 @@ public class BrokerConfig {
 
     public int getMaxLosingPositionsPerDay() {
         return maxLosingPositionsPerDay;
+    }
+
+    public boolean isTradingEnabled() {
+        return tradingEnabled;
     }
 }

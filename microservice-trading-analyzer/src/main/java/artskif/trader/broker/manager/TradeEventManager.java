@@ -76,6 +76,10 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         // Выполняем торговые действия
+        if (!brokerConfig.isTradingEnabled()) {
+            log.warn("🚫 Торговля отключена (broker.trading-enabled=false). Открытие позиции пропущено для события: {}", event);
+            return;
+        }
         openPosition(event);
     }
 

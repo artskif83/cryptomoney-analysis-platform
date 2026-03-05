@@ -6,10 +6,7 @@ import artskif.trader.entity.ContractMetadata;
 import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.ColumnsRegistry;
 import artskif.trader.strategy.database.columns.AbstractColumn;
-import artskif.trader.strategy.database.columns.impl.CandleResistanceStrengthColumn;
-import artskif.trader.strategy.database.columns.impl.PositionColumn;
-import artskif.trader.strategy.database.columns.impl.ResistanceLevelColumn;
-import artskif.trader.strategy.database.columns.impl.TripleMAColumn;
+import artskif.trader.strategy.database.columns.impl.*;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,8 +40,10 @@ public class TF1mLifetimeSchema extends AbstractSchema {
     @Override
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
-                List.of(TripleMAColumn.TripleMAColumnType.TRIPLE_MA_VALUE_1M,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M,
+                List.of(DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_1H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_5M,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_1H,
+                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M_ON_4H,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M),
                 contract
         ));

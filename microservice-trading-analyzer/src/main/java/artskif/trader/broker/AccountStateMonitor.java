@@ -83,7 +83,7 @@ public class AccountStateMonitor {
      */
     @Scheduled(delay = 1, delayUnit = TimeUnit.SECONDS, every = "15s")
     void collectAccountState() {
-        log.info("📊 Начинается сбор данных о состоянии аккаунта...");
+        log.debug("📊 Начинается сбор данных о состоянии аккаунта...");
 
         try {
             // Получаем список всех активных ордеров (null означает все инструменты)

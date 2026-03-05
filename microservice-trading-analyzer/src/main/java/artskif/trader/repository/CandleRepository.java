@@ -176,11 +176,11 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 ).page(0, limit).list();
             }
 
-            LOG.infof("💾 Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s (isLive=%s)",
+            LOG.debugf("💾 Восстановили последние %d свечей из базы данных для таймфрейма %s и символа %s (isLive=%s)",
                     candles.size(), timeframe, symbol, isLive);
 
             if (candles.isEmpty()) {
-                LOG.infof("💾 Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
+                LOG.debugf("💾 Свечи для восстановления не найдены для таймфрейма %s и символа %s", timeframe, symbol);
                 return new LinkedHashMap<>();
             }
 
@@ -194,7 +194,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                 }
             }
 
-            LOG.infof("💾 Восстановлено %d свечей из базы данных для таймфрейма %s и символа %s",
+            LOG.debugf("💾 Восстановлено %d свечей из базы данных для таймфрейма %s и символа %s",
                     result.size(), timeframe, symbol);
             return result;
         } catch (Exception ex) {

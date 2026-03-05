@@ -185,7 +185,7 @@ public class TradingExecutorService {
         }
 
         List<Map<String, Object>> orders = response.result();
-        log.info("✅ Получено активных ордеров: {}", orders.size());
+        log.debug("✅ Получено активных ордеров: {}", orders.size());
 
         return orders;
     }
@@ -202,7 +202,7 @@ public class TradingExecutorService {
                     : ordId != null   ? "ordId=" + ordId
                     : clOrdId != null ? "clOrdId=" + clOrdId
                     : "всех ордеров";
-        log.info("🔄 Отмена ордеров: {}", desc);
+        log.debug("🔄 Отмена ордеров: {}", desc);
 
         TradingResponse<String> response = executorClient.cancelOrders(ordId, clOrdId);
 
@@ -212,7 +212,7 @@ public class TradingExecutorService {
         }
 
         String result = response.result();
-        log.info("✅ Ордера отменены: {}", result);
+        log.debug("✅ Ордера отменены: {}", result);
 
         return result;
     }
@@ -224,7 +224,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при получении позиций
      */
     public List<Map<String, Object>> getPositions(String instId) {
-        log.info("🔄 Запрос списка открытых позиций для: {}", instId != null ? instId : "всех инструментов");
+        log.debug("🔄 Запрос списка открытых позиций для: {}", instId != null ? instId : "всех инструментов");
 
         TradingResponse<List<Map<String, Object>>> response = executorClient.getPositions(instId);
 
@@ -234,7 +234,7 @@ public class TradingExecutorService {
         }
 
         List<Map<String, Object>> positions = response.result();
-        log.info("✅ Получено открытых позиций: {}", positions.size());
+        log.debug("✅ Получено открытых позиций: {}", positions.size());
 
         return positions;
     }
@@ -246,7 +246,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при закрытии позиций
      */
     public String closeAllPositions(String instId) {
-        log.info("🔄 Закрытие позиций: {}", instId != null ? "instId=" + instId : "всех позиций");
+        log.debug("🔄 Закрытие позиций: {}", instId != null ? "instId=" + instId : "всех позиций");
 
         TradingResponse<String> response = executorClient.closeAllPositions(instId);
 
@@ -256,7 +256,7 @@ public class TradingExecutorService {
         }
 
         String result = response.result();
-        log.info("✅ Позиции закрыты: {}", result);
+        log.debug("✅ Позиции закрыты: {}", result);
 
         return result;
     }
@@ -269,7 +269,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при получении истории
      */
     public List<Map<String, Object>> getPositionsHistory(String instId, String before) {
-        log.info("🔄 Запрос истории позиций: instId={}, before={}", instId, before);
+        log.debug("🔄 Запрос истории позиций: instId={}, before={}", instId, before);
 
         TradingResponse<List<Map<String, Object>>> response = executorClient.getPositionsHistory(instId, before);
 
@@ -279,7 +279,7 @@ public class TradingExecutorService {
         }
 
         List<Map<String, Object>> history = response.result();
-        log.info("✅ История позиций получена: {} записей", history.size());
+        log.debug("✅ История позиций получена: {} записей", history.size());
 
         return history;
     }

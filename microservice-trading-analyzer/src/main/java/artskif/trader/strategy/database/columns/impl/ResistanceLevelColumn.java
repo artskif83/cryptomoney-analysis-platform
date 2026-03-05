@@ -69,8 +69,31 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
                 CandleTimeframe.CANDLE_5M,
                 CandleTimeframe.CANDLE_4H, // higher timeframe
                 MetadataType.METRIC
+        ),
+        RESISTANCE_LEVEL_1M_ON_5M(
+                "metric_resistance_level_1m_on_5m",
+                "Уровень сопротивления на таймфрейме 5m для индекса 1m",
+                "smallint",
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_5M, // higher timeframe
+                MetadataType.METRIC
+        ),
+        RESISTANCE_LEVEL_1M_ON_4H(
+                "metric_resistance_level_1m_on_4h",
+                "Уровень сопротивления на таймфрейме 4h для индекса 1m",
+                "smallint",
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_4H, // higher timeframe
+                MetadataType.METRIC
+        ),
+        RESISTANCE_LEVEL_1M_ON_1H(
+                "metric_resistance_level_1m_on_1h",
+                "Уровень сопротивления на таймфрейме 1h для индекса 1m",
+                "smallint",
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_1H, // higher timeframe
+                MetadataType.METRIC
         );
-
         private final ColumnMetadata metadata;
 
         ResistanceLevelColumnType(String name, String description, String dataType, CandleTimeframe timeframe, CandleTimeframe higherTimeframe, MetadataType metadataType) {
