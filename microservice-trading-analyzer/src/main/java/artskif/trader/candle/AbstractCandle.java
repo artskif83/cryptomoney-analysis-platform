@@ -332,7 +332,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
         if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live")) {
             copyBufferToSeries(liveBuffer, liveBarSeries, liveSeriesLock, "live");
         } else {
-            log().warnf("⚠️ [%s] Актуальный буфер не скопирован в live серию, т.к. буфер еще не актуален", getName());
+            log().warnf("⚠️ [%s] Актуальный буфер не скопирован в live серию, т.к. буфер еще не актуален (размер: %d/%d)", getName(), getLiveBuffer().size(), getMaxLiveBufferSize());
         }
     }
 
@@ -424,9 +424,9 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
             getLiveBuffer().putItems(historyDto.getData());
             getLiveBuffer().incrementVersion();
             if (historyDto.getData().size() >= getMaxHistoryBufferSize()) {
-                            log().warnf("⚠️ [%s] Размер исторических данных (%d) превышает максимальный размер буфера (%d). Добавьте аксимальный размер исторического буфера, иначе данные будут обрезаны",
-                                    getName(), historyDto.getData().size(), getMaxHistoryBufferSize());
-                        }
+                log().warnf("⚠️ [%s] Размер исторических данных (%d) превышает максимальный размер буфера (%d). Добавьте аксимальный размер исторического буфера, иначе данные будут обрезаны",
+                        getName(), historyDto.getData().size(), getMaxHistoryBufferSize());
+            }
             getHistoricalBuffer().putItems(historyDto.getData());
             getHistoricalBuffer().incrementVersion();
 
