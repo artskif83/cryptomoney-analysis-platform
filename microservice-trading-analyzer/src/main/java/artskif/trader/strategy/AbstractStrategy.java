@@ -189,7 +189,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             }
 
             onBar(candleDto);
-        } else if (event.type() == CandleEventType.CANDLE_HISTORY){
+        } else if (event.type() == CandleEventType.CANDLE_HISTORY) {
             reprocessCandleSeries = true; // Устанавливаем флаг для переобработки серии при следующем цикле
         }
     }
@@ -254,7 +254,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
                 tradeEventBus.publish(new TradeEvent(
                         eventData,
                         candle.getInstrument(),
-                        getName()+ "-lifetime",
+                        getName() + "-lifetime",
                         candle.getTimestamp(),
                         false
                 ));
@@ -286,6 +286,11 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife) {
+        if (barSeries == null || barSeries.isEmpty()) {
+            Log.warnf("⚠️ BarSeries пуста или null для стратегии %s, пропускаем обработку", getName());
+            return null;
+        }
+
         int totalBars = barSeries.getBarCount();
         int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
