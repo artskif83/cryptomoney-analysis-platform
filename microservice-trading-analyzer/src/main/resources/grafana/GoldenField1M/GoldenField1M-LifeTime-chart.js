@@ -51,6 +51,22 @@ const posStates = col("state", 3);
 
 if (!times.length) return {};
 
+// ===== Привязка временных меток к ближайшей свечной (snap to candle) =====
+// Решает проблему рассинхронизации вертикальной линии курсора между графиками:
+// произвольные timestamps ордеров/позиций создают новые точки на оси X,
+// из-за чего xAxis разных grid'ов перестают быть синхронными.
+function snapToCandle(ts) {
+    if (ts == null || !times.length) return ts;
+    let lo = 0, hi = times.length - 1;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (times[mid] < ts) lo = mid + 1;
+        else hi = mid;
+    }
+    if (lo > 0 && Math.abs(times[lo - 1] - ts) < Math.abs(times[lo] - ts)) lo--;
+    return times[lo];
+}
+
 // ===== Свечи =====
 const candles = times.map((t, i) => [
     t,
@@ -134,8 +150,8 @@ const orderLines = [];
 const stopLossLines = [];
 
 for (let i = 0; i < orderTimes.length; i++) {
-    const startTime = orderTimes[i];
-    const endTime = orderEndTimes[i];
+    const startTime = snapToCandle(orderTimes[i]);
+    const endTime = snapToCandle(orderEndTimes[i]);
     const orderPrice = orderPrices[i];
     const stopLossPrice = stopLossPrices[i];
     const orderId = orderIds[i];
@@ -185,8 +201,8 @@ const positionLines = [];
 const positionSlLines = [];
 
 for (let i = 0; i < posTimes.length; i++) {
-    const startTime = posTimes[i];
-    const endTime = posEndTimes[i];
+    const startTime = snapToCandle(posTimes[i]);
+    const endTime = snapToCandle(posEndTimes[i]);
     const posPrice = posPrices[i];
     const posSlPrice = posSlPrices[i];
     const posId = posIds[i];
