@@ -72,7 +72,7 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
                 }
             }
 
-            LOG.infof("✅ Позиции обработаны: обновлено=%d, вставлено=%d", updated, inserted);
+            LOG.debugf("✅ Позиции обработаны: обновлено=%d, вставлено=%d", updated, inserted);
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении списка позиций");
             throw e;
