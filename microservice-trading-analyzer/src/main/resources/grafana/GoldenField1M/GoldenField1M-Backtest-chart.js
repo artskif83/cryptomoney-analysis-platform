@@ -302,7 +302,7 @@ return {
             yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
-            lineStyle: { width: 1, color: '#AB47BC' }
+            lineStyle: { width: 1, color: '#FFD700' }
         },
 
         // --- Resistance level 4h ---
@@ -314,7 +314,7 @@ return {
             yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
-            lineStyle: { width: 1, color: '#FF7043' }
+            lineStyle: { width: 1, color: '#2196F3' }
         },
 
         // --- Resistance level 1h ---
@@ -326,7 +326,7 @@ return {
             yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
-            lineStyle: { width: 1, color: '#29B6F6' }
+            lineStyle: { width: 1, color: '#FF4D4D' }
         },
 
         // --- Double MA value 1h ---
