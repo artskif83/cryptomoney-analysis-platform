@@ -51,7 +51,7 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     @Override
     public boolean isEnabled() {
-        return false;
+        return true;
     }
 
     @Override
