@@ -159,8 +159,8 @@ for (let i = 0; i < orderTimes.length; i++) {
     const state = orderStates[i];
 
     // Цвет линии ордера зависит от pos_side: long → зелёный, short → красный, net → жёлтый
-    const orderLineColor = posSide === 'long' ? '#00FF00'
-        : posSide === 'short' ? '#FF4D4D'
+    const orderLineColor = posSide === 'long' ? '#00FF66'
+        : posSide === 'short' ? '#FF1A1A'
         : '#FFD700'; // net
 
     // Создаем линию для ордера (пунктирная, цвет по pos_side)
@@ -210,8 +210,8 @@ for (let i = 0; i < posTimes.length; i++) {
     const posState = posStates[i];
 
     // Цвет линии позиции: long → зелёный, short → красный, net → жёлтый
-    const posLineColor = posSide === 'long' ? '#00FF00'
-        : posSide === 'short' ? '#FF4D4D'
+    const posLineColor = posSide === 'long' ? '#00FF66'
+        : posSide === 'short' ? '#FF1A1A'
         : '#FFD700'; // net
 
     // Сплошная линия для позиции
@@ -502,7 +502,7 @@ return {
                 color: order.lineColor,
                 width: 1,
                 type: 'dashed',
-                opacity: 0.8
+                opacity: 1
             },
             z: 5,
             tooltip: {
@@ -525,10 +525,10 @@ return {
             yAxisIndex: 0,
             symbol: 'none',
             lineStyle: {
-                color: '#FF0000',
+                color: '#FF1A1A',
                 width: 1,
                 type: 'dashed',
-                opacity: 0.8
+                opacity: 1
             },
             z: 5,
             tooltip: {
@@ -552,9 +552,9 @@ return {
             symbol: 'none',
             lineStyle: {
                 color: pos.lineColor,
-                width: 2,
+                width: 1,
                 type: 'solid',
-                opacity: 0.9
+                opacity: 1
             },
             z: 6,
             tooltip: {
@@ -577,10 +577,10 @@ return {
             yAxisIndex: 0,
             symbol: 'none',
             lineStyle: {
-                color: '#FF0000',
+                color: '#FF1A1A',
                 width: 1,
                 type: 'dashed',
-                opacity: 0.8
+                opacity: 1
             },
             z: 6,
             tooltip: {
