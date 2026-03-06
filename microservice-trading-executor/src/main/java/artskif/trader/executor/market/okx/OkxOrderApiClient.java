@@ -105,7 +105,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     public BigDecimal getCurrentPrice(Symbol symbol) throws Exception {
-        final String instId = symbol.base() + "-" + symbol.quote();
+        final String instId = symbol.base() + "-" + symbol.quote() + "-SWAP";
 
         String endpoint = "/api/v5/market/ticker?instId=" + instId;
         Map<String, Object> response = executeRestRequest("GET", endpoint, null);

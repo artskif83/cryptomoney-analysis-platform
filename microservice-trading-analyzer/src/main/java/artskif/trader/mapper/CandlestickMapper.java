@@ -71,7 +71,7 @@ public class CandlestickMapper {
 
             // 1) Служебные сообщения
             if (root.hasNonNull("event")) {
-                LOG.warnf("Пропущено служебное сообщение (event=%s).", root.get("event").asText());
+                LOG.debugf("Пропущено служебное сообщение (event=%s).", root.get("event").asText());
                 return Optional.empty();
             }
             if (!root.has("data") || !root.get("data").isArray() || root.get("data").isEmpty()) {
@@ -111,7 +111,7 @@ public class CandlestickMapper {
                     lastCandle
             ));
         } catch (Exception e) {
-            LOG.warnf(e, "Пропущено невалидное сообщение.");
+            LOG.errorf(e, "Пропущено невалидное сообщение.");
             return Optional.empty();
         }
     }

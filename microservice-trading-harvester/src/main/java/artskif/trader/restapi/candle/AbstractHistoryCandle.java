@@ -115,15 +115,13 @@ public abstract class AbstractHistoryCandle {
         }
 
         try {
-            LOG.info("🚀 // -------------------------------------------------------------------------------");
-
             LOG.infof("🚀 Запуск синхронизации для таймфрейма %s: instId=%s startEpochMs=%s pagesLimit=%d",
                     getTimeframe(), commonConfig.getInstId(),
                     Instant.ofEpochMilli(getStartEpochMs()), commonConfig.getPagesLimit());
 
             runSync();
 
-            LOG.infof("✅ Синхронизация %s завершена", getTimeframe());
+            LOG.debugf("✅ Синхронизация %s завершена", getTimeframe());
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка в синхронизации %s", getTimeframe());
         } finally {
@@ -157,7 +155,7 @@ public abstract class AbstractHistoryCandle {
         String timeframe = getTimeframe();
         String topic = buildTopicName(timeframe);
 
-        LOG.infof("📥 Harvest: timeframe=%s -> topic=%s, гапов для обработки: %d", timeframe, topic, timeGaps.size());
+        LOG.debugf("📥 Harvest: timeframe=%s -> topic=%s, гапов для обработки: %d", timeframe, topic, timeGaps.size());
 
         int totalPagesLoaded = 0;
         int gapNumber = 0;
@@ -173,14 +171,14 @@ public abstract class AbstractHistoryCandle {
             Long gapStartMs = gap.getStartEpochMs();
             Long gapEndMs = gap.getEndEpochMs();
 
-            LOG.infof("🔧 Обработка гапа #%d/%d: %s", gapNumber, timeGaps.size(), gap);
+            LOG.debugf("🔧 Обработка гапа #%d/%d: %s", gapNumber, timeGaps.size(), gap);
 
             // Для каждого гапа запрашиваем данные с постраничным разбиением
             boolean isLastGap = (gapNumber == timeGaps.size());
             int gapPagesLoaded = harvestGap(apiClient, config, timeframe, topic, gapStartMs, gapEndMs, gapNumber, timeGaps.size(), isLastGap);
             totalPagesLoaded += gapPagesLoaded;
 
-            LOG.infof("✅ Гап #%d обработан, загружено страниц: %d", gapNumber, gapPagesLoaded);
+            LOG.debugf("✅ Гап #%d обработан, загружено страниц: %d", gapNumber, gapPagesLoaded);
 
             // Проверяем общий лимит страниц
             if (config.pagesLimit() > 0 && totalPagesLoaded >= config.pagesLimit()) {
@@ -236,7 +234,7 @@ public abstract class AbstractHistoryCandle {
 
             JsonNode data = rootOpt.get().path("data");
             if (!data.isArray() || data.isEmpty()) {
-                LOG.infof("🏁 Данных больше нет в гапе [%d - %d] для timeframe=%s",
+                LOG.debugf("🏁 Данных больше нет в гапе [%d - %d] для timeframe=%s",
                         gapStartMs, gapEndMs, timeframe);
                 break;
             }
@@ -258,12 +256,12 @@ public abstract class AbstractHistoryCandle {
             kafkaProducer.sendMessage(topic, payload);
 
             pagesLoaded++;
-            LOG.infof("📦 Страница #%d (%d записей) для timeframe=%s в гапе; minTs=%d (%s); isLast=%s",
+            LOG.debugf("📦 Страница #%d (%d записей) для timeframe=%s в гапе; minTs=%d (%s); isLast=%s",
                     pagesLoaded, data.size(), timeframe, minTs, Instant.ofEpochMilli(minTs), isLast);
 
             // Проверяем, достигли ли мы начала гапа
             if (isReachedGapStart) {
-                LOG.infof("⛳ Граница гапа достигнута: minTs=%d <= gapStart=%d для timeframe=%s",
+                LOG.debugf("⛳ Граница гапа достигнута: minTs=%d <= gapStart=%d для timeframe=%s",
                         minTs, gapStartMs, timeframe);
                 break;
             }
@@ -273,7 +271,7 @@ public abstract class AbstractHistoryCandle {
 
             // Убеждаемся, что не вышли за границу гапа
             if (willExceedGapStart) {
-                LOG.infof("⛳ before=%d вышел за начало гапа=%d, останавливаемся", before, gapStartMs);
+                LOG.debugf("⛳ before=%d вышел за начало гапа=%d, останавливаемся", before, gapStartMs);
                 break;
             }
 

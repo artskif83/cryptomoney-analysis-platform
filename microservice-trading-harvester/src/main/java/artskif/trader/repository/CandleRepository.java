@@ -70,7 +70,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             Instant now = Instant.now();
             Instant startBoundary = Instant.ofEpochMilli(startEpochMs);
 
-            LOG.infof("🔍 Поиск всех гапов: symbol=%s tf=%s от %s до %s, duration=%s",
+            LOG.debugf("🔍 Поиск всех гапов: symbol=%s tf=%s от %s до %s, duration=%s",
                     symbol, timeframe, now, startBoundary, candleDuration);
 
             // Получаем только timestamps свечей, отсортированные по убыванию времени
@@ -84,12 +84,12 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     .setParameter("end", now)
                     .getResultList();
 
-            LOG.infof("📊 Найдено %d свечей для анализа", timestamps.size());
+            LOG.debugf("📊 Найдено %d свечей для анализа", timestamps.size());
 
             List<TimeGap> gaps = new java.util.ArrayList<>();
 
             if (timestamps.isEmpty()) {
-                LOG.infof("✅ Свечи не найдены. Берем весь диапазон как гап: от %s до now", startBoundary);
+                LOG.debugf("✅ Свечи не найдены. Берем весь диапазон как гап: от %s до now", startBoundary);
                 TimeGap gap = new TimeGap(startBoundary, null);
                 gaps.add(gap);
                 return gaps;
@@ -102,7 +102,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             if (gapFromNow.compareTo(candleDuration.multipliedBy(2)) > 0) {
                 TimeGap gap = new TimeGap(firstTs, null);
                 gaps.add(gap);
-                LOG.infof("✅ Найден гап между first и now: %s", gap);
+                LOG.debugf("✅ Найден гап между first и now: %s", gap);
             }
 
             // Проверяем промежутки между соседними свечами
@@ -118,7 +118,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     // Гап найден: от nextTs + candleDuration до currentTs
                     TimeGap gap = new TimeGap(nextTs, currentTs);
                     gaps.add(gap);
-                    LOG.infof("✅ Найден гап в последовательности: %s", gap);
+                    LOG.debugf("✅ Найден гап в последовательности: %s", gap);
                 }
             }
 
@@ -128,13 +128,13 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
             if (gapToStart.compareTo(candleDuration) > 0) {
                 TimeGap gap = new TimeGap(startBoundary, lastTs);
                 gaps.add(gap);
-                LOG.infof("✅ Найден гап между last и startBoundary: %s", gap);
+                LOG.debugf("✅ Найден гап между last и startBoundary: %s", gap);
             }
 
             if (gaps.isEmpty()) {
-                LOG.infof("✅ Гапов не найдено в последовательности свечей");
+                LOG.debugf("✅ Гапов не найдено в последовательности свечей");
             } else {
-                LOG.infof("✅ Всего найдено гапов: %d", gaps.size());
+                LOG.debugf("✅ Всего найдено гапов: %d", gaps.size());
             }
 
             return gaps;

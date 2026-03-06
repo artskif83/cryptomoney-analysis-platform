@@ -154,22 +154,22 @@ public class OKXCandlesWebSocketClient {
         {
           "op": "subscribe",
           "args": [
-            {"channel":"candle1m","instId":"BTC-USDT"},
-            {"channel":"candle5m","instId":"BTC-USDT"},
-            {"channel":"candle1H","instId":"BTC-USDT"},
-            {"channel":"candle4H","instId":"BTC-USDT"},
-            {"channel":"candle1W","instId":"BTC-USDT"}
+            {"channel":"candle1m","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle5m","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle1H","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle4H","instId":"BTC-USDT-SWAP"},
+            {"channel":"candle1W","instId":"BTC-USDT-SWAP"}
           ]
         }""";
         session.getAsyncRemote().sendText(subscribeMsg);
-        LOG.info("🔗 Подключение установлено и отправлены подписки");
+        LOG.debug("🔗 Подключение установлено и отправлены подписки");
     }
 
     @OnMessage
     public void onMessage(String message) {
         lastActivityNanos = System.nanoTime(); // фиксируем «живой» трафик
         if (LOG.isDebugEnabled()) {
-            LOG.tracef("📩 Получено сообщение: %s%n", message);
+            LOG.debugf("📩 Получено сообщение: %s%n", message);
         }
 
         String topic = determineTopic(message);

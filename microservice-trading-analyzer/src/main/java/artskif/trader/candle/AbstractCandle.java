@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
-    protected static final String DEFAULT_SYMBOL = "BTC-USDT";
+    protected static final String DEFAULT_SYMBOL = "BTC-USDT-SWAP";
 
     // Конфигурация актуальности: запас времени в секундах для проверки последнего элемента
     protected static final long ACTUALITY_TIME_BUFFER_SECONDS = 10;
