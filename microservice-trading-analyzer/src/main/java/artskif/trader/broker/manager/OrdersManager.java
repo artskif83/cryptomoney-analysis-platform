@@ -35,6 +35,11 @@ public class OrdersManager extends AbstractOrdersManager {
 
     @Override
     protected void handleCandleEvent(CandlestickDto dto) {
+        if (!brokerConfig.isTradingEnabled()) {
+            log.debug("⏸️ Торговля отключена (trading-enabled=false), пропускаем обработку ордеров");
+            return;
+        }
+
         if (dto.getClose() == null) {
             log.debug("⚠️ CandleEvent без цены закрытия, пропускаем: {}", dto);
             return;

@@ -93,7 +93,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     }
 
     public BaseBarSeries getHistoricalBarSeries() {
-        if (getHistoricalBuffer().isEmpty()) {
+        if (historicalBuffer.isEmpty() || historicalBarSeries.isEmpty()) {
             initHistoricalData();
         }
         return historicalBarSeries;

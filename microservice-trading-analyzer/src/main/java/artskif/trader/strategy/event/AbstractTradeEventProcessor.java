@@ -51,7 +51,8 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
      */
     @Override
     public boolean shouldEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries) {
-        return getEntryRule(isLiveSeries).isSatisfied(index, tradingRecord);
+//        return getEntryRule(isLiveSeries).isSatisfied(index, tradingRecord);
+        return false; // TODO: доделать правила входа для всех процессоров событий
     }
 
     /**

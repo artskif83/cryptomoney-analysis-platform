@@ -269,13 +269,23 @@ public abstract class AbstractStrategy implements CandleEventListener {
      * Общая логика бэктеста с возможностью кастомизации через хуки
      */
     public final void backtest() {
+        backtest(null);
+    }
+
+    public final void backtest(Integer startIndex) {
         Log.info("📋 Начало генерации бектеста для контракта");
 
         dataService.checkColumnsExist(getBacktestSchema());
 
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
 
-        TradingRecord tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false);
+        TradingRecord tradingRecord;
+        if (startIndex != null) {
+            Log.infof("📋 Бэктест запущен с индекса: %d", startIndex);
+            tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false, startIndex);
+        } else {
+            tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false);
+        }
 
         if (tradingRecord != null) {
             Log.info("📊 Выполняем торговый анализ стратегии...");
@@ -286,12 +296,17 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife) {
+        return processCandleSeries(barSeries, tagName, schema, isLife, barSeries != null ? barSeries.getBeginIndex() : 0);
+    }
+
+    private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife, int startIndex) {
         if (barSeries == null || barSeries.isEmpty()) {
             Log.warnf("⚠️ BarSeries пуста или null для стратегии %s, пропускаем обработку", getName());
             return null;
         }
 
-        int totalBars = barSeries.getBarCount();
+        int effectiveStartIndex = Math.max(startIndex, barSeries.getBeginIndex());
+        int totalBars = barSeries.getEndIndex() - effectiveStartIndex + 1;
         int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
@@ -306,7 +321,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         }
 
         int processedCount = 0;
-        for (int index = barSeries.getBeginIndex(); index <= barSeries.getEndIndex(); index++) {
+        for (int index = effectiveStartIndex; index <= barSeries.getEndIndex(); index++) {
 
             // Хук для обработки каждой свечи - здесь можно открывать/закрывать позиции и сохранять метрики
             if (tradingRecord != null && tradeEventProcessor != null) {
@@ -319,7 +334,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             processedCount++;
 
             // Выводим прогресс каждые progressStep свечей
-            if (index > 0 && (index % progressStep == 0 || index == totalBars - 1)) {
+            if (processedCount % progressStep == 0 || index == barSeries.getEndIndex()) {
                 double progressPercent = ((double) processedCount / totalBars) * 100;
                 Log.debugf("⏳ Прогресс выполнения: %.1f%% (%d/%d свечей)",
                         progressPercent, processedCount, totalBars);

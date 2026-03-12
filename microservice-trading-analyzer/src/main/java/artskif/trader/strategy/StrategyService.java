@@ -84,6 +84,10 @@ public class StrategyService {
      * @return true если бэктест успешно запущен
      */
     public boolean runBacktest(String strategyName) {
+        return runBacktest(strategyName, null);
+    }
+
+    public boolean runBacktest(String strategyName, Integer startIndex) {
         AbstractStrategy strategy = strategyMap.get(strategyName);
 
         if (strategy == null) {
@@ -93,7 +97,7 @@ public class StrategyService {
 
         try {
             Log.infof("📊 Запуск бэктеста для стратегии: %s", strategyName);
-            strategy.backtest();
+            strategy.backtest(startIndex);
             Log.infof("✅ Бэктест завершен для стратегии: %s", strategyName);
             return true;
 

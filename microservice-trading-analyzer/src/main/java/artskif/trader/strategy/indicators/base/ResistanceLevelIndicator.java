@@ -86,7 +86,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         int startIndex = Math.max(0, currentIndex - highBarCount + 1);
 
         // Собираем значения цен с их индексами
-        for (int i = startIndex; i < currentIndex; i++) {
+        for (int i = startIndex; i <= currentIndex; i++) {
             Num highPrice = highPriceIndicator.getValue(i);
             pricesWithIndices.add(new PriceWithIndex(highPrice, i));
         }

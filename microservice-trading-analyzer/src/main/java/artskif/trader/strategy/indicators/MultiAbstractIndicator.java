@@ -16,11 +16,37 @@ import java.util.Map;
 public abstract class MultiAbstractIndicator<T extends AbstractIndicator<Num>> {
 
     protected final Candle candle;
-    protected final Map<CandleTimeframe, T> indicators = new HashMap<>();
+    protected final Map<TimeframeSeriesKey, T> indicators = new HashMap<>();
     protected final Map<TimeframesPair, AbstractIndicator<Num>> higherTimeframeIndicators = new HashMap<>();
 
     public MultiAbstractIndicator(Candle candle) {
         this.candle = candle;
+    }
+
+    /**
+     * Вложенный класс для хранения пары таймфрейм + isLifeSeries в качестве ключа кэша
+     */
+    protected static class TimeframeSeriesKey {
+        private final CandleTimeframe timeframe;
+        private final boolean isLifeSeries;
+
+        public TimeframeSeriesKey(CandleTimeframe timeframe, boolean isLifeSeries) {
+            this.timeframe = timeframe;
+            this.isLifeSeries = isLifeSeries;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TimeframeSeriesKey that = (TimeframeSeriesKey) o;
+            return isLifeSeries == that.isLifeSeries && timeframe == that.timeframe;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * timeframe.hashCode() + (isLifeSeries ? 1 : 0);
+        }
     }
 
     /**
@@ -89,11 +115,12 @@ public abstract class MultiAbstractIndicator<T extends AbstractIndicator<Num>> {
      * @return индикатор TA4J для указанного таймфрейма
      */
     public T getIndicator(CandleTimeframe timeframe, boolean isLifeSeries){
-        if (indicators.containsKey(timeframe)) {
-            return indicators.get(timeframe);
+        TimeframeSeriesKey key = new TimeframeSeriesKey(timeframe, isLifeSeries);
+        if (indicators.containsKey(key)) {
+            return indicators.get(key);
         } else {
             T indicator = createIndicator(timeframe, isLifeSeries);
-            this.indicators.put(timeframe, indicator);
+            this.indicators.put(key, indicator);
             return indicator;
         }
     }

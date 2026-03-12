@@ -83,14 +83,16 @@ public class StrategyResource {
     /**
      * Запустить бэктест для стратегии
      * @param strategyName имя стратегии для запуска бэктеста
+     * @param startIndex   индекс бара, с которого начать бэктест (опционально, по умолчанию — начало серии)
      */
     @POST
     @Path("/backtest/{strategyName}")
-    public Response runBacktest(@PathParam("strategyName") String strategyName) {
+    public Response runBacktest(@PathParam("strategyName") String strategyName,
+                                @QueryParam("startIndex") Integer startIndex) {
         try {
             Log.infof("📊 Запрос на запуск бэктеста для стратегии: %s", strategyName);
 
-            boolean success = strategyService.runBacktest(strategyName);
+            boolean success = strategyService.runBacktest(strategyName, startIndex);
 
             if (success) {
                 return Response.ok()

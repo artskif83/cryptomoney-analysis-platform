@@ -19,6 +19,8 @@ const resistanceLevel5mRaw = col("metric_resistance_level_1m_on_5m");
 const resistanceLevel4hRaw = col("metric_resistance_level_1m_on_4h");
 const resistanceLevel1hRaw = col("metric_resistance_level_1m_on_1h");
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h");
+const resistanceLevelRaw = col("metric_resistance_level_1m");
+const resistanceStopLossRaw = col("metric_resistance_stop_los_1m");
 
 const posPrice = col("additional_position_price_1m");
 const tpPrice = col("additional_takeprofit_1m");
@@ -54,6 +56,37 @@ const doubleMaValue1h = times.map((t, i) => [
     t,
     doubleMaValue1hRaw[i] == null ? null : doubleMaValue1hRaw[i]
 ]);
+
+// ===== Зона сопротивления (resistance level + stop loss band) =====
+const resistanceBandSegments = [];
+let segStart = null;
+let segRl = null;
+let segSl = null;
+
+for (let i = 0; i <= times.length; i++) {
+    const rl = resistanceLevelRaw[i];
+    const sl = resistanceStopLossRaw[i];
+    const hasValue = rl != null && sl != null;
+
+    if (hasValue) {
+        if (segStart === null) {
+            segStart = times[i];
+        }
+        segRl = rl;
+        segSl = sl;
+    } else {
+        if (segStart !== null) {
+            const segEnd = times[i - 1];
+            resistanceBandSegments.push([
+                { xAxis: segStart, yAxis: segSl },
+                { xAxis: segEnd,   yAxis: segRl }
+            ]);
+            segStart = null;
+            segRl = null;
+            segSl = null;
+        }
+    }
+}
 
 
 // ===== Цвета =====
@@ -237,6 +270,26 @@ return {
                 color0: downColor,
                 borderColor: upBorderColor,
                 borderColor0: downBorderColor
+            }
+        },
+
+        // --- Зона сопротивления (resistance level ↔ stop loss) ---
+        {
+            name: 'Resistance Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(0, 220, 100, 0.18)',
+                    borderColor: 'rgba(0, 220, 100, 0.6)',
+                    borderWidth: 1
+                },
+                data: resistanceBandSegments
             }
         },
 
