@@ -5,9 +5,8 @@ SELECT
     low,
     close,
     index_candle_1m,
-    metric_resistance_level_1m_on_5m,
-    metric_resistance_level_1m_on_4h,
-    metric_resistance_level_1m_on_1h,
+    metric_resistance_level_1m,
+    metric_resistance_stop_los_1m,
     metric_double_ma_value_1m_on_1h
 FROM wide_candles
 WHERE

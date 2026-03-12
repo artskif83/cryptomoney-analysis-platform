@@ -9,8 +9,6 @@ import artskif.trader.strategy.indicators.base.ResistanceLevelIndicator;
 import artskif.trader.strategy.indicators.multi.levels.ResistanceLevelIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.ta4j.core.indicators.AbstractIndicator;
-import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
@@ -25,7 +23,7 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
         RESISTANCE_LEVEL_5M(
                 "metric_resistance_level_5m",
                 "Уровень сопротивления на таймфрейме 5m",
-                "smallint",
+                "numeric(12, 4)",
                 CandleTimeframe.CANDLE_5M,
                 null,
                 MetadataType.METRIC
@@ -33,65 +31,17 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
         RESISTANCE_LEVEL_1M(
                 "metric_resistance_level_1m",
                 "Уровень сопротивления на таймфрейме 1m",
-                "smallint",
+                "numeric(12, 4)",
                 CandleTimeframe.CANDLE_1M,
                 null,
                 MetadataType.METRIC
         ),
-        RESISTANCE_LEVEL_4H(
-                "metric_resistance_level_4h",
-                "Уровень сопротивления на таймфрейме 4h",
-                "smallint",
-                CandleTimeframe.CANDLE_4H,
-                null,
-                MetadataType.METRIC
-        ),
-        RESISTANCE_POWER_ABOVE_5M(
-                "metric_resistance_power_above_5m",
-                "Уровень сопротивления над линией лучшей цены на таймфрейме 5m",
-                "smallint",
-                CandleTimeframe.CANDLE_5M,
-                null,
-                MetadataType.METRIC
-        ),
-        RESISTANCE_POWER_ABOVE_4H(
-                "metric_resistance_power_above_4h",
-                "Уровень сопротивления над линией лучшей цены на таймфрейме 4h",
-                "smallint",
-                CandleTimeframe.CANDLE_4H,
-                null,
-                MetadataType.METRIC
-        ),
-        RESISTANCE_LEVEL_5M_ON_4H(
-                "metric_resistance_level_5m_on_4h",
-                "Уровень сопротивления на таймфрейме 4h для индекса 5m",
-                "smallint",
-                CandleTimeframe.CANDLE_5M,
-                CandleTimeframe.CANDLE_4H, // higher timeframe
-                MetadataType.METRIC
-        ),
-        RESISTANCE_LEVEL_1M_ON_5M(
-                "metric_resistance_level_1m_on_5m",
-                "Уровень сопротивления на таймфрейме 5m для индекса 1m",
-                "smallint",
+        RESISTANCE_STOP_LOS_1M(
+                "metric_resistance_stop_los_1m",
+                "Стоп лос над линией лучшей цены на таймфрейме 1m",
+                "numeric(12, 4)",
                 CandleTimeframe.CANDLE_1M,
-                CandleTimeframe.CANDLE_5M, // higher timeframe
-                MetadataType.METRIC
-        ),
-        RESISTANCE_LEVEL_1M_ON_4H(
-                "metric_resistance_level_1m_on_4h",
-                "Уровень сопротивления на таймфрейме 4h для индекса 1m",
-                "smallint",
-                CandleTimeframe.CANDLE_1M,
-                CandleTimeframe.CANDLE_4H, // higher timeframe
-                MetadataType.METRIC
-        ),
-        RESISTANCE_LEVEL_1M_ON_1H(
-                "metric_resistance_level_1m_on_1h",
-                "Уровень сопротивления на таймфрейме 1h для индекса 1m",
-                "smallint",
-                CandleTimeframe.CANDLE_1M,
-                CandleTimeframe.CANDLE_1H, // higher timeframe
+                null,
                 MetadataType.METRIC
         );
         private final ColumnMetadata metadata;
@@ -122,10 +72,9 @@ public class ResistanceLevelColumn extends AbstractColumn<ResistanceLevelIndicat
         ColumnMetadata metadata = featureType.getMetadata();
 
         switch (featureType) {
-            case ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_5M:
-            case ResistanceLevelColumnType.RESISTANCE_POWER_ABOVE_4H:
+            case ResistanceLevelColumnType.RESISTANCE_STOP_LOS_1M:
                 ResistanceLevelIndicator indicator = (ResistanceLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
-                return indicator.getResistancePowerAbove(index);
+                return indicator.getStopLos(index);
             default:
                 return getValueByNameGeneric(isLiveSeries, valueName, index, ResistanceLevelColumnType.values());
         }

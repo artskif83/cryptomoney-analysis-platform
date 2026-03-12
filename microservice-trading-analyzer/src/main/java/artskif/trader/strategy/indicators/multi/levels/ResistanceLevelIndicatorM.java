@@ -42,37 +42,35 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
     protected ResistanceLevelIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
 
         return switch (timeframe) {
-            case CANDLE_5M -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+            case CANDLE_1M -> new ResistanceLevelIndicator(
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                     closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
+                    4,
                     6,
                     DecimalNum.valueOf(0.001),
-                    DecimalNum.valueOf(0.005)
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.003)
             );
-            case CANDLE_1M -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+            case CANDLE_5M -> new ResistanceLevelIndicator(
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                     closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
+                    4,
                     6,
-                    DecimalNum.valueOf(0.0005),
-                    DecimalNum.valueOf(0.005)
-            );
-            case CANDLE_4H -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
-                    12,
-                    DecimalNum.valueOf(0.003),
-                    DecimalNum.valueOf(0.01)
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.003)
             );
             default -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                     closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    candleResistanceStrengthM.getIndicator(timeframe, isLifeSeries),
-                    12,
-                    DecimalNum.valueOf(0.005),
-                    DecimalNum.valueOf(0.025)
+                    4,
+                    6,
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.001),
+                    DecimalNum.valueOf(0.003)
             );
         };
     }

@@ -49,6 +49,9 @@ public class AccountStateMonitor {
     @Inject
     PositionMapper positionMapper;
 
+    @Inject
+    BrokerConfig brokerConfig;
+
     private final AtomicReference<AccountStateSnapshot> currentSnapshot = new AtomicReference<>();
 
     /**
@@ -83,6 +86,11 @@ public class AccountStateMonitor {
      */
     @Scheduled(delay = 1, delayUnit = TimeUnit.SECONDS, every = "15s")
     void collectAccountState() {
+        if (!brokerConfig.isTradingEnabled()) {
+            log.debug("⏸️ Сбор данных о состоянии аккаунта отключён (broker.trading-enabled=false)");
+            return;
+        }
+
         log.debug("📊 Начинается сбор данных о состоянии аккаунта...");
 
         try {
