@@ -15,9 +15,6 @@ const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
-const resistanceLevel5mRaw = col("metric_resistance_level_1m_on_5m");
-const resistanceLevel4hRaw = col("metric_resistance_level_1m_on_4h");
-const resistanceLevel1hRaw = col("metric_resistance_level_1m_on_1h");
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h");
 const resistanceLevelRaw = col("metric_resistance_level_1m");
 const resistanceStopLossRaw = col("metric_resistance_stop_los_1m");
@@ -37,20 +34,6 @@ const candles = times.map((t, i) => [
     highs[i]
 ]);
 
-const resistanceLevel5m = times.map((t, i) => [
-    t,
-    resistanceLevel5mRaw[i] == null ? null : resistanceLevel5mRaw[i]
-]);
-
-const resistanceLevel4h = times.map((t, i) => [
-    t,
-    resistanceLevel4hRaw[i] == null ? null : resistanceLevel4hRaw[i]
-]);
-
-const resistanceLevel1h = times.map((t, i) => [
-    t,
-    resistanceLevel1hRaw[i] == null ? null : resistanceLevel1hRaw[i]
-]);
 
 const doubleMaValue1h = times.map((t, i) => [
     t,
@@ -58,34 +41,22 @@ const doubleMaValue1h = times.map((t, i) => [
 ]);
 
 // ===== Зона сопротивления (resistance level + stop loss band) =====
+// Рисуем отдельный прямоугольник для каждой свечи, чтобы зона точно
+// следовала значениям resistance_level (верх) и stop_loss (низ).
 const resistanceBandSegments = [];
-let segStart = null;
-let segRl = null;
-let segSl = null;
 
-for (let i = 0; i <= times.length; i++) {
+for (let i = 0; i < times.length; i++) {
     const rl = resistanceLevelRaw[i];
     const sl = resistanceStopLossRaw[i];
-    const hasValue = rl != null && sl != null;
+    if (rl == null || sl == null) continue;
 
-    if (hasValue) {
-        if (segStart === null) {
-            segStart = times[i];
-        }
-        segRl = rl;
-        segSl = sl;
-    } else {
-        if (segStart !== null) {
-            const segEnd = times[i - 1];
-            resistanceBandSegments.push([
-                { xAxis: segStart, yAxis: segSl },
-                { xAxis: segEnd,   yAxis: segRl }
-            ]);
-            segStart = null;
-            segRl = null;
-            segSl = null;
-        }
-    }
+    // Определяем конец прямоугольника: до начала следующей свечи или текущий бар
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    resistanceBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(rl, sl) },
+        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+    ]);
 }
 
 
@@ -127,9 +98,8 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '70%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '72%', height: '12%' },   // Resistance levels (grid 1)
-        { left: '5%', right: '5%', top: '86%', height: '12%' }    // Double MA value 1h (grid 2)
+        { left: '5%', right: '5%', top: 10, height: '80%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '86%', height: '12%' }    // Double MA value 1h (grid 1)
     ],
 
     xAxis: [
@@ -155,16 +125,6 @@ return {
         {
             type: 'time',
             gridIndex: 1,
-            boundaryGap: false,
-            axisLabel: { show: false },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 2,
             boundaryGap: false,
             axisLabel: {
                 formatter: {
@@ -199,25 +159,10 @@ return {
             }
         },
         {
-            scale: true,
-            gridIndex: 1,
-            axisLabel: {
-                formatter: (v) => Math.round(v)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${Math.round(v)}`;
-                    }
-                }
-            }
-        },
-        {
             scale: false,
             min: -1,
             max: 1,
-            gridIndex: 2,
+            gridIndex: 1,
             axisLabel: {
                 formatter: (v) => v.toFixed(2)
             },
@@ -233,7 +178,7 @@ return {
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }]
+        link: [{ xAxisIndex: [0, 1] }]
     },
 
     toolbox: {
@@ -248,7 +193,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2],
+            xAxisIndex: [0, 1],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -286,8 +231,7 @@ return {
                 silent: true,
                 itemStyle: {
                     color: 'rgba(0, 220, 100, 0.18)',
-                    borderColor: 'rgba(0, 220, 100, 0.6)',
-                    borderWidth: 1
+                    borderWidth: 0
                 },
                 data: resistanceBandSegments
             }
@@ -346,49 +290,13 @@ return {
             lineStyle: { width: 1, color: '#FF5252', type: 'dashed' }
         },
 
-        // --- Resistance level 5m ---
-        {
-            name: 'Resistance level (5m)',
-            type: 'line',
-            data: resistanceLevel5m,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#FFD700' }
-        },
-
-        // --- Resistance level 4h ---
-        {
-            name: 'Resistance level (4h)',
-            type: 'line',
-            data: resistanceLevel4h,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#2196F3' }
-        },
-
-        // --- Resistance level 1h ---
-        {
-            name: 'Resistance level (1h)',
-            type: 'line',
-            data: resistanceLevel1h,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#FF4D4D' }
-        },
-
         // --- Double MA value 1h ---
         {
             name: 'Double MA value (1h)',
             type: 'line',
             data: doubleMaValue1h,
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
@@ -433,14 +341,6 @@ return {
                 prevH = highs[currentIdx - 1];
             }
 
-            const levelPoint5m = list.find(p => p.seriesName === 'Resistance level (5m)');
-            const lVal5m = levelPoint5m && Array.isArray(levelPoint5m.data) ? levelPoint5m.data[1] : null;
-
-            const levelPoint4h = list.find(p => p.seriesName === 'Resistance level (4h)');
-            const lVal4h = levelPoint4h && Array.isArray(levelPoint4h.data) ? levelPoint4h.data[1] : null;
-
-            const levelPoint1h = list.find(p => p.seriesName === 'Resistance level (1h)');
-            const lVal1h = levelPoint1h && Array.isArray(levelPoint1h.data) ? levelPoint1h.data[1] : null;
 
             const doubleMaPoint = list.find(p => p.seriesName === 'Double MA value (1h)');
             const doubleMaVal = doubleMaPoint && Array.isArray(doubleMaPoint.data) ? doubleMaPoint.data[1] : null;
@@ -496,16 +396,13 @@ return {
             if (highChangePct != null) lines.push(`High vs Prev High: ${highChangePct >= 0 ? '+' : ''}${highChangePct.toFixed(2)}%`);
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
-            if (lVal5m != null) lines.push(`Resistance level (5m): ${Math.round(lVal5m)}`);
-            if (lVal4h != null) lines.push(`Resistance level (4h): ${Math.round(lVal4h)}`);
-            if (lVal1h != null) lines.push(`Resistance level (1h): ${Math.round(lVal1h)}`);
             if (doubleMaVal != null) lines.push(`Double MA value (1h): ${doubleMaVal.toFixed(2)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2] }],
+            link: [{ xAxisIndex: [0, 1] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
