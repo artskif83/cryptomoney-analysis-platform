@@ -9,15 +9,14 @@ import org.ta4j.core.num.Num;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceHighIndicator;
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
+    private final DoubleMAIndicator doubleMAIndicator;
     private final int highBarCount; // количество баров в котором считается сопротивление высшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
     private final Num resistanceZonePercentagesHighThreshold; // окно в котором считается общее сопротивление высшего таймфрейма
@@ -26,6 +25,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
     public ResistanceLevelIndicator(HighPriceIndicator highPriceHighIndicator,
                                     HighPriceIndicator highPriceLowIndicator,
+                                    DoubleMAIndicator doubleMAIndicator,
                                     ClosePriceIndicator closePriceIndicator,
                                     int highBarCount,
                                     int lowBarCount,
@@ -36,6 +36,7 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         this.highPriceHighIndicator = highPriceHighIndicator;
         this.highPriceLowIndicator = highPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
+        this.doubleMAIndicator = doubleMAIndicator;
         this.highBarCount = highBarCount;
         this.lowBarCount = lowBarCount;
         this.resistanceZonePercentagesHighThreshold = resistanceZonePercentagesHighThreshold;
@@ -47,12 +48,15 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceHighIndicator.getBarSeries());
         int lowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceLowIndicator.getBarSeries());
+        int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAIndicator.getBarSeries());
 
-
+        if (doubleMAIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
+            return null;
+        }
         List<PriceWithIndex> sortedHighPrices = sortByHighPrice(highPriceHighIndicator, highBarCount, higherTfIndex);
-        List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, lowerTfIndex);
+        List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index-1);
 
-        Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedHighPrices, resistanceZonePercentagesHighThreshold);
+        Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, resistanceZonePercentagesLowThreshold);
 
         return  resistanceZoneTopPrice;
     }
@@ -116,23 +120,24 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
      * @return верхняя цена зоны сопротивления, или {@code null} если зона не найдена
      */
     Num findResistanceZoneTopPrice(List<PriceWithIndex> prices, Num resistanceZonePercentages) {
+        if (prices.size() < 2) {
+            return null;
+        }
+
         Num hundred = DecimalNum.valueOf(100);
 
-        for (int i = 0; i < prices.size(); i++) {
-            Num upperPrice = prices.get(i).getPrice();
+        Num upperPrice = prices.get(0).getPrice();
+        Num lowerPrice = prices.get(1).getPrice();
 
-            for (int j = i + 1; j < prices.size(); j++) {
-                Num lowerPrice = prices.get(j).getPrice();
+        // процент отклонения = (upperPrice - lowerPrice) / upperPrice * 100
+        Num deviation = upperPrice.minus(lowerPrice)
+                .dividedBy(upperPrice)
+                .multipliedBy(hundred);
 
-                // процент отклонения = (upperPrice - lowerPrice) / upperPrice * 100
-                Num deviation = upperPrice.minus(lowerPrice)
-                        .dividedBy(upperPrice)
-                        .multipliedBy(hundred);
-
-                if (deviation.isLessThanOrEqual(resistanceZonePercentages)) {
-                    return upperPrice;
-                }
-            }
+        if (deviation.isLessThanOrEqual(resistanceZonePercentages)) {
+            // возвращаем верхнюю цену минус resistanceZonePercentages процентов
+            Num multiplier = DecimalNum.valueOf(100).minus(resistanceZonePercentages).dividedBy(hundred);
+            return upperPrice.multipliedBy(multiplier);
         }
 
         return null;
