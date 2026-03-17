@@ -19,6 +19,8 @@ const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_5m");
 const doubleMaValue1hOn1hRaw = col("metric_double_ma_value_1m_on_1h");
 const shortLevelRaw = col("metric_short_level_1m");
 const shortStopLossRaw = col("metric_short_stop_los_1m");
+const longLevelRaw = col("metric_long_level_1m");
+const longStopLossRaw = col("metric_long_stop_los_1m");
 
 const posPrice = col("additional_position_price_1m");
 const tpPrice = col("additional_takeprofit_1m");
@@ -60,6 +62,22 @@ for (let i = 0; i < times.length; i++) {
     const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
 
     shortBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(rl, sl) },
+        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+    ]);
+}
+
+// ===== Зона поддержки (long level + stop loss band) =====
+const longBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const rl = longLevelRaw[i];
+    const sl = longStopLossRaw[i];
+    if (rl == null || sl == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    longBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(rl, sl) },
         { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
     ]);
@@ -274,10 +292,29 @@ return {
             markArea: {
                 silent: true,
                 itemStyle: {
-                    color: 'rgba(0, 220, 100, 0.18)',
+                    color: 'rgba(255, 77, 77, 0.18)',
                     borderWidth: 0
                 },
                 data: shortBandSegments
+            }
+        },
+
+        // --- Зона поддержки (long level ↔ stop loss) ---
+        {
+            name: 'Long Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(76, 175, 80, 0.18)',
+                    borderWidth: 0
+                },
+                data: longBandSegments
             }
         },
 
