@@ -17,8 +17,8 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_5m");
 const doubleMaValue1hOn1hRaw = col("metric_double_ma_value_1m_on_1h");
-const resistanceLevelRaw = col("metric_resistance_level_1m");
-const resistanceStopLossRaw = col("metric_resistance_stop_los_1m");
+const shortLevelRaw = col("metric_short_level_1m");
+const shortStopLossRaw = col("metric_short_stop_los_1m");
 
 const posPrice = col("additional_position_price_1m");
 const tpPrice = col("additional_takeprofit_1m");
@@ -46,20 +46,20 @@ const doubleMaValue1hOn1h = times.map((t, i) => [
     doubleMaValue1hOn1hRaw[i] == null ? null : doubleMaValue1hOn1hRaw[i]
 ]);
 
-// ===== Зона сопротивления (resistance level + stop loss band) =====
+// ===== Зона сопротивления (short level + stop loss band) =====
 // Рисуем отдельный прямоугольник для каждой свечи, чтобы зона точно
-// следовала значениям resistance_level (верх) и stop_loss (низ).
-const resistanceBandSegments = [];
+// следовала значениям short_level (верх) и stop_loss (низ).
+const shortBandSegments = [];
 
 for (let i = 0; i < times.length; i++) {
-    const rl = resistanceLevelRaw[i];
-    const sl = resistanceStopLossRaw[i];
+    const rl = shortLevelRaw[i];
+    const sl = shortStopLossRaw[i];
     if (rl == null || sl == null) continue;
 
     // Определяем конец прямоугольника: до начала следующей свечи или текущий бар
     const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
 
-    resistanceBandSegments.push([
+    shortBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(rl, sl) },
         { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
     ]);
@@ -262,9 +262,9 @@ return {
             }
         },
 
-        // --- Зона сопротивления (resistance level ↔ stop loss) ---
+        // --- Зона сопротивления (short level ↔ stop loss) ---
         {
-            name: 'Resistance Band',
+            name: 'Short Band',
             type: 'line',
             data: [],
             xAxisIndex: 0,
@@ -277,7 +277,7 @@ return {
                     color: 'rgba(0, 220, 100, 0.18)',
                     borderWidth: 0
                 },
-                data: resistanceBandSegments
+                data: shortBandSegments
             }
         },
 

@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
+public class ShortLevelIndicator extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
@@ -22,14 +22,14 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
-    public ResistanceLevelIndicator(HighPriceIndicator highPriceLowIndicator,
-                                    DoubleMAIndicator doubleMALowIndicator,
-                                    DoubleMAIndicator doubleMAHighIndicator,
-                                    ClosePriceIndicator closePriceIndicator,
-                                    int lowBarCount,
-                                    Num resistanceZonePercentagesLowThreshold,
-                                    Num calculationZonePercentagesHighThreshold,
-                                    Num stopLossPercentage) {
+    public ShortLevelIndicator(HighPriceIndicator highPriceLowIndicator,
+                               DoubleMAIndicator doubleMALowIndicator,
+                               DoubleMAIndicator doubleMAHighIndicator,
+                               ClosePriceIndicator closePriceIndicator,
+                               int lowBarCount,
+                               Num resistanceZonePercentagesLowThreshold,
+                               Num calculationZonePercentagesHighThreshold,
+                               Num stopLossPercentage) {
         super(closePriceIndicator);
         this.highPriceLowIndicator = highPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;

@@ -18,8 +18,8 @@ const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
-const resistanceLevelRaw = col("metric_resistance_level_1m", 0);
-const resistanceStopLossRaw = col("metric_resistance_stop_los_1m", 0);
+const shortLevelRaw = col("metric_short_level_1m", 0);
+const shortStopLossRaw = col("metric_short_stop_los_1m", 0);
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -81,17 +81,17 @@ const doubleMaValue1h = times.map((t, i) => [
     doubleMaValue1hRaw[i] == null ? null : doubleMaValue1hRaw[i]
 ]);
 
-// ===== Зона сопротивления (resistance level + stop loss band) =====
+// ===== Зона сопротивления (short level + stop loss band) =====
 // Разбиваем на сегменты: каждый непрерывный блок ненулевых значений → один markArea-прямоугольник.
 // Это позволяет корректно отображать диапазон между двумя ценовыми уровнями без артефактов stack.
-const resistanceBandSegments = [];
+const shortBandSegments = [];
 let segStart = null;
 let segRl = null;
 let segSl = null;
 
 for (let i = 0; i <= times.length; i++) {
-    const rl = resistanceLevelRaw[i];
-    const sl = resistanceStopLossRaw[i];
+    const rl = shortLevelRaw[i];
+    const sl = shortStopLossRaw[i];
     const hasValue = rl != null && sl != null;
 
     if (hasValue) {
@@ -103,7 +103,7 @@ for (let i = 0; i <= times.length; i++) {
     } else {
         if (segStart !== null) {
             const segEnd = times[i - 1];
-            resistanceBandSegments.push([
+            shortBandSegments.push([
                 { xAxis: segStart, yAxis: segSl },
                 { xAxis: segEnd,   yAxis: segRl }
             ]);
@@ -397,9 +397,9 @@ return {
             }
         },
 
-        // --- Зона сопротивления (resistance level ↔ stop loss) ---
+        // --- Зона сопротивления (short level ↔ stop loss) ---
         {
-            name: 'Resistance Band',
+            name: 'Short Band',
             type: 'line',
             data: [],
             xAxisIndex: 0,
@@ -413,7 +413,7 @@ return {
                     borderColor: 'rgba(0, 220, 100, 0.6)',
                     borderWidth: 1
                 },
-                data: resistanceBandSegments
+                data: shortBandSegments
             }
         },
 

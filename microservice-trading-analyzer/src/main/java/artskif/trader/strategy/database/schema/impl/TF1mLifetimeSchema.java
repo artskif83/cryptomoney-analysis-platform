@@ -41,8 +41,8 @@ public class TF1mLifetimeSchema extends AbstractSchema {
     protected List<ContractMetadata> createMetadata(Contract contract) {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_1H,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_LEVEL_1M,
-                        ResistanceLevelColumn.ResistanceLevelColumnType.RESISTANCE_STOP_LOS_1M,
+                        ShortLevelColumn.ShortLevelColumnType.SHORT_LEVEL_1M,
+                        ShortLevelColumn.ShortLevelColumnType.SHORT_STOP_LOS_1M,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M),
                 contract
         ));
