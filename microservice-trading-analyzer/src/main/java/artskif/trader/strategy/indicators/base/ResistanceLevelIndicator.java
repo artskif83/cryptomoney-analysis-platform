@@ -49,7 +49,6 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceHighIndicator.getBarSeries());
         int lowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceLowIndicator.getBarSeries());
         int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAIndicator.getBarSeries());
-
         if (doubleMAIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
@@ -58,7 +57,27 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
         Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, resistanceZonePercentagesLowThreshold);
 
-        return  resistanceZoneTopPrice;
+        if (resistanceZoneTopPrice == null) {
+            return null;
+        }
+
+        Num closePriceIndicatorValue = closePriceIndicator.getValue(index);
+
+        // Если текущая цена выше зоны сопротивления — возвращаем null
+        if (closePriceIndicatorValue.isGreaterThan(resistanceZoneTopPrice)) {
+            return null;
+        }
+
+        // Если расстояние между resistanceZoneTopPrice и closePriceIndicatorValue больше порога — возвращаем null
+        Num hundred = DecimalNum.valueOf(100);
+        Num distance = resistanceZoneTopPrice.minus(closePriceIndicatorValue).abs()
+                .dividedBy(resistanceZoneTopPrice)
+                .multipliedBy(hundred);
+        if (distance.isGreaterThan(calculationZonePercentagesHighThreshold)) {
+            return null;
+        }
+
+        return resistanceZoneTopPrice;
     }
 
 
