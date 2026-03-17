@@ -9,6 +9,7 @@ import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
+import artskif.trader.strategy.event.impl.indicator.GoldenFieldLongEventProcessor;
 import artskif.trader.strategy.event.impl.indicator.GoldenFieldShortEventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import io.quarkus.runtime.Startup;
@@ -24,21 +25,22 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     // Конструктор без параметров для CDI proxy
     protected GoldenField1MLifetimeStrategy() {
-        super(null, null, null, null, null, null);
+        super(null, null, null, null, null, null, null);
         this.tf1mBacktestSchema = null;
         this.tf1mLifetimeSchema = null;
     }
 
     @Inject
     public GoldenField1MLifetimeStrategy(Candle candle,
-                                         GoldenFieldShortEventProcessor eventProcessor,
+                                         GoldenFieldShortEventProcessor shortEventProcessor,
+                                         GoldenFieldLongEventProcessor longEventProcessor,
                                          DatabaseSnapshotBuilder snapshotBuilder,
                                          StrategyDataService dataService,
                                          TF1mBacktestSchema tf1mBacktestSchema,
                                          TF1mLifetimeSchema tf1mLifetimeSchema,
                                          TradeEventBus tradeEventBus,
                                          CandleEventBus candleEventBus) {
-        super(candle, eventProcessor, snapshotBuilder, dataService, tradeEventBus, candleEventBus);
+        super(candle, shortEventProcessor, longEventProcessor, snapshotBuilder, dataService, tradeEventBus, candleEventBus);
         this.tf1mBacktestSchema = tf1mBacktestSchema;
         this.tf1mLifetimeSchema = tf1mLifetimeSchema;
 

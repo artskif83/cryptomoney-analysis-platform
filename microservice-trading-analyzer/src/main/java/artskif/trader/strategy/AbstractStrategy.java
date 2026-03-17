@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -63,17 +62,19 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     // Общие зависимости для всех стратегий
     protected final Candle candle;
-    protected final TradeEventProcessor tradeEventProcessor;
+    protected final TradeEventProcessor shortTradeEventProcessor;
+    protected final TradeEventProcessor longTradeEventProcessor;
     protected final StrategyDataService dataService;
     protected final DatabaseSnapshotBuilder snapshotBuilder;
     protected final TradeEventBus tradeEventBus;
     protected final CandleEventBus candleEventBus;
 
-    protected AbstractStrategy(Candle candle, TradeEventProcessor tradeEventProcessor,
+    protected AbstractStrategy(Candle candle, TradeEventProcessor shortTradeEventProcessor, TradeEventProcessor longTradeEventProcessor,
                                DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
                                TradeEventBus tradeEventBus, CandleEventBus candleEventBus) {
         this.candle = candle;
-        this.tradeEventProcessor = tradeEventProcessor;
+        this.shortTradeEventProcessor = shortTradeEventProcessor;
+        this.longTradeEventProcessor = longTradeEventProcessor;
         this.snapshotBuilder = snapshotBuilder;
         this.dataService = dataService;
         this.tradeEventBus = tradeEventBus;
@@ -237,30 +238,36 @@ public abstract class AbstractStrategy implements CandleEventListener {
         dataService.insertFeatureRow(dbRow);
 
         // Обработка торговых событий (если процессор настроен)
-        if (tradeEventProcessor != null && tradeEventBus != null) {
-            Optional<TradeEventData> tradeEvent = tradeEventProcessor.getLifeTradeEventData(endIndex);
+        TradeEventData eventData = null;
 
-            if (tradeEvent.isPresent()) {
-                TradeEventData eventData = tradeEvent.get();
-                Log.infof(
-                        "✅ Произошло торговое событие: %s %s [Процессор: %s]",
-                        eventData.type(),
-                        eventData.direction(),
-                        tradeEventProcessor.getClass().getSimpleName()
-                );
-
-                // Публикуем событие TradeEvent
-                tradeEventBus.publish(new TradeEvent(
-                        eventData,
-                        candle.getInstrument(),
-                        getName() + "-lifetime",
-                        candle.getTimestamp(),
-                        false
-                ));
-            }
+        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+            eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
         }
-        Log.infof("✅ [%s] Свеча обработана стратегией: timestamp=%s, close=%s", getName(), candle.getTimestamp(), candle.getClose());
 
+        if (longTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+            eventData = longTradeEventProcessor.getLifeTradeEventData(endIndex);
+        }
+
+        if (eventData != null) {
+            Log.infof(
+                    "✅ Произошло торговое событие: %s %s [Процессор: %s]",
+                    eventData.type(),
+                    eventData.direction(),
+                    shortTradeEventProcessor.getClass().getSimpleName()
+            );
+
+            // Публикуем событие TradeEvent
+            tradeEventBus.publish(new TradeEvent(
+                    eventData,
+                    candle.getInstrument(),
+                    getName() + "-lifetime",
+                    candle.getTimestamp(),
+                    false
+            ));
+        }
+
+        Log.infof("✅ [%s] Свеча обработана стратегией: timestamp=%s, close=%s",
+                getName(), candle.getTimestamp(), candle.getClose());
     }
 
     /**
@@ -311,11 +318,13 @@ public abstract class AbstractStrategy implements CandleEventListener {
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
         Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
 
-        TradingRecord tradingRecord = null;
+        TradingRecord shortTradingRecord = null;
+        TradingRecord longTradingRecord = null;
         TradeOnCurrentCloseModel tradeExecutionModel = null;
 
         if (!isLife) {
-            tradingRecord = getTradingRecord(barSeries);
+            shortTradingRecord = getTradingRecord(barSeries, shortTradeEventProcessor.getTradeDirection());
+            longTradingRecord = getTradingRecord(barSeries, longTradeEventProcessor.getTradeDirection());
             tradeExecutionModel = new TradeOnCurrentCloseModel();
         }
 
@@ -323,8 +332,8 @@ public abstract class AbstractStrategy implements CandleEventListener {
         for (int index = effectiveStartIndex; index <= barSeries.getEndIndex(); index++) {
 
             // Хук для обработки каждой свечи - здесь можно открывать/закрывать позиции и сохранять метрики
-            if (tradingRecord != null && tradeEventProcessor != null) {
-                additionalColumns = captureBacktestPositionMetrics(index, barSeries, tradingRecord, tradeExecutionModel);
+            if (!isLife) {
+                additionalColumns = captureBacktestPositionMetrics(index, barSeries, shortTradingRecord, longTradingRecord, tradeExecutionModel);
             }
 
             Bar bar = barSeries.getBar(index);
@@ -342,25 +351,23 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Сохраняем в БД
         dataService.saveContractSnapshotRowsBatch(dbRows);
 
-        return tradingRecord;
+        return shortTradingRecord;
     }
 
-    private TradingRecord getTradingRecord(BarSeries historicalBarSeries) {
-        TradingRecord tradingRecord = null;
+    private TradingRecord getTradingRecord(BarSeries historicalBarSeries, Direction tradeDirection) {
+        TradingRecord tradingRecord;
 
-        if (tradeEventProcessor != null) {
-            // Инициализация торговых моделей
-            ZeroCostModel transactionCostModel = new ZeroCostModel();
-            ZeroCostModel holdingCostModel = new ZeroCostModel();
+        // Инициализация торговых моделей
+        ZeroCostModel transactionCostModel = new ZeroCostModel();
+        ZeroCostModel holdingCostModel = new ZeroCostModel();
 
-            tradingRecord = new BaseTradingRecord(
-                    tradeEventProcessor.getTradeDirection() == Direction.LONG ? Trade.TradeType.BUY : Trade.TradeType.SELL,
-                    historicalBarSeries.getBeginIndex(),
-                    historicalBarSeries.getEndIndex(),
-                    transactionCostModel,
-                    holdingCostModel
-            );
-        }
+        tradingRecord = new BaseTradingRecord(
+                tradeDirection == Direction.LONG ? Trade.TradeType.BUY : Trade.TradeType.SELL,
+                historicalBarSeries.getBeginIndex(),
+                historicalBarSeries.getEndIndex(),
+                transactionCostModel,
+                holdingCostModel
+        );
         return tradingRecord;
     }
 
@@ -379,36 +386,39 @@ public abstract class AbstractStrategy implements CandleEventListener {
      *
      * @param index               индекс текущего бара
      * @param historicalBarSeries серия исторических данных
-     * @param tradingRecord       торговый рекорд для управления позициями
+     * @param shortTradingRecord       торговый рекорд для управления позициями
+     * @param longTradingRecord      торговый рекорд для управления позициями
      * @param tradeExecutionModel модель исполнения сделок
      * @return дополнительные колонки для сохранения в БД (например, позиции, стоп-лосс, тейк-профит)
      */
     protected Map<ColumnTypeMetadata, Num> captureBacktestPositionMetrics(int index,
                                                                           BarSeries historicalBarSeries,
-                                                                          TradingRecord tradingRecord,
+                                                                          TradingRecord shortTradingRecord,
+                                                                          TradingRecord longTradingRecord,
                                                                           TradeOnCurrentCloseModel tradeExecutionModel) {
 
         Map<ColumnTypeMetadata, Num> additionalColumns = new HashMap<>();
 
         // Торговая логика
         boolean shouldOperate = false;
-        Position position = tradingRecord.getCurrentPosition();
+        Position position = shortTradingRecord.getCurrentPosition();
+        // TODO: добавить логику для longTradeEventProcessor, если нужно тестировать обе модели в одном бэктесте
 
         if (position.isNew()) {
-            shouldOperate = !isUnstableAt(index) && tradeEventProcessor.shouldEnter(index, tradingRecord, false);
+            shouldOperate = !isUnstableAt(index) && shortTradeEventProcessor.shouldMarketEnter(index, shortTradingRecord, false);
         } else if (position.isOpened()) {
-            shouldOperate = !isUnstableAt(index) && tradeEventProcessor.shouldExit(index, tradingRecord, false);
+            shouldOperate = !isUnstableAt(index) && shortTradeEventProcessor.shouldMarketExit(index, shortTradingRecord, false);
         }
 
         if (shouldOperate) {
-            tradeExecutionModel.execute(index, tradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
+            tradeExecutionModel.execute(index, shortTradingRecord, historicalBarSeries, historicalBarSeries.numFactory().one());
         }
 
         // Обновление дополнительных колонок
         if (position.isOpened()) {
             Num netPrice = position.getEntry().getNetPrice();
-            Num stopLoss = netPrice.multipliedBy(ONE.plus(tradeEventProcessor.getStopLossPercentage().dividedBy(HUNDRED)));
-            Num takeProfit = netPrice.multipliedBy(ONE.minus(tradeEventProcessor.getTakeProfitPercentage().dividedBy(HUNDRED)));
+            Num stopLoss = netPrice.multipliedBy(ONE.plus(shortTradeEventProcessor.getStopLossPercentage().dividedBy(HUNDRED)));
+            Num takeProfit = netPrice.multipliedBy(ONE.minus(shortTradeEventProcessor.getTakeProfitPercentage().dividedBy(HUNDRED)));
 
             additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
             additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);

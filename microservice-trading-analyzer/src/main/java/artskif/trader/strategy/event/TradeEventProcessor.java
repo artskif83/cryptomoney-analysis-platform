@@ -4,7 +4,6 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventData;
 import artskif.trader.strategy.event.common.TradeEventType;
-import org.ta4j.core.Rule;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.Num;
 
@@ -16,21 +15,9 @@ public interface TradeEventProcessor {
      * Проверить, произошел ли торговый сигнал на данном баре
      *
      * @param index индекс бара для проверки
-     * @return данные торгового сигнала, если он произошел, или пустой Optional иначе
+     * @return данные торгового сигнала, если он произошел
      */
-    Optional<TradeEventData> getLifeTradeEventData(int index);
-
-    /**
-     * Получить правило входа в позицию
-     * @return правило для определения точки входа в сделку
-     */
-    Rule getEntryRule(boolean isLiveSeries);
-
-    /**
-     * Получить правило выхода из позиции
-     * @return правило для определения точки выхода
-     */
-    Rule getFixedExitRule(boolean isLiveSeries);
+    TradeEventData getLifeTradeEventData(int index);
 
 
     /**
@@ -40,7 +27,7 @@ public interface TradeEventProcessor {
      * @param tradingRecord
      * @return true если условия входа выполнены, false иначе
      */
-    boolean shouldEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries);
+    boolean shouldMarketEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries);
 
     /**
      * Проверить, удовлетворяет ли текущий бар условиям выхода из сделки
@@ -49,7 +36,33 @@ public interface TradeEventProcessor {
      * @param tradingRecord
      * @return true если условия выхода выполнены, false иначе
      */
-    boolean shouldExit(int index, TradingRecord tradingRecord, boolean isLiveSeries);
+    boolean shouldMarketExit(int index, TradingRecord tradingRecord, boolean isLiveSeries);
+
+
+    /**
+     * Проверить, удовлетворяет ли текущий бар условиям входа в сделку
+     *
+     * @param index         индекс бара для проверки
+     * @param tradingRecord
+     * @return true если условия входа выполнены, false иначе
+     */
+    boolean shouldLimitEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries);
+
+    /**
+     * Проверить, удовлетворяет ли текущий бар условиям выхода из сделки
+     *
+     * @param index         индекс бара для проверки
+     * @param tradingRecord
+     * @return true если условия выхода выполнены, false иначе
+     */
+    boolean shouldLimitExit(int index, TradingRecord tradingRecord, boolean isLiveSeries);
+
+    /**
+     * Получить цену входа для данного процессора событий
+     *
+     * @return правило входа
+     */
+    Num getEntryPrice(int index, boolean isLiveSeries);
 
     /**
      * Получить направление сделки (лонг или шорт)
@@ -69,16 +82,10 @@ public interface TradeEventProcessor {
      */
     Num getTakeProfitPercentage();
 
-
     /**
      * Получить таймфрейм модели
      */
     CandleTimeframe getTimeframe();
-
-    /**
-     * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
-     */
-    CandleTimeframe getHigherTimeframe();
 
     /**
      * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
