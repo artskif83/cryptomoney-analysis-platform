@@ -45,6 +45,8 @@ public class TF1mBacktestSchema extends AbstractSchema {
                         DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_5M,
                         ShortLevelColumn.ShortLevelColumnType.SHORT_LEVEL_1M,
                         ShortLevelColumn.ShortLevelColumnType.SHORT_STOP_LOS_1M,
+                        LongLevelColumn.LongLevelColumnType.LONG_LEVEL_1M,
+                        LongLevelColumn.LongLevelColumnType.LONG_STOP_LOS_1M,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M,
                         PositionColumn.PositionColumnType.POSITION_PRICE_1M,
                         PositionColumn.PositionColumnType.STOPLOSS_1M,
