@@ -54,44 +54,44 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
 
         List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
-        Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, shortZonePercentagesLowThreshold);
+        Num shortZoneTopPrice = findShortZoneTopPrice(sortedLowPrices, shortZonePercentagesLowThreshold);
 
-        if (resistanceZoneTopPrice == null) {
+        if (shortZoneTopPrice == null) {
             return null;
         }
 
         Num closePriceIndicatorValue = closePriceIndicator.getValue(index);
 
         // Если текущая цена выше зоны сопротивления — возвращаем null
-        if (closePriceIndicatorValue.isGreaterThan(resistanceZoneTopPrice)) {
+        if (closePriceIndicatorValue.isGreaterThan(shortZoneTopPrice)) {
             return null;
         }
 
-        // Если расстояние между resistanceZoneTopPrice и closePriceIndicatorValue больше порога — возвращаем null
+        // Если расстояние между shortZoneTopPrice и closePriceIndicatorValue больше порога — возвращаем null
         Num hundred = DecimalNum.valueOf(100);
-        Num distance = resistanceZoneTopPrice.minus(closePriceIndicatorValue).abs()
-                .dividedBy(resistanceZoneTopPrice)
+        Num distance = shortZoneTopPrice.minus(closePriceIndicatorValue).abs()
+                .dividedBy(shortZoneTopPrice)
                 .multipliedBy(hundred);
         if (distance.isGreaterThan(calculationZonePercentagesHighThreshold)) {
             return null;
         }
 
-        return resistanceZoneTopPrice;
+        return shortZoneTopPrice;
     }
 
 
     public Num getStopLos(int index) {
         // Убеждаемся, что значение для данного индекса рассчитано
-        Num resistancePrice = getValue(index);
+        Num shortPrice = getValue(index);
 
-        if (resistancePrice == null) {
+        if (shortPrice == null) {
             return null;
         }
 
         // Стоп лос = цена сопротивления * (1 + stopLossPercentage / 100)
         Num hundred = DecimalNum.valueOf(100);
         Num multiplier = DecimalNum.valueOf(1).plus(stopLossPercentage.dividedBy(hundred));
-        return resistancePrice.multipliedBy(multiplier);
+        return shortPrice.multipliedBy(multiplier);
     }
 
     /**
@@ -124,21 +124,21 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
 
     /**
      * Находит верхнюю цену зоны сопротивления — первую (наибольшую) цену из пары,
-     * в которой две цены отстоят друг от друга не более чем на {@code resistanceZonePercentages} процентов.
+     * в которой две цены отстоят друг от друга не более чем на {@code shortZonePercentages} процентов.
      *
      * <p>Список {@code prices} должен быть отсортирован по убыванию цены.
      * Для каждой пары {@code (prices[i], prices[j])} где {@code i < j} проверяется условие:
      * <pre>
-     *   (price[i] - price[j]) / price[i] * 100 &lt;= resistanceZonePercentages
+     *   (price[i] - price[j]) / price[i] * 100 &lt;= shortZonePercentages
      * </pre>
      * При выполнении условия возвращается {@code price[i]} — верхняя (большая) цена зоны.
      * Если подходящей пары не найдено — возвращается {@code null}.
      *
      * @param prices                          список цен с индексами, отсортированный по убыванию цены
-     * @param resistanceZonePercentages       максимально допустимый процент отклонения между двумя ценами
+     * @param shortZonePercentages       максимально допустимый процент отклонения между двумя ценами
      * @return верхняя цена зоны сопротивления, или {@code null} если зона не найдена
      */
-    Num findResistanceZoneTopPrice(List<PriceWithIndex> prices, Num resistanceZonePercentages) {
+    Num findShortZoneTopPrice(List<PriceWithIndex> prices, Num shortZonePercentages) {
         if (prices.size() < 2) {
             return null;
         }
@@ -153,9 +153,9 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
                 .dividedBy(upperPrice)
                 .multipliedBy(hundred);
 
-        if (deviation.isLessThanOrEqual(resistanceZonePercentages)) {
-            // возвращаем верхнюю цену минус resistanceZonePercentages процентов
-            Num multiplier = DecimalNum.valueOf(100).minus(resistanceZonePercentages).dividedBy(hundred);
+        if (deviation.isLessThanOrEqual(shortZonePercentages)) {
+            // возвращаем верхнюю цену минус shortZonePercentages процентов
+            Num multiplier = DecimalNum.valueOf(100).minus(shortZonePercentages).dividedBy(hundred);
             return upperPrice.multipliedBy(multiplier);
         }
 
