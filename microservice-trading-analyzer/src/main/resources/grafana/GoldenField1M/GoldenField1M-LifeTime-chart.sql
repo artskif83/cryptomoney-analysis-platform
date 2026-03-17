@@ -7,6 +7,9 @@ SELECT
     index_candle_1m,
     metric_short_level_1m,
     metric_short_stop_los_1m,
+    metric_long_level_1m,
+    metric_long_stop_los_1m,
+    metric_double_ma_value_1m_on_5m,
     metric_double_ma_value_1m_on_1h
 FROM wide_candles
 WHERE

@@ -17,9 +17,12 @@ const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
+const doubleMaValue5mRaw = col("metric_double_ma_value_1m_on_5m", 0);
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
 const shortLevelRaw = col("metric_short_level_1m", 0);
 const shortStopLossRaw = col("metric_short_stop_los_1m", 0);
+const longLevelRaw = col("metric_long_level_1m", 0);
+const longStopLossRaw = col("metric_long_stop_los_1m", 0);
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -76,42 +79,48 @@ const candles = times.map((t, i) => [
 ]);
 
 
+const doubleMaValue5m = times.map((t, i) => [
+    t,
+    doubleMaValue5mRaw[i] == null ? null : doubleMaValue5mRaw[i]
+]);
+
 const doubleMaValue1h = times.map((t, i) => [
     t,
     doubleMaValue1hRaw[i] == null ? null : doubleMaValue1hRaw[i]
 ]);
 
 // ===== Зона сопротивления (short level + stop loss band) =====
-// Разбиваем на сегменты: каждый непрерывный блок ненулевых значений → один markArea-прямоугольник.
-// Это позволяет корректно отображать диапазон между двумя ценовыми уровнями без артефактов stack.
+// Рисуем отдельный прямоугольник для каждой свечи, чтобы зона точно
+// следовала значениям short_level (верх) и stop_loss (низ).
 const shortBandSegments = [];
-let segStart = null;
-let segRl = null;
-let segSl = null;
 
-for (let i = 0; i <= times.length; i++) {
+for (let i = 0; i < times.length; i++) {
     const rl = shortLevelRaw[i];
     const sl = shortStopLossRaw[i];
-    const hasValue = rl != null && sl != null;
+    if (rl == null || sl == null) continue;
 
-    if (hasValue) {
-        if (segStart === null) {
-            segStart = times[i];
-        }
-        segRl = rl;
-        segSl = sl;
-    } else {
-        if (segStart !== null) {
-            const segEnd = times[i - 1];
-            shortBandSegments.push([
-                { xAxis: segStart, yAxis: segSl },
-                { xAxis: segEnd,   yAxis: segRl }
-            ]);
-            segStart = null;
-            segRl = null;
-            segSl = null;
-        }
-    }
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    shortBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(rl, sl) },
+        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+    ]);
+}
+
+// ===== Зона поддержки (long level + stop loss band) =====
+const longBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const rl = longLevelRaw[i];
+    const sl = longStopLossRaw[i];
+    if (rl == null || sl == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    longBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(rl, sl) },
+        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+    ]);
 }
 
 // ===== Торговые события - подготовка данных =====
@@ -277,8 +286,9 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '82%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '86%', height: '12%' }    // Double MA value 1h (grid 1)
+        { left: '5%', right: '5%', top: 10, height: '70%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '76%', height: '10%' },   // Double MA value 1m on 5m (grid 1)
+        { left: '5%', right: '5%', top: '89%', height: '10%' }    // Double MA value 1m on 1h (grid 2)
     ],
 
     xAxis: [
@@ -304,6 +314,26 @@ return {
         {
             type: 'time',
             gridIndex: 1,
+            boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 2,
             boundaryGap: false,
             axisLabel: {
                 formatter: {
@@ -353,11 +383,28 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: false,
+            min: -1,
+            max: 1,
+            gridIndex: 2,
+            axisLabel: {
+                formatter: (v) => v.toFixed(2)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v.toFixed(2)}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1] }]
+        link: [{ xAxisIndex: [0, 1, 2] }]
     },
 
     toolbox: {
@@ -372,7 +419,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1],
+            xAxisIndex: [0, 1, 2],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -409,25 +456,55 @@ return {
             markArea: {
                 silent: true,
                 itemStyle: {
-                    color: 'rgba(0, 220, 100, 0.18)',
-                    borderColor: 'rgba(0, 220, 100, 0.6)',
-                    borderWidth: 1
+                    color: 'rgba(255, 77, 77, 0.18)',
+                    borderWidth: 0
                 },
                 data: shortBandSegments
             }
         },
 
-
-        // --- Double MA value 1h ---
+        // --- Зона поддержки (long level ↔ stop loss) ---
         {
-            name: 'Double MA value (1h)',
+            name: 'Long Band',
             type: 'line',
-            data: doubleMaValue1h,
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(76, 175, 80, 0.18)',
+                    borderWidth: 0
+                },
+                data: longBandSegments
+            }
+        },
+
+
+        // --- Double MA value 1m on 5m ---
+        {
+            name: 'Double MA value (1m on 5m)',
+            type: 'line',
+            data: doubleMaValue5m,
             xAxisIndex: 1,
             yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#FFA726' }
+        },
+
+        // --- Double MA value 1m on 1h ---
+        {
+            name: 'Double MA value (1m on 1h)',
+            type: 'line',
+            data: doubleMaValue1h,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#AB47BC' }
         },
 
         // --- Торговые события: LONG ---
@@ -610,8 +687,11 @@ return {
             }
 
 
-            const doubleMaPoint = list.find(p => p.seriesName === 'Double MA value (1h)');
+            const doubleMaPoint = list.find(p => p.seriesName === 'Double MA value (1m on 5m)');
             const doubleMaVal = doubleMaPoint && Array.isArray(doubleMaPoint.data) ? doubleMaPoint.data[1] : null;
+
+            const doubleMa1hOn1hPoint = list.find(p => p.seriesName === 'Double MA value (1m on 1h)');
+            const doubleMa1hOn1hVal = doubleMa1hOn1hPoint && Array.isArray(doubleMa1hOn1hPoint.data) ? doubleMa1hOn1hPoint.data[1] : null;
 
             // Торговые события
             const tradeEventPoint = list.find(p =>
@@ -670,7 +750,8 @@ return {
             if (highChangePct != null) lines.push(`High vs Prev High: ${highChangePct >= 0 ? '+' : ''}${highChangePct.toFixed(2)}%`);
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
-            if (doubleMaVal != null) lines.push(`Double MA value (1h): ${doubleMaVal.toFixed(2)}`);
+            if (doubleMaVal != null) lines.push(`Double MA value (1m on 5m): ${doubleMaVal.toFixed(2)}`);
+            if (doubleMa1hOn1hVal != null) lines.push(`Double MA value (1m on 1h): ${doubleMa1hOn1hVal.toFixed(2)}`);
 
             // Информация о торговых событиях
             if (tradeEventPoint) {
@@ -698,7 +779,7 @@ return {
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1] }],
+            link: [{ xAxisIndex: [0, 1, 2] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
