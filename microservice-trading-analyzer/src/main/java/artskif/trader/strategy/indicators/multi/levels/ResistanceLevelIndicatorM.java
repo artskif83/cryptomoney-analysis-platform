@@ -47,6 +47,7 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
         return new ResistanceLevelIndicator(
                 highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
+                doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 5,
                 DecimalNum.valueOf(0.05),

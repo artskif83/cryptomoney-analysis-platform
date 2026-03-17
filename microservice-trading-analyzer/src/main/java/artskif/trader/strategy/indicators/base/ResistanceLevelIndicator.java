@@ -15,14 +15,16 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
-    private final DoubleMAIndicator doubleMAIndicator;
+    private final DoubleMAIndicator doubleMALowIndicator;
+    private final DoubleMAIndicator doubleMAHighIndicator;
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
     private final Num resistanceZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
     public ResistanceLevelIndicator(HighPriceIndicator highPriceLowIndicator,
-                                    DoubleMAIndicator doubleMAIndicator,
+                                    DoubleMAIndicator doubleMALowIndicator,
+                                    DoubleMAIndicator doubleMAHighIndicator,
                                     ClosePriceIndicator closePriceIndicator,
                                     int lowBarCount,
                                     Num resistanceZonePercentagesLowThreshold,
@@ -31,7 +33,8 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
         super(closePriceIndicator);
         this.highPriceLowIndicator = highPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
-        this.doubleMAIndicator = doubleMAIndicator;
+        this.doubleMALowIndicator = doubleMALowIndicator;
+        this.doubleMAHighIndicator = doubleMAHighIndicator;
         this.lowBarCount = lowBarCount;
         this.resistanceZonePercentagesLowThreshold = resistanceZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -40,10 +43,15 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAIndicator.getBarSeries());
-        if (doubleMAIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
+        int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
+        int doubleMAhigherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
+        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
+        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
+            return null;
+        }
+
         List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
         Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, resistanceZonePercentagesLowThreshold);
