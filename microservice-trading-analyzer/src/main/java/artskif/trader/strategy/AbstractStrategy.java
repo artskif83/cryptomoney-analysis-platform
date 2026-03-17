@@ -40,7 +40,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractStrategy implements CandleEventListener {
 
@@ -239,7 +238,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
         // Обработка торговых событий (если процессор настроен)
         if (tradeEventProcessor != null && tradeEventBus != null) {
-            Optional<TradeEventData> tradeEvent = tradeEventProcessor.checkLifeTradeEvent(endIndex);
+            Optional<TradeEventData> tradeEvent = tradeEventProcessor.getLifeTradeEventData(endIndex);
 
             if (tradeEvent.isPresent()) {
                 TradeEventData eventData = tradeEvent.get();

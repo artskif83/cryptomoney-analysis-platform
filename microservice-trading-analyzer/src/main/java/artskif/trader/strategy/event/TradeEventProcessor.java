@@ -18,7 +18,7 @@ public interface TradeEventProcessor {
      * @param index индекс бара для проверки
      * @return данные торгового сигнала, если он произошел, или пустой Optional иначе
      */
-    Optional<TradeEventData> checkLifeTradeEvent(int index);
+    Optional<TradeEventData> getLifeTradeEventData(int index);
 
     /**
      * Получить правило входа в позицию

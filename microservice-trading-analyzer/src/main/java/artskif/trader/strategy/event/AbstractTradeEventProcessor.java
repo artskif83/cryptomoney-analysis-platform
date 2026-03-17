@@ -24,7 +24,7 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
      * @return данные торгового сигнала, если он произошел, или пустой Optional иначе
      */
     @Override
-    public Optional<TradeEventData> checkLifeTradeEvent(int index) {
+    public Optional<TradeEventData> getLifeTradeEventData(int index) {
         if (shouldEnter(index, null, true)) {
             Num value = closePriceIndicatorM.getIndicator(getTimeframe(), true).getValue(index);
 

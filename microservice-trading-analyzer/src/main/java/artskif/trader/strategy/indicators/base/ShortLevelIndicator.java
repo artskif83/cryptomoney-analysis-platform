@@ -18,7 +18,7 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
-    private final Num resistanceZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
+    private final Num shortZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
@@ -27,7 +27,7 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
                                DoubleMAIndicator doubleMAHighIndicator,
                                ClosePriceIndicator closePriceIndicator,
                                int lowBarCount,
-                               Num resistanceZonePercentagesLowThreshold,
+                               Num shortZonePercentagesLowThreshold,
                                Num calculationZonePercentagesHighThreshold,
                                Num stopLossPercentage) {
         super(closePriceIndicator);
@@ -36,7 +36,7 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
         this.lowBarCount = lowBarCount;
-        this.resistanceZonePercentagesLowThreshold = resistanceZonePercentagesLowThreshold;
+        this.shortZonePercentagesLowThreshold = shortZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
         this.stopLossPercentage = stopLossPercentage;
     }
@@ -54,7 +54,7 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
 
         List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
-        Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, resistanceZonePercentagesLowThreshold);
+        Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, shortZonePercentagesLowThreshold);
 
         if (resistanceZoneTopPrice == null) {
             return null;

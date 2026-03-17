@@ -9,7 +9,7 @@ import artskif.trader.strategy.StrategyDataService;
 import artskif.trader.strategy.database.schema.AbstractSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mBacktestSchema;
 import artskif.trader.strategy.database.schema.impl.TF1mLifetimeSchema;
-import artskif.trader.strategy.event.impl.indicator.GoldenFieldEventProcessor;
+import artskif.trader.strategy.event.impl.indicator.GoldenFieldShortEventProcessor;
 import artskif.trader.strategy.snapshot.DatabaseSnapshotBuilder;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,7 +31,7 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     @Inject
     public GoldenField1MLifetimeStrategy(Candle candle,
-                                         GoldenFieldEventProcessor eventProcessor,
+                                         GoldenFieldShortEventProcessor eventProcessor,
                                          DatabaseSnapshotBuilder snapshotBuilder,
                                          StrategyDataService dataService,
                                          TF1mBacktestSchema tf1mBacktestSchema,

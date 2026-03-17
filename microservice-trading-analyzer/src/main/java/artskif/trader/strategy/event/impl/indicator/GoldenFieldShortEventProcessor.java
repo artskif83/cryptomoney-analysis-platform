@@ -17,22 +17,22 @@ import org.ta4j.core.rules.*;
 
 
 @ApplicationScoped
-public class GoldenFieldEventProcessor extends AbstractTradeEventProcessor {
+public class GoldenFieldShortEventProcessor extends AbstractTradeEventProcessor {
 
     private final TripleMAIndicatorM tripleMAIndicatorM;
     private final ShortLevelIndicatorM shortLevelIndicatorM;
     private final HighPriceIndicatorM highPriceIndicatorM;
 
-    public GoldenFieldEventProcessor() {
+    public GoldenFieldShortEventProcessor() {
         this.tripleMAIndicatorM = null;
         this.shortLevelIndicatorM = null;
         this.highPriceIndicatorM = null;
     }
 
     @Inject
-    public GoldenFieldEventProcessor(TripleMAIndicatorM tripleMAIndicatorM,
-                                     ShortLevelIndicatorM shortLevelIndicatorM,
-                                     HighPriceIndicatorM highPriceIndicatorM) {
+    public GoldenFieldShortEventProcessor(TripleMAIndicatorM tripleMAIndicatorM,
+                                          ShortLevelIndicatorM shortLevelIndicatorM,
+                                          HighPriceIndicatorM highPriceIndicatorM) {
         this.tripleMAIndicatorM = tripleMAIndicatorM;
         this.shortLevelIndicatorM = shortLevelIndicatorM;
         this.highPriceIndicatorM = highPriceIndicatorM;
@@ -67,7 +67,7 @@ public class GoldenFieldEventProcessor extends AbstractTradeEventProcessor {
 
     @Override
     public Num getTakeProfitPercentage() {
-        return DecimalNum.valueOf(1);
+        return DecimalNum.valueOf(3);
     }
 
     @Override
