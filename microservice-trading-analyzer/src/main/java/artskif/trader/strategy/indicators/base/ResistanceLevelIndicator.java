@@ -13,47 +13,38 @@ import java.util.List;
 
 public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
 
-    private final HighPriceIndicator highPriceHighIndicator;
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
     private final DoubleMAIndicator doubleMAIndicator;
-    private final int highBarCount; // количество баров в котором считается сопротивление высшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
-    private final Num resistanceZonePercentagesHighThreshold; // окно в котором считается общее сопротивление высшего таймфрейма
     private final Num resistanceZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
+    private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
-    public ResistanceLevelIndicator(HighPriceIndicator highPriceHighIndicator,
-                                    HighPriceIndicator highPriceLowIndicator,
+    public ResistanceLevelIndicator(HighPriceIndicator highPriceLowIndicator,
                                     DoubleMAIndicator doubleMAIndicator,
                                     ClosePriceIndicator closePriceIndicator,
-                                    int highBarCount,
                                     int lowBarCount,
-                                    Num resistanceZonePercentagesHighThreshold,
                                     Num resistanceZonePercentagesLowThreshold,
-                                    Num calculationZonePercentagesHighThreshold) {
+                                    Num calculationZonePercentagesHighThreshold,
+                                    Num stopLossPercentage) {
         super(closePriceIndicator);
-        this.highPriceHighIndicator = highPriceHighIndicator;
         this.highPriceLowIndicator = highPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
         this.doubleMAIndicator = doubleMAIndicator;
-        this.highBarCount = highBarCount;
         this.lowBarCount = lowBarCount;
-        this.resistanceZonePercentagesHighThreshold = resistanceZonePercentagesHighThreshold;
         this.resistanceZonePercentagesLowThreshold = resistanceZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
+        this.stopLossPercentage = stopLossPercentage;
     }
 
     @Override
     protected Num calculate(int index) {
-        int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceHighIndicator.getBarSeries());
-        int lowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), highPriceLowIndicator.getBarSeries());
         int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAIndicator.getBarSeries());
         if (doubleMAIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
-        List<PriceWithIndex> sortedHighPrices = sortByHighPrice(highPriceHighIndicator, highBarCount, higherTfIndex);
-        List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index-1);
+        List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
         Num resistanceZoneTopPrice = findResistanceZoneTopPrice(sortedLowPrices, resistanceZonePercentagesLowThreshold);
 
@@ -89,8 +80,9 @@ public class ResistanceLevelIndicator  extends CachedIndicator<Num> {
             return null;
         }
 
-        // Стоп лос = цена сопротивления + 0.1%
-        Num multiplier = DecimalNum.valueOf("1.001");
+        // Стоп лос = цена сопротивления * (1 + stopLossPercentage / 100)
+        Num hundred = DecimalNum.valueOf(100);
+        Num multiplier = DecimalNum.valueOf(1).plus(stopLossPercentage.dividedBy(hundred));
         return resistancePrice.multipliedBy(multiplier);
     }
 

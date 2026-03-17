@@ -44,41 +44,13 @@ public class ResistanceLevelIndicatorM extends MultiAbstractIndicator<Resistance
 
     @Override
     protected ResistanceLevelIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
-
-        return switch (timeframe) {
-            case CANDLE_1M -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
-                    doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
-                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    4,
-                    5, // хорошо было 5
-                    DecimalNum.valueOf(0.1),
-                    DecimalNum.valueOf(0.05),
-                    DecimalNum.valueOf(0.1)
-            );
-            case CANDLE_5M -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
-                    doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
-                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    4,
-                    6,
-                    DecimalNum.valueOf(0.1),
-                    DecimalNum.valueOf(0.1),
-                    DecimalNum.valueOf(0.3)
-            );
-            default -> new ResistanceLevelIndicator(
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                    highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
-                    doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
-                    closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                    4,
-                    6,
-                    DecimalNum.valueOf(0.1),
-                    DecimalNum.valueOf(0.1),
-                    DecimalNum.valueOf(0.3)
-            );
-        };
+        return new ResistanceLevelIndicator(
+                highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
+                doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
+                closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
+                5,
+                DecimalNum.valueOf(0.05),
+                DecimalNum.valueOf(0.1),
+                DecimalNum.valueOf(0.15));
     }
 }
