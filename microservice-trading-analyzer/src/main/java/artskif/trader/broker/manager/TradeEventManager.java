@@ -137,7 +137,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             }
 
             FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
-                    event.instrument(),
+                    event.instrument().replace("-SWAP", ""),
                     event.tradeEventData().eventPrice(),
                     calculatePositionSize(event.tradeEventData().stopLossPercentage()),
                     event.tradeEventData().stopLossPercentage(),
