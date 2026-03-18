@@ -19,13 +19,14 @@ public class BrokerConfig {
     double orderCancelDistancePercent;
 
     /**
-     * Коэффициент деления депозита для расчёта максимально допустимого убытка
-     * до стоп-лосса (riskPerTrade = deposit / coefficient).
-     * По умолчанию: 40
+     * Процент от депозита, используемый для расчёта максимально допустимого убытка
+     * до стоп-лосса (riskPerTrade = deposit * depositRiskPercent / 100).
+     * Например, значение 5 означает 5% от депозита на ставку.
+     * По умолчанию: 2.5
      */
     @Inject
-    @ConfigProperty(name = "broker.deposit-risk-divisor", defaultValue = "40")
-    int depositRiskDivisor;
+    @ConfigProperty(name = "broker.deposit-risk-percent", defaultValue = "2.5")
+    double depositRiskPercent;
 
     /**
      * Минимальное количество минут ожидания перед открытием следующей позиции.
@@ -57,8 +58,8 @@ public class BrokerConfig {
         return orderCancelDistancePercent;
     }
 
-    public int getDepositRiskDivisor() {
-        return depositRiskDivisor;
+    public double getDepositRiskPercent() {
+        return depositRiskPercent;
     }
 
     public int getMinutesBetweenPositions() {

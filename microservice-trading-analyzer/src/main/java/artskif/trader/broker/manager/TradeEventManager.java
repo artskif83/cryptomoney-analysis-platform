@@ -52,28 +52,6 @@ public class TradeEventManager extends AbstractTradeEventManager {
     protected void handleTradeEvent(TradeEvent event) {
         log.debug("🔄 Обработка торгового события: {}", event);
 
-        try {
-            // Сохраняем событие в БД
-            TradeEventEntity entity = new TradeEventEntity(
-                    event.tradeEventData().type(),
-                    event.tradeEventData().direction(),
-                    event.instrument(),
-                    event.tradeEventData().eventPrice(),
-                    event.tradeEventData().stopLossPercentage(),
-                    event.tradeEventData().takeProfitPercentage(),
-                    event.tradeEventData().timeframe(),
-                    event.tag(),
-                    event.timestamp(),
-                    event.isTest()
-            );
-
-            tradeEventRepository.save(entity);
-            log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
-
-        } catch (Exception e) {
-            log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
-            // Продолжаем обработку даже если сохранение не удалось
-        }
 
         // Выполняем торговые действия
         if (!brokerConfig.isTradingEnabled()) {
@@ -103,17 +81,30 @@ public class TradeEventManager extends AbstractTradeEventManager {
         List<Position> positions = snapshot.getPositions();
 
         boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
-        boolean hasSamePosition = isShort ? hasShortPosition(positions) : hasLongPosition(positions);
-
-        boolean hasSameOrder = isShort ? hasShortOrder(pendingOrders) : hasLongOrder(pendingOrders);
+        boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
+        boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
 
         if (hasOppositePosition) {
             log.debug("📊 Есть открытая {} позиция", oppositeLabel);
             tradingExecutorService.closeAllPositions(event.instrument());
+            hasAnyPosition = false;
         }
 
-        if (!hasSamePosition && !hasSameOrder) {
-            log.debug("📊 Нет открытых {} позиций и ордеров, открываем новую", dirLabel);
+        // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового
+        if (!hasAnyPosition && hasAnyOrder) {
+            log.debug("🔄 Нет открытых позиций, но есть ордера — отменяем все для переоткрытия с новой ценой");
+            for (PendingOrder order : pendingOrders) {
+                try {
+                    tradingExecutorService.cancelOrders(order.ordId, order.clOrdId);
+                    log.debug("🗑️ Ордер отменён: ordId={}, clOrdId={}", order.ordId, order.clOrdId);
+                } catch (Exception e) {
+                    log.error("❌ Ошибка при отмене ордера ordId={}: {}", order.ordId, e.getMessage());
+                }
+            }
+        }
+
+        if (!hasAnyPosition) {
+            log.debug("📊 Нет открытых позиций, открываем новый ордер {}", dirLabel);
 
             // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
             long losingCount = snapshot.getPositionsHistory() == null ? 0L :
@@ -157,17 +148,37 @@ public class TradeEventManager extends AbstractTradeEventManager {
             } else {
                 tradingExecutorService.placeFuturesLimitLong(request);
             }
+
+            // Сохраняем событие в БД только после успешного размещения ордера
+            try {
+                TradeEventEntity entity = new TradeEventEntity(
+                        event.tradeEventData().type(),
+                        event.tradeEventData().direction(),
+                        event.instrument(),
+                        event.tradeEventData().eventPrice(),
+                        event.tradeEventData().stopLossPercentage(),
+                        event.tradeEventData().takeProfitPercentage(),
+                        event.tradeEventData().timeframe(),
+                        event.tag(),
+                        event.timestamp(),
+                        event.isTest()
+                );
+                tradeEventRepository.save(entity);
+                log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
+            } catch (Exception e) {
+                log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
+            }
         } else {
-            log.debug("📊 Уже есть открытая {} позиция или ордер, не открываем новую", dirLabel);
+            log.debug("📊 Уже есть открытая позиция в том же направлении, не открываем новую {}", dirLabel);
         }
     }
 
     /**
-     * Рассчитывает размер позиции на основе текущего депозита, коэффициента риска и процента стоп-лосса.
+     * Рассчитывает размер позиции на основе текущего депозита, процента риска и процента стоп-лосса.
      * <p>
      * Формула:
      * <pre>
-     *   riskPerTrade  = deposit / depositRiskDivisor
+     *   riskPerTrade  = deposit * depositRiskPercent / 100
      *   positionSize  = riskPerTrade / stopLossPercentage
      * </pre>
      *
@@ -180,16 +191,18 @@ public class TradeEventManager extends AbstractTradeEventManager {
                 BigDecimal.valueOf(100),
                 new MathContext(10, RoundingMode.HALF_UP)
         );
-        BigDecimal riskPerTrade = deposit.divide(
-                BigDecimal.valueOf(brokerConfig.getDepositRiskDivisor()),
-                new MathContext(10, RoundingMode.HALF_UP)
+        BigDecimal riskPerTrade = deposit.multiply(
+                BigDecimal.valueOf(brokerConfig.getDepositRiskPercent()).divide(
+                        BigDecimal.valueOf(100),
+                        new MathContext(10, RoundingMode.HALF_UP)
+                )
         );
         BigDecimal positionSize = riskPerTrade.divide(
                 stopLossFraction,
                 new MathContext(10, RoundingMode.HALF_UP)
         );
-        log.info("💰 Расчёт размера позиции: депозит={}, коэффициент={}, риск={}, стоп-лосс={}%, размер позиции={}",
-                deposit, brokerConfig.getDepositRiskDivisor(), riskPerTrade, stopLossPercentage, positionSize);
+        log.info("💰 Расчёт размера позиции: депозит={}, риск={}%, риск на сделку={}, стоп-лосс={}%, размер позиции={}",
+                deposit, brokerConfig.getDepositRiskPercent(), riskPerTrade, stopLossPercentage, positionSize);
         return positionSize;
     }
 
@@ -219,34 +232,6 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
         return positions.stream()
                 .anyMatch(p -> "short".equalsIgnoreCase(p.posSide));
-    }
-
-    /**
-     * Проверяет, есть ли хотя бы один открытый ШОРТ ордер.
-     *
-     * @param pendingOrders список текущих ожидающих ордеров
-     * @return true, если среди ордеров есть хотя бы один в шорт
-     */
-    private boolean hasShortOrder(List<PendingOrder> pendingOrders) {
-        if (pendingOrders == null || pendingOrders.isEmpty()) {
-            return false;
-        }
-        return pendingOrders.stream()
-                .anyMatch(o -> "short".equalsIgnoreCase(o.posSide));
-    }
-
-    /**
-     * Проверяет, есть ли хотя бы один открытый ЛОНГ ордер.
-     *
-     * @param pendingOrders список текущих ожидающих ордеров
-     * @return true, если среди ордеров есть хотя бы один в лонг
-     */
-    private boolean hasLongOrder(List<PendingOrder> pendingOrders) {
-        if (pendingOrders == null || pendingOrders.isEmpty()) {
-            return false;
-        }
-        return pendingOrders.stream()
-                .anyMatch(o -> "long".equalsIgnoreCase(o.posSide));
     }
 }
 
