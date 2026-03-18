@@ -65,9 +65,16 @@ public class OrdersManager extends AbstractOrdersManager {
         }
 
         for (Map<String, Object> order : pendingOrders) {
-            String ordId   = String.valueOf(order.getOrDefault("ordId",   ""));
-            String clOrdId = String.valueOf(order.getOrDefault("clOrdId", ""));
-            String pxRaw   = String.valueOf(order.getOrDefault("px", ""));
+
+            String ordId     = String.valueOf(order.getOrDefault("ordId",   ""));
+            String clOrdId   = String.valueOf(order.getOrDefault("clOrdId", ""));
+            String pxRaw     = String.valueOf(order.getOrDefault("px", ""));
+            Object isTpLimit = order.get("isTpLimit");
+
+            if (Boolean.TRUE.equals(isTpLimit) || "true".equalsIgnoreCase(String.valueOf(isTpLimit))) {
+                log.debug("⏭️ Ордер ordId={} является TP/Limit ордером (isTpLimit=true), пропускаем", ordId);
+                continue;
+            }
 
             if (pxRaw.isEmpty() || pxRaw.equals("null")) {
                 log.debug("⚠️ Ордер для проверки {} не имеет цены, пропускаем", ordId);

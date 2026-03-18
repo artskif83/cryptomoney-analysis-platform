@@ -111,7 +111,21 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
             int skipped = 0;
             for (Position position : positions) {
                 Position existing = findByPosIdAndCTime(position.posId, position.cTime);
-                if (existing == null) {
+                if (existing != null) {
+                    if (existing.state == OrderState.LIVE) {
+                        // Не трогаем активные позиции историческими данными
+                        skipped++;
+                        continue;
+                    }
+                    position.id = existing.id;
+                    position.slTriggerPx = existing.slTriggerPx;
+                    position.clOrdId = existing.clOrdId;
+                    position.createdAt = existing.createdAt;
+                    position.updatedAt = Instant.now();
+                    position.state = OrderState.CLOSED;
+                    getEntityManager().merge(position);
+                    updated++;
+                } else {
                     position.createdAt = Instant.now();
                     position.updatedAt = Instant.now();
                     position.state = OrderState.CLOSED;
