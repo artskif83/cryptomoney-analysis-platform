@@ -103,7 +103,7 @@ for (let i = 0; i < times.length; i++) {
 
     shortBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(rl, sl) },
-        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+        { xAxis: tEnd, yAxis: Math.max(rl, sl) }
     ]);
 }
 
@@ -119,7 +119,7 @@ for (let i = 0; i < times.length; i++) {
 
     longBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(rl, sl) },
-        { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+        { xAxis: tEnd, yAxis: Math.max(rl, sl) }
     ]);
 }
 
@@ -133,25 +133,10 @@ for (let i = 0; i < eventTimes.length; i++) {
     const direction = eventDirections[i];
     let displayPrice = eventPrice;
 
-    if (stopLossPercent != null && stopLossPercent > 0) {
-        const stopLossOffset = eventPrice * (stopLossPercent / 100);
-
-        if (direction === 'SHORT') {
-            // Для SHORT позиции: маркер ВЫШЕ на величину stopLoss
-            // (стоп-лосс для шорта находится выше цены входа)
-            displayPrice = eventPrice + stopLossOffset;
-        } else if (direction === 'LONG') {
-            // Для LONG позиции: маркер НИЖЕ на величину stopLoss
-            // (стоп-лосс для лонга находится ниже цены входа)
-            displayPrice = eventPrice - stopLossOffset;
-        }
-    } else {
-        // Если stopLoss не задан, отступаем на 0.2% от цены
-        if (direction === 'SHORT') {
-            displayPrice = eventPrice * 1.002;
-        } else if (direction === 'LONG') {
-            displayPrice = eventPrice * 0.998;
-        }
+    if (direction === 'SHORT') {
+        displayPrice = eventPrice * 1.002;
+    } else if (direction === 'LONG') {
+        displayPrice = eventPrice * 0.998;
     }
 
     const eventData = {
@@ -188,7 +173,7 @@ for (let i = 0; i < orderTimes.length; i++) {
     // Цвет линии ордера зависит от pos_side: long → зелёный, short → красный, net → жёлтый
     const orderLineColor = posSide === 'long' ? '#00FF66'
         : posSide === 'short' ? '#FF1A1A'
-        : '#FFD700'; // net
+            : '#FFD700'; // net
 
     // Создаем линию для ордера (пунктирная, цвет по pos_side)
     if (orderPrice != null && startTime != null && endTime != null) {
@@ -239,7 +224,7 @@ for (let i = 0; i < posTimes.length; i++) {
     // Цвет линии позиции: long → зелёный, short → красный, net → жёлтый
     const posLineColor = posSide === 'long' ? '#00FF66'
         : posSide === 'short' ? '#FF1A1A'
-        : '#FFD700'; // net
+            : '#FFD700'; // net
 
     // Сплошная линия для позиции
     if (posPrice != null && startTime != null && endTime != null) {
@@ -515,12 +500,12 @@ return {
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'triangle',
-            symbolSize: 10,
+            symbolSize: 5,
             symbolRotate: 0,
             itemStyle: {
                 color: '#00FF00',
                 borderColor: '#00AA00',
-                borderWidth: 2
+                borderWidth: 0
             },
             z: 10
         },
@@ -533,12 +518,12 @@ return {
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'triangle',
-            symbolSize: 10,
+            symbolSize: 5,
             symbolRotate: 180,
             itemStyle: {
                 color: '#FF0000',
                 borderColor: '#AA0000',
-                borderWidth: 2
+                borderWidth: 0
             },
             z: 10
         },
