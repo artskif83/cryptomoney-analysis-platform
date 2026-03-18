@@ -98,8 +98,9 @@ public class AccountStateMonitor {
             List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingOrders("BTC-USDT");
             log.debug("📋 Количество активных ордеров: {}", pendingOrdersData.size());
 
-            // Преобразуем в Entity
+            // Преобразуем в Entity (исключаем TP/Limit ордера с isTpLimit=true)
             List<PendingOrder> pendingOrders = pendingOrdersData.stream()
+                    .filter(order -> !"true".equalsIgnoreCase(String.valueOf(order.get("isTpLimit"))))
                     .map(pendingOrderMapper::mapToEntity)
                     .collect(Collectors.toList());
 
@@ -164,9 +165,6 @@ public class AccountStateMonitor {
      */
     private void savePendingOrders(List<PendingOrder> orders) {
         try {
-            if (orders.isEmpty()) {
-                return;
-            }
             // Получаем список текущих ordId для синхронизации
             List<String> currentOrdIds = orders.stream()
                     .map(order -> order.ordId)
