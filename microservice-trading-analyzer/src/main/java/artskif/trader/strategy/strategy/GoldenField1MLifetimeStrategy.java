@@ -1,5 +1,6 @@
 package artskif.trader.strategy.strategy;
 
+import artskif.trader.broker.BrokerConfig;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.events.candle.CandleEventBus;
@@ -25,7 +26,7 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
 
     // Конструктор без параметров для CDI proxy
     protected GoldenField1MLifetimeStrategy() {
-        super(null, null, null, null, null, null, null);
+        super(null, null, null, null,null, null, null, null);
         this.tf1mBacktestSchema = null;
         this.tf1mLifetimeSchema = null;
     }
@@ -39,8 +40,9 @@ public class GoldenField1MLifetimeStrategy extends AbstractStrategy {
                                          TF1mBacktestSchema tf1mBacktestSchema,
                                          TF1mLifetimeSchema tf1mLifetimeSchema,
                                          TradeEventBus tradeEventBus,
-                                         CandleEventBus candleEventBus) {
-        super(candle, shortEventProcessor, longEventProcessor, snapshotBuilder, dataService, tradeEventBus, candleEventBus);
+                                         CandleEventBus candleEventBus,
+                                         BrokerConfig brokerConfig) {
+        super(candle, shortEventProcessor, longEventProcessor, snapshotBuilder, dataService, tradeEventBus, candleEventBus, brokerConfig);
         this.tf1mBacktestSchema = tf1mBacktestSchema;
         this.tf1mLifetimeSchema = tf1mLifetimeSchema;
 

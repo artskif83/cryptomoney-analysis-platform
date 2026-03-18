@@ -54,6 +54,15 @@ public class BrokerConfig {
     @ConfigProperty(name = "broker.trading-enabled", defaultValue = "true")
     boolean tradingEnabled;
 
+    /**
+     * Глобальный флаг, разрешающий запуск всех стратегий.
+     * Если false — ни одна стратегия не запустится, независимо от значения isEnabled() каждой из них.
+     * По умолчанию: true
+     */
+    @Inject
+    @ConfigProperty(name = "strategy.all-enabled", defaultValue = "true")
+    boolean allStrategiesEnabled;
+
     public double getOrderCancelDistancePercent() {
         return orderCancelDistancePercent;
     }
@@ -72,5 +81,9 @@ public class BrokerConfig {
 
     public boolean isTradingEnabled() {
         return tradingEnabled;
+    }
+
+    public boolean isAllStrategiesEnabled() {
+        return allStrategiesEnabled;
     }
 }

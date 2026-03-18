@@ -1,5 +1,6 @@
 package artskif.trader.strategy;
 
+import artskif.trader.broker.BrokerConfig;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.dto.CandlestickDto;
@@ -68,10 +69,11 @@ public abstract class AbstractStrategy implements CandleEventListener {
     protected final DatabaseSnapshotBuilder snapshotBuilder;
     protected final TradeEventBus tradeEventBus;
     protected final CandleEventBus candleEventBus;
+    protected final BrokerConfig brokerConfig;
 
     protected AbstractStrategy(Candle candle, TradeEventProcessor shortTradeEventProcessor, TradeEventProcessor longTradeEventProcessor,
                                DatabaseSnapshotBuilder snapshotBuilder, StrategyDataService dataService,
-                               TradeEventBus tradeEventBus, CandleEventBus candleEventBus) {
+                               TradeEventBus tradeEventBus, CandleEventBus candleEventBus, BrokerConfig brokerConfig) {
         this.candle = candle;
         this.shortTradeEventProcessor = shortTradeEventProcessor;
         this.longTradeEventProcessor = longTradeEventProcessor;
@@ -79,6 +81,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         this.dataService = dataService;
         this.tradeEventBus = tradeEventBus;
         this.candleEventBus = candleEventBus;
+        this.brokerConfig = brokerConfig;
         this.threadProcessor = (candle != null) ? Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "Strategy-EventProcessor-" + getClass().getSimpleName());
             t.setDaemon(false);
@@ -89,6 +92,11 @@ public abstract class AbstractStrategy implements CandleEventListener {
     void onStart(@Observes StartupEvent event) {
         if (candleEventBus == null || threadProcessor == null) {
             Log.warnf("⚠️ Стратегия %s не может быть запущена: candleEventBus или threadProcessor не инициализированы", getName());
+            return;
+        }
+
+        if (brokerConfig != null && !brokerConfig.isAllStrategiesEnabled()) {
+            Log.infof("⏸️ Все стратегии глобально отключены (strategy.all-enabled=false), стратегия %s не запущена", getName());
             return;
         }
 
@@ -111,6 +119,10 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
     void onShutdown(@Observes ShutdownEvent event) {
         if (candleEventBus == null || threadProcessor == null) {
+            return;
+        }
+
+        if (brokerConfig != null && !brokerConfig.isAllStrategiesEnabled()) {
             return;
         }
 
