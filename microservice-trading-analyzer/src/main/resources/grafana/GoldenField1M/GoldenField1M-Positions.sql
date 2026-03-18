@@ -6,7 +6,7 @@
 
 SELECT
     c_time    AS time,
-    u_time AS end_time,
+    updated_at AS end_time,
     pos_id,
     cl_ord_id,
     inst_id,

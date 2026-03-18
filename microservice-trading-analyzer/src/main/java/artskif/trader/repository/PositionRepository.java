@@ -108,34 +108,21 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
 
             int updated = 0;
             int inserted = 0;
-            int skipped = 0;
             for (Position position : positions) {
                 Position existing = findByPosIdAndCTime(position.posId, position.cTime);
                 if (existing != null) {
-                    if (existing.state == OrderState.LIVE) {
-                        // Не трогаем активные позиции историческими данными
-                        skipped++;
-                        continue;
-                    }
-                    position.id = existing.id;
-                    position.slTriggerPx = existing.slTriggerPx;
-                    position.clOrdId = existing.clOrdId;
-                    position.createdAt = existing.createdAt;
-                    position.updatedAt = Instant.now();
-                    position.state = OrderState.CLOSED;
-                    getEntityManager().merge(position);
                     updated++;
                 } else {
-                    position.createdAt = Instant.now();
-                    position.updatedAt = Instant.now();
+                    position.createdAt = position.cTime;
+                    position.updatedAt = position.uTime;
                     position.state = OrderState.CLOSED;
                     persist(position);
                     inserted++;
                 }
             }
 
-            LOG.debugf("✅ Исторические позиции обработаны: вставлено=%d, обновлено=%d, пропущено(LIVE)=%d",
-                    inserted, updated, skipped);
+            LOG.debugf("✅ Исторические позиции обработаны: вставлено=%d, уже существует=%d",
+                    inserted, updated);
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении исторических позиций");
             throw e;
