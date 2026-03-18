@@ -90,7 +90,7 @@ public class OrdersManager extends AbstractOrdersManager {
             log.debug("📏 Проверяем ордер ordId={}, price={}, distance={}%", ordId, orderPrice, distance);
 
             if (distance.compareTo(BigDecimal.valueOf(cancelDistancePercent)) > 0) {
-                log.info("🗑️ Отменяем ордер ordId={}, clOrdId={}: distance={}% > {}%",
+                log.info("🗑️ Отменяем ордер с неподходящей дистанцией ordId={}, clOrdId={}: distance={}% > {}%",
                         ordId, clOrdId, distance, cancelDistancePercent);
                 try {
                     tradingExecutorService.cancelOrders(ordId.isEmpty() ? null : ordId,

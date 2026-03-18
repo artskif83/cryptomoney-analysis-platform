@@ -28,7 +28,7 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
     public PendingOrder save(PendingOrder order) {
         try {
             persist(order);
-            LOG.infof("✅ PendingOrder сохранен: ordId=%s, instId=%s, side=%s, px=%s",
+            LOG.debugf("✅ PendingOrder сохранен: ordId=%s, instId=%s, side=%s, px=%s",
                     order.ordId, order.instId, order.posSide, order.px);
             return order;
         } catch (Exception e) {
@@ -71,7 +71,7 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
                     inserted++;
                 }
             }
-            LOG.infof("✅ Ордеров обновлено: %d, вставлено: %d", updated, inserted);
+            LOG.debugf("✅ Ордеров обновлено: %d, вставлено: %d", updated, inserted);
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении списка ордеров");
             throw e;
@@ -120,14 +120,14 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
             // Если список пуст, помечаем все как закрытые
             long updated = update("state = ?1 where state != ?2", OrderState.CLOSED, OrderState.CLOSED);
             if (updated > 0) {
-                LOG.infof("🔒 Помечено ордеров как CLOSED: %d", updated);
+                LOG.debugf("🔒 Существующих ордеров нет. Помечено ордеров в БД как CLOSED: %d", updated);
             }
             return updated;
         }
         long updated = update("state = ?1 where ordId not in ?2 and state != ?3",
                 OrderState.CLOSED, ordIds, OrderState.CLOSED);
         if (updated > 0) {
-            LOG.infof("🔒 Помечено ордеров как CLOSED: %d", updated);
+            LOG.debugf("🔒 В БД есть открытые ордера которых нет на бирже. Помечено ордеров как CLOSED: %d", updated);
         }
         return updated;
     }

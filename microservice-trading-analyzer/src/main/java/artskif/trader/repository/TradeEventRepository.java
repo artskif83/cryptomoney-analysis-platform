@@ -29,7 +29,7 @@ public class TradeEventRepository implements PanacheRepositoryBase<TradeEventEnt
     public TradeEventEntity save(TradeEventEntity entity) {
         try {
             persist(entity);
-            LOG.infof("✅ TradeEvent сохранен в БД: uuid=%s, type=%s, instrument=%s, direction=%s, timeframe=%s, tag=%s, timestamp=%s",
+            LOG.debugf("✅ TradeEvent сохранен в БД: uuid=%s, type=%s, instrument=%s, direction=%s, timeframe=%s, tag=%s, timestamp=%s",
                     entity.uuid, entity.eventType, entity.instrument, entity.direction,
                     entity.id.timeframe, entity.id.tag, entity.id.timestamp);
             return entity;

@@ -83,7 +83,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при получении баланса
      */
     public BigDecimal getUsdtBalance() {
-        log.info("🔄 Запрос баланса USDT");
+        log.debug("🔄 Запрос баланса USDT");
 
         TradingResponse<BigDecimal> response = executorClient.getUsdtBalance();
 
@@ -93,7 +93,7 @@ public class TradingExecutorService {
         }
 
         BigDecimal balance = response.result();
-        log.info("✅ Баланс USDT: {}", balance);
+        log.debug("✅ Баланс USDT: {}", balance);
 
         return balance;
     }
@@ -105,7 +105,7 @@ public class TradingExecutorService {
      * @throws TradingExecutionException если произошла ошибка при получении цены
      */
     public BigDecimal getCurrentPrice(String instrument) {
-        log.info("🔄 Запрос текущей цены для: {}", instrument);
+        log.debug("🔄 Запрос текущей цены для: {}", instrument);
 
         TradingResponse<BigDecimal> response = executorClient.getCurrentPrice(instrument);
 
@@ -115,7 +115,7 @@ public class TradingExecutorService {
         }
 
         BigDecimal price = response.result();
-        log.info("✅ Текущая цена {}: {}", instrument, price);
+        log.debug("✅ Текущая цена {}: {}", instrument, price);
 
         return price;
     }
