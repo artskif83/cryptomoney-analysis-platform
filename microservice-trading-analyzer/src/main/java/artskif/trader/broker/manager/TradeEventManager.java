@@ -145,7 +145,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             // Проверяем минимальный интервал между позициями по cTime последней позиции из истории
             if (snapshot.getPositionsHistory() != null && !snapshot.getPositionsHistory().isEmpty()) {
                 Optional<Instant> lastPositionTime = snapshot.getPositionsHistory().stream()
-                        .map(p -> p.updatedAt)
+                        .map(p -> p.cTime)
                         .filter(Objects::nonNull)
                         .max(Instant::compareTo);
 
