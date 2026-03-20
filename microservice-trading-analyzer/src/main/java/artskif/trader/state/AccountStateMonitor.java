@@ -1,5 +1,6 @@
-package artskif.trader.broker;
+package artskif.trader.state;
 
+import artskif.trader.broker.BrokerConfig;
 import artskif.trader.broker.client.TradingExecutionException;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.entity.PendingOrder;

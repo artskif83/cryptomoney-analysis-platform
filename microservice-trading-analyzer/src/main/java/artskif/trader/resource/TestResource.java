@@ -2,8 +2,8 @@ package artskif.trader.resource;
 
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
-import artskif.trader.broker.AccountStateMonitor;
-import artskif.trader.broker.AccountStateSnapshot;
+import artskif.trader.state.AccountStateMonitor;
+import artskif.trader.state.AccountStateSnapshot;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.candle.CandleEventType;
 import artskif.trader.candle.CandleTimeframe;

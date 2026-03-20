@@ -1,5 +1,6 @@
-package artskif.trader.broker;
+package artskif.trader.state;
 
+import artskif.trader.broker.BrokerConfig;
 import artskif.trader.candle.CandleEventType;
 import artskif.trader.dto.CandlestickDto;
 import artskif.trader.events.candle.CandleEvent;
@@ -20,9 +21,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @NoArgsConstructor(force = true)
-public abstract class AbstractOrdersManager implements CandleEventListener {
+public abstract class AbstractOrdersStateMonitor implements CandleEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractOrdersManager.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractOrdersStateMonitor.class);
 
     protected final CandleEventBus candleEventBus;
     protected final BrokerConfig brokerConfig;
@@ -33,7 +34,7 @@ public abstract class AbstractOrdersManager implements CandleEventListener {
     private volatile boolean running = true;
 
     @Inject
-    public AbstractOrdersManager(CandleEventBus candleEventBus, BrokerConfig brokerConfig) {
+    public AbstractOrdersStateMonitor(CandleEventBus candleEventBus, BrokerConfig brokerConfig) {
         this.candleEventBus = candleEventBus;
         this.brokerConfig = brokerConfig;
         this.threadProcessor = Executors.newSingleThreadExecutor(r -> {

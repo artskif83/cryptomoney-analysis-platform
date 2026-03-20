@@ -1,6 +1,5 @@
-package artskif.trader.broker.manager;
+package artskif.trader.state;
 
-import artskif.trader.broker.AbstractOrdersManager;
 import artskif.trader.broker.BrokerConfig;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.dto.CandlestickDto;
@@ -20,15 +19,15 @@ import java.util.Map;
 @Startup
 @ApplicationScoped
 @NoArgsConstructor
-public class OrdersManager extends AbstractOrdersManager {
+public class OrdersStateMonitor extends AbstractOrdersStateMonitor {
 
-    private static final Logger log = LoggerFactory.getLogger(OrdersManager.class);
+    private static final Logger log = LoggerFactory.getLogger(OrdersStateMonitor.class);
 
     private TradingExecutorService tradingExecutorService;
 
     @Inject
-    public OrdersManager(CandleEventBus candleEventBus, BrokerConfig brokerConfig,
-                         TradingExecutorService tradingExecutorService) {
+    public OrdersStateMonitor(CandleEventBus candleEventBus, BrokerConfig brokerConfig,
+                              TradingExecutorService tradingExecutorService) {
         super(candleEventBus, brokerConfig);
         this.tradingExecutorService = tradingExecutorService;
     }

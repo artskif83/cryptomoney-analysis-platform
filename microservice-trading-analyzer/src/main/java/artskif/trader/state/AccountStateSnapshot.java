@@ -1,4 +1,4 @@
-package artskif.trader.broker;
+package artskif.trader.state;
 
 import artskif.trader.entity.PendingOrder;
 import artskif.trader.entity.Position;

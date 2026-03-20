@@ -1,9 +1,8 @@
 package artskif.trader.broker.manager;
 
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
-import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.broker.AbstractTradeEventManager;
-import artskif.trader.broker.AccountStateMonitor;
+import artskif.trader.state.AccountStateMonitor;
 import artskif.trader.broker.BrokerConfig;
 import artskif.trader.broker.client.TradingExecutorService;
 import artskif.trader.entity.PendingOrder;
