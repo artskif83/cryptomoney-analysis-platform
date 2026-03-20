@@ -51,7 +51,7 @@ public class LongLevelIndicator extends CachedIndicator<Num> {
             return null;
         }
         // Для лонга: DoubleMA высшего ТФ должен быть <= 0 (не нисходящий), т.е. >= 0
-        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isLessThan(DecimalNum.valueOf(0))) {
+        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
             return null;
         }
 
