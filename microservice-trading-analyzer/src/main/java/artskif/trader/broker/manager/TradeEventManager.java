@@ -84,10 +84,34 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
 
+
+
         if (hasOppositePosition) {
             log.debug("📊 Есть открытая {} позиция", oppositeLabel);
-            tradingExecutorService.closeAllPositions(event.instrument());
-            hasAnyPosition = false;
+            boolean farEnough = positions.stream()
+                    .filter(p -> isShort ? "long".equalsIgnoreCase(p.posSide) : "short".equalsIgnoreCase(p.posSide))
+                    .filter(p -> p.state == artskif.trader.entity.OrderState.LIVE)
+                    .filter(p -> p.px != null)
+                    .anyMatch(p -> {
+                        BigDecimal distancePercent = event.tradeEventData().eventPrice()
+                                .subtract(p.px)
+                                .abs()
+                                .divide(p.px, new MathContext(10, RoundingMode.HALF_UP))
+                                .multiply(BigDecimal.valueOf(100));
+                        boolean ok = distancePercent.compareTo(
+                                BigDecimal.valueOf(brokerConfig.getOrderCancelDistancePercent())) >= 0;
+                        log.debug("📏 Расстояние от eventPrice={} до px позиции={}: {}% (минимум {}%) — {}",
+                                event.tradeEventData().eventPrice(), p.px, distancePercent,
+                                brokerConfig.getOrderCancelDistancePercent(), ok ? "✅ достаточно" : "❌ слишком близко");
+                        return ok;
+                    });
+            if (farEnough) {
+                tradingExecutorService.closeAllPositions(event.instrument());
+                hasAnyPosition = false;
+            } else {
+                log.warn("⚠️ Закрытие {} позиции пропущено: eventPrice слишком близко к цене открытия (менее {}%)",
+                        oppositeLabel, brokerConfig.getOrderCancelDistancePercent());
+            }
         }
 
         // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового

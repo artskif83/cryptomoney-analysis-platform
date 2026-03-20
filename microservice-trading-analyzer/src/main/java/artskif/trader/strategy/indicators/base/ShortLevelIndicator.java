@@ -48,9 +48,9 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
         if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
-        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
-            return null;
-        }
+//        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
+//            return null;
+//        }
 
         List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
