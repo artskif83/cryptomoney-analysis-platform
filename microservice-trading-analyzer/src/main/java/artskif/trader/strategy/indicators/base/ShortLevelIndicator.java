@@ -45,12 +45,12 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int doubleMAhigherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
+        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
-//        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
-//            return null;
-//        }
+        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
+            return null;
+        }
 
         List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 

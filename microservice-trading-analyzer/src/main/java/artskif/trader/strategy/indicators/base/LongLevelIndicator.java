@@ -50,10 +50,10 @@ public class LongLevelIndicator extends CachedIndicator<Num> {
         if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
             return null;
         }
-//        // Для лонга: DoubleMA высшего ТФ должен быть <= 0 (не нисходящий), т.е. >= 0
-//        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
-//            return null;
-//        }
+        // Для лонга: DoubleMA высшего ТФ должен быть <= 0 (не нисходящий), т.е. >= 0
+        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isLessThan(DecimalNum.valueOf(0))) {
+            return null;
+        }
 
         List<PriceWithIndex> sortedLowPrices = sortByLowPrice(lowPriceLowIndicator, lowBarCount, index);
 
