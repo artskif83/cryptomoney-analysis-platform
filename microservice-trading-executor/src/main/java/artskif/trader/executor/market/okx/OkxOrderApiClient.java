@@ -235,9 +235,9 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             };
 
             BigDecimal[] sizePercentages = {
-                BigDecimal.valueOf(0.5),   // TP1: 60% позиции
+                BigDecimal.valueOf(0.1),   // TP1: 10% позиции
                 BigDecimal.valueOf(0.4),   // TP2: 40% позиции
-                BigDecimal.valueOf(0.1)    // TP3: 10% позиции
+                BigDecimal.valueOf(0.5)    // TP3: 60% позиции
             };
 
             // 5. Формируем массив attachAlgoOrds со всеми SL и TP
