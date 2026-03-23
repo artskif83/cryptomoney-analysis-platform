@@ -44,7 +44,7 @@ public class LongLevelIndicatorM extends MultiAbstractIndicator<LongLevelIndicat
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                5,
+                10,
                 DecimalNum.valueOf(0.05),
                 DecimalNum.valueOf(0.1),
                 DecimalNum.valueOf(0.15));
