@@ -7,8 +7,6 @@ import org.ta4j.core.indicators.helpers.HighPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class ShortTrendIndicator extends CachedIndicator<Num> {
@@ -52,7 +50,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
             return null;
         }
 
-        List<PriceWithIndex> sortedLowPrices = sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
+        List<PriceWithIndex> sortedLowPrices = IndicatorUtils.sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
         Num shortZoneTopPrice = findShortZoneTopPrice(sortedLowPrices, shortZonePercentagesLowThreshold);
 
@@ -93,33 +91,6 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         Num multiplier = DecimalNum.valueOf(1).plus(stopLossPercentage.dividedBy(hundred));
         return shortPrice.multipliedBy(multiplier);
     }
-
-    /**
-     * Сортирует элементы по значениям индикатора highPriceIndicator, сохраняя исходные индексы
-     * @param highPriceIndicator индикатор максимальной цены
-     * @param currentIndex текущий индекс
-     * @return отсортированный список элементов с сохраненными индексами
-     */
-    List<PriceWithIndex> sortByHighPrice(HighPriceIndicator highPriceIndicator,
-                                                   int highBarCount,
-                                                   int currentIndex) {
-        List<PriceWithIndex> pricesWithIndices = new ArrayList<>();
-
-        // Определяем начальный индекс для анализа
-        int startIndex = Math.max(0, currentIndex - highBarCount + 1);
-
-        // Собираем значения цен с их индексами
-        for (int i = startIndex; i <= currentIndex; i++) {
-            Num highPrice = highPriceIndicator.getValue(i);
-            pricesWithIndices.add(new PriceWithIndex(highPrice, i));
-        }
-
-        // Сортируем по убыванию цены (от максимальной к минимальной)
-        pricesWithIndices.sort(Comparator.comparing(PriceWithIndex::getPrice).reversed());
-
-        return pricesWithIndices;
-    }
-
 
 
     /**
@@ -162,34 +133,6 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         return null;
     }
 
-    /**
-     * Вспомогательный класс для хранения цены и её исходного индекса
-     */
-    static class PriceWithIndex {
-        private final Num price;
-        private final int originalIndex;
-
-        PriceWithIndex(Num price, int originalIndex) {
-            this.price = price;
-            this.originalIndex = originalIndex;
-        }
-
-        public Num getPrice() {
-            return price;
-        }
-
-        public int getOriginalIndex() {
-            return originalIndex;
-        }
-
-        @Override
-        public String toString() {
-            return "PriceWithIndex{" +
-                    "price=" + price +
-                    ", originalIndex=" + originalIndex +
-                    '}';
-        }
-    }
 
     @Override
     public int getCountOfUnstableBars() {

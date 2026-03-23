@@ -43,6 +43,8 @@ public class TF1mBacktestSchema extends AbstractSchema {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_1H,
                         DoubleMAIndicatorColumn.DoubleMAColumnType.DOUBLE_MA_VALUE_1M_ON_5M,
+                        ShortHighLevelColumn.ShortHighLevelColumnType.SHORT_HIGH_LEVEL_BOTTOM_BORDER_1M_ON_1H,
+                        ShortHighLevelColumn.ShortHighLevelColumnType.SHORT_HIGH_LEVEL_TOP_BORDER_1M_ON_1H,
                         ShortTrendColumn.ShortTrendColumnType.SHORT_TREND_1M,
                         ShortTrendColumn.ShortTrendColumnType.SHORT_STOP_LOS_1M,
                         LongTrendColumn.LongTrendColumnType.LONG_TREND_1M,

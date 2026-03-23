@@ -3,16 +3,14 @@ package artskif.trader.strategy.indicators.base;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
-import org.ta4j.core.indicators.helpers.LowPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
-public class ShortLevelIndicator extends CachedIndicator<Num> {
-    private final LowPriceIndicator lowPriceLowIndicator;
+public class LongLowLevelIndicator extends CachedIndicator<Num> {
+
+    private final HighPriceIndicator lowPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
     private final int highBarCount; // количество баров в котором считается поддержка высшего таймфрейма
@@ -20,15 +18,15 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы поддержки высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены поддержки
 
-    public ShortLevelIndicator(LowPriceIndicator lowPriceIndicator,
-                              ClosePriceIndicator closePriceIndicator,
-                              int lowBarCount,
-                              int highBarCount,
-                              Num longZonePercentagesLowThreshold,
-                              Num calculationZonePercentagesHighThreshold,
-                              Num stopLossPercentage) {
+    public LongLowLevelIndicator(HighPriceIndicator highPriceIndicator,
+                                 ClosePriceIndicator closePriceIndicator,
+                                 int lowBarCount,
+                                 int highBarCount,
+                                 Num longZonePercentagesLowThreshold,
+                                 Num calculationZonePercentagesHighThreshold,
+                                 Num stopLossPercentage) {
         super(closePriceIndicator);
-        this.lowPriceLowIndicator = lowPriceIndicator;
+        this.lowPriceLowIndicator = highPriceIndicator;
         this.closePriceIndicator = closePriceIndicator;
         this.lowBarCount = lowBarCount;
         this.highBarCount = highBarCount;
@@ -60,32 +58,6 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
         return longPrice.multipliedBy(multiplier);
     }
 
-    /**
-     * Сортирует элементы по значениям индикатора lowPriceIndicator по возрастанию (от минимальной к максимальной),
-     * сохраняя исходные индексы.
-     *
-     * @param lowPriceIndicator индикатор минимальной цены
-     * @param lowBarCount       количество баров для анализа
-     * @param currentIndex      текущий индекс
-     * @return отсортированный список элементов с сохранёнными индексами
-     */
-    List<LongTrendIndicator.PriceWithIndex> sortByLowPrice(LowPriceIndicator lowPriceIndicator,
-                                                           int lowBarCount,
-                                                           int currentIndex) {
-        List<LongTrendIndicator.PriceWithIndex> pricesWithIndices = new ArrayList<>();
-
-        int startIndex = Math.max(0, currentIndex - lowBarCount + 1);
-
-        for (int i = startIndex; i <= currentIndex; i++) {
-            Num lowPrice = lowPriceIndicator.getValue(i);
-            pricesWithIndices.add(new LongTrendIndicator.PriceWithIndex(lowPrice, i));
-        }
-
-        // Сортируем по возрастанию цены (от минимальной к максимальной)
-        pricesWithIndices.sort(Comparator.comparing(LongTrendIndicator.PriceWithIndex::getPrice));
-
-        return pricesWithIndices;
-    }
 
     /**
      * Находит нижнюю цену зоны поддержки — первую (наименьшую) цену из пары,
@@ -104,7 +76,7 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
      * @param longZonePercentages  максимально допустимый процент отклонения между двумя ценами
      * @return нижняя цена зоны поддержки, или {@code null} если зона не найдена
      */
-    Num findLongZoneBottomPrice(List<LongTrendIndicator.PriceWithIndex> prices, Num longZonePercentages) {
+    Num findLongZoneBottomPrice(List<PriceWithIndex> prices, Num longZonePercentages) {
         if (prices.size() < 2) {
             return null;
         }
@@ -128,34 +100,6 @@ public class ShortLevelIndicator extends CachedIndicator<Num> {
         return null;
     }
 
-    /**
-     * Вспомогательный класс для хранения цены и её исходного индекса
-     */
-    static class PriceWithIndex {
-        private final Num price;
-        private final int originalIndex;
-
-        PriceWithIndex(Num price, int originalIndex) {
-            this.price = price;
-            this.originalIndex = originalIndex;
-        }
-
-        public Num getPrice() {
-            return price;
-        }
-
-        public int getOriginalIndex() {
-            return originalIndex;
-        }
-
-        @Override
-        public String toString() {
-            return "PriceWithIndex{" +
-                    "price=" + price +
-                    ", originalIndex=" + originalIndex +
-                    '}';
-        }
-    }
 
     @Override
     public int getCountOfUnstableBars() {

@@ -7,8 +7,6 @@ import org.ta4j.core.indicators.helpers.LowPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class LongTrendIndicator extends CachedIndicator<Num> {
@@ -55,7 +53,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
             return null;
         }
 
-        List<PriceWithIndex> sortedLowPrices = sortByLowPrice(lowPriceLowIndicator, lowBarCount, index);
+        List<PriceWithIndex> sortedLowPrices = IndicatorUtils.sortByLowPrice(lowPriceLowIndicator, lowBarCount, index);
 
         Num longZoneBottomPrice = findLongZoneBottomPrice(sortedLowPrices, longZonePercentagesLowThreshold);
 
@@ -98,32 +96,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         return longPrice.multipliedBy(multiplier);
     }
 
-    /**
-     * Сортирует элементы по значениям индикатора lowPriceIndicator по возрастанию (от минимальной к максимальной),
-     * сохраняя исходные индексы.
-     *
-     * @param lowPriceIndicator индикатор минимальной цены
-     * @param lowBarCount       количество баров для анализа
-     * @param currentIndex      текущий индекс
-     * @return отсортированный список элементов с сохранёнными индексами
-     */
-    List<PriceWithIndex> sortByLowPrice(LowPriceIndicator lowPriceIndicator,
-                                        int lowBarCount,
-                                        int currentIndex) {
-        List<PriceWithIndex> pricesWithIndices = new ArrayList<>();
-
-        int startIndex = Math.max(0, currentIndex - lowBarCount + 1);
-
-        for (int i = startIndex; i <= currentIndex; i++) {
-            Num lowPrice = lowPriceIndicator.getValue(i);
-            pricesWithIndices.add(new PriceWithIndex(lowPrice, i));
-        }
-
-        // Сортируем по возрастанию цены (от минимальной к максимальной)
-        pricesWithIndices.sort(Comparator.comparing(PriceWithIndex::getPrice));
-
-        return pricesWithIndices;
-    }
 
     /**
      * Находит нижнюю цену зоны поддержки — первую (наименьшую) цену из пары,
@@ -166,34 +138,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         return null;
     }
 
-    /**
-     * Вспомогательный класс для хранения цены и её исходного индекса
-     */
-    static class PriceWithIndex {
-        private final Num price;
-        private final int originalIndex;
-
-        PriceWithIndex(Num price, int originalIndex) {
-            this.price = price;
-            this.originalIndex = originalIndex;
-        }
-
-        public Num getPrice() {
-            return price;
-        }
-
-        public int getOriginalIndex() {
-            return originalIndex;
-        }
-
-        @Override
-        public String toString() {
-            return "PriceWithIndex{" +
-                    "price=" + price +
-                    ", originalIndex=" + originalIndex +
-                    '}';
-        }
-    }
 
     @Override
     public int getCountOfUnstableBars() {
