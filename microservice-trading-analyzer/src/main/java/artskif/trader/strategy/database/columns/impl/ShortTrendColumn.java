@@ -5,8 +5,8 @@ import artskif.trader.entity.MetadataType;
 import artskif.trader.strategy.database.columns.AbstractColumn;
 import artskif.trader.strategy.database.columns.ColumnMetadata;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
-import artskif.trader.strategy.indicators.base.ShortLevelIndicator;
-import artskif.trader.strategy.indicators.multi.levels.ShortLevelIndicatorM;
+import artskif.trader.strategy.indicators.base.ShortTrendIndicator;
+import artskif.trader.strategy.indicators.multi.levels.ShortTrendIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.num.Num;
@@ -14,22 +14,22 @@ import org.ta4j.core.num.Num;
 import java.util.List;
 
 @ApplicationScoped
-public class ShortLevelColumn extends AbstractColumn<ShortLevelIndicatorM> {
+public class ShortTrendColumn extends AbstractColumn<ShortTrendIndicatorM> {
 
     /**
      * Перечислимый тип для различных значений уровня сопротивления
      */
-    public enum ShortLevelColumnType implements ColumnTypeMetadata {
-        SHORT_LEVEL_5M(
-                "metric_short_level_5m",
+    public enum ShortTrendColumnType implements ColumnTypeMetadata {
+        SHORT_TREND_5M(
+                "metric_short_trend_5m",
                 "Уровень сопротивления на таймфрейме 5m",
                 "numeric(12, 4)",
                 CandleTimeframe.CANDLE_5M,
                 null,
                 MetadataType.METRIC
         ),
-        SHORT_LEVEL_1M(
-                "metric_short_level_1m",
+        SHORT_TREND_1M(
+                "metric_short_trend_1m",
                 "Уровень сопротивления на таймфрейме 1m",
                 "numeric(12, 4)",
                 CandleTimeframe.CANDLE_1M,
@@ -46,7 +46,7 @@ public class ShortLevelColumn extends AbstractColumn<ShortLevelIndicatorM> {
         );
         private final ColumnMetadata metadata;
 
-        ShortLevelColumnType(String name, String description, String dataType, CandleTimeframe timeframe, CandleTimeframe higherTimeframe, MetadataType metadataType) {
+        ShortTrendColumnType(String name, String description, String dataType, CandleTimeframe timeframe, CandleTimeframe higherTimeframe, MetadataType metadataType) {
             this.metadata = new ColumnMetadata(name, description, dataType, timeframe, higherTimeframe, metadataType);
         }
 
@@ -57,36 +57,36 @@ public class ShortLevelColumn extends AbstractColumn<ShortLevelIndicatorM> {
     }
 
     // No-args constructor required by CDI
-    protected ShortLevelColumn() {
+    protected ShortTrendColumn() {
         super(null);
     }
 
     @Inject
-    public ShortLevelColumn(ShortLevelIndicatorM shortLevelIndicatorM) {
-        super(shortLevelIndicatorM);
+    public ShortTrendColumn(ShortTrendIndicatorM shortTrendIndicatorM) {
+        super(shortTrendIndicatorM);
     }
 
     @Override
     public Num getValueByName(boolean isLiveSeries, String valueName, int index) {
-        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(ShortLevelColumnType.values(), valueName);
+        ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(ShortTrendColumnType.values(), valueName);
         ColumnMetadata metadata = featureType.getMetadata();
 
         switch (featureType) {
-            case ShortLevelColumnType.SHORT_STOP_LOS_1M:
-                ShortLevelIndicator indicator = (ShortLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
+            case ShortTrendColumnType.SHORT_STOP_LOS_1M:
+                ShortTrendIndicator indicator = (ShortTrendIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
                 return indicator.getStopLos(index);
             default:
-                return getValueByNameGeneric(isLiveSeries, valueName, index, ShortLevelColumnType.values());
+                return getValueByNameGeneric(isLiveSeries, valueName, index, ShortTrendColumnType.values());
         }
     }
 
     @Override
     public List<String> getColumnNames() {
-        return ColumnTypeMetadata.getNames(ShortLevelColumnType.values());
+        return ColumnTypeMetadata.getNames(ShortTrendColumnType.values());
     }
 
     @Override
     public ColumnTypeMetadata getColumnTypeMetadataByName(String name) {
-        return ColumnTypeMetadata.findByName(ShortLevelColumnType.values(), name);
+        return ColumnTypeMetadata.findByName(ShortTrendColumnType.values(), name);
     }
 }

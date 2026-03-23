@@ -17,9 +17,9 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_5m");
 const doubleMaValue1hOn1hRaw = col("metric_double_ma_value_1m_on_1h");
-const shortLevelRaw = col("metric_short_level_1m");
+const shortLevelRaw = col("metric_short_trend_1m");
 const shortStopLossRaw = col("metric_short_stop_los_1m");
-const longLevelRaw = col("metric_long_level_1m");
+const longLevelRaw = col("metric_long_trend_1m");
 const longStopLossRaw = col("metric_long_stop_los_1m");
 
 const posPrice = col("additional_position_price_1m");
@@ -50,7 +50,7 @@ const doubleMaValue1hOn1h = times.map((t, i) => [
 
 // ===== Зона сопротивления (short level + stop loss band) =====
 // Рисуем отдельный прямоугольник для каждой свечи, чтобы зона точно
-// следовала значениям short_level (верх) и stop_loss (низ).
+// следовала значениям short_trend (верх) и stop_loss (низ).
 const shortBandSegments = [];
 
 for (let i = 0; i < times.length; i++) {

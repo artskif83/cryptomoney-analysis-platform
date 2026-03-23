@@ -4,13 +4,9 @@ import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.event.AbstractTradeEventProcessor;
 import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventType;
-import artskif.trader.strategy.indicators.base.LongLevelIndicator;
-import artskif.trader.strategy.indicators.base.ShortLevelIndicator;
-import artskif.trader.strategy.indicators.multi.HighPriceIndicatorM;
+import artskif.trader.strategy.indicators.base.LongTrendIndicator;
 import artskif.trader.strategy.indicators.multi.LowPriceIndicatorM;
-import artskif.trader.strategy.indicators.multi.TripleMAIndicatorM;
-import artskif.trader.strategy.indicators.multi.levels.LongLevelIndicatorM;
-import artskif.trader.strategy.indicators.multi.levels.ShortLevelIndicatorM;
+import artskif.trader.strategy.indicators.multi.levels.LongTrendIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.TradingRecord;
@@ -20,18 +16,18 @@ import org.ta4j.core.num.Num;
 @ApplicationScoped
 public class GoldenFieldLongEventProcessor extends AbstractTradeEventProcessor {
 
-    private final LongLevelIndicatorM longLevelIndicatorM;
+    private final LongTrendIndicatorM longTrendIndicatorM;
     private final LowPriceIndicatorM lowPriceIndicatorM;
 
     public GoldenFieldLongEventProcessor() {
-        this.longLevelIndicatorM = null;
+        this.longTrendIndicatorM = null;
         this.lowPriceIndicatorM = null;
     }
 
     @Inject
-    public GoldenFieldLongEventProcessor(LongLevelIndicatorM longLevelIndicatorM,
+    public GoldenFieldLongEventProcessor(LongTrendIndicatorM longTrendIndicatorM,
                                          LowPriceIndicatorM lowPriceIndicatorM) {
-        this.longLevelIndicatorM = longLevelIndicatorM;
+        this.longTrendIndicatorM = longTrendIndicatorM;
         this.lowPriceIndicatorM = lowPriceIndicatorM;
     }
 
@@ -48,7 +44,7 @@ public class GoldenFieldLongEventProcessor extends AbstractTradeEventProcessor {
 
     @Override
     public boolean shouldLimitEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries) {
-        LongLevelIndicator indicator = longLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
+        LongTrendIndicator indicator = longTrendIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
         return indicator != null && indicator.getValue(index) != null;
     }
 
@@ -59,7 +55,7 @@ public class GoldenFieldLongEventProcessor extends AbstractTradeEventProcessor {
 
     @Override
     public Num getEntryPrice(int index, boolean isLiveSeries) {
-        LongLevelIndicator indicator = longLevelIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
+        LongTrendIndicator indicator = longTrendIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
         return indicator != null && indicator.getValue(index) != null ? indicator.getValue(index) : null;
     }
 

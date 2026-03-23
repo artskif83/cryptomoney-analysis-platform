@@ -3,45 +3,44 @@ package artskif.trader.strategy.indicators.multi.levels;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.indicators.MultiAbstractIndicator;
-import artskif.trader.strategy.indicators.base.ShortLevelIndicator;
+import artskif.trader.strategy.indicators.base.LongTrendIndicator;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.DoubleMAIndicatorM;
-import artskif.trader.strategy.indicators.multi.HighPriceIndicatorM;
+import artskif.trader.strategy.indicators.multi.LowPriceIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.num.DecimalNum;
 
 @ApplicationScoped
-public class ShortLevelIndicatorM extends MultiAbstractIndicator<ShortLevelIndicator> {
+public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicator> {
 
-    private final HighPriceIndicatorM highPriceIndicatorM;
+    private final LowPriceIndicatorM lowPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final DoubleMAIndicatorM doubleMAIndicatorM;
 
-
     // No-args constructor required by CDI
-    protected ShortLevelIndicatorM() {
+    protected LongTrendIndicatorM() {
         super(null);
-        this.highPriceIndicatorM = null;
+        this.lowPriceIndicatorM = null;
         this.closePriceIndicatorM = null;
         this.doubleMAIndicatorM = null;
     }
 
     @Inject
-    public ShortLevelIndicatorM(Candle candle,
-                                HighPriceIndicatorM highPriceIndicatorM,
-                                ClosePriceIndicatorM closePriceIndicatorM,
-                                DoubleMAIndicatorM doubleMAIndicatorM) {
+    public LongTrendIndicatorM(Candle candle,
+                               LowPriceIndicatorM lowPriceIndicatorM,
+                               ClosePriceIndicatorM closePriceIndicatorM,
+                               DoubleMAIndicatorM doubleMAIndicatorM) {
         super(candle);
-        this.highPriceIndicatorM = highPriceIndicatorM;
+        this.lowPriceIndicatorM = lowPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
     }
 
     @Override
-    protected ShortLevelIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
-        return new ShortLevelIndicator(
-                highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
+    protected LongTrendIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
+        return new LongTrendIndicator(
+                lowPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
