@@ -7,8 +7,10 @@ import artskif.trader.strategy.database.columns.ColumnMetadata;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
 import artskif.trader.strategy.indicators.base.ShortHighLevelIndicator;
 import artskif.trader.strategy.indicators.multi.levels.ShortHighLevelIndicatorM;
+import artskif.trader.strategy.indicators.util.IndicatorUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.ta4j.core.indicators.AbstractIndicator;
 import org.ta4j.core.num.Num;
 
 import java.util.List;
@@ -88,12 +90,23 @@ public class ShortHighLevelColumn extends AbstractColumn<ShortHighLevelIndicator
         ColumnTypeMetadata featureType = ColumnTypeMetadata.findByName(ShortHighLevelColumnType.values(), valueName);
         ColumnMetadata metadata = featureType.getMetadata();
         ShortHighLevelIndicator indicator = (ShortHighLevelIndicator) getIndicator(metadata.timeframe(), isLiveSeries);
+        ShortHighLevelIndicator higherTimeframeIndicator = (ShortHighLevelIndicator) getIndicator(metadata.higherTimeframe(), isLiveSeries);;
+        int higherTfIndex;
 
         switch (featureType) {
             case ShortHighLevelColumnType.SHORT_HIGH_LEVEL_TOP_BORDER_1H:
                 return indicator.getTopBorder(index);
             case ShortHighLevelColumnType.SHORT_HIGH_LEVEL_BOTTOM_BORDER_1H:
                 return indicator.getBottomBorder(index);
+            // Значение на старшем таймфрейме 5m
+            case ShortHighLevelColumnType.SHORT_HIGH_LEVEL_BOTTOM_BORDER_1M_ON_1H:
+                higherTfIndex = IndicatorUtils.mapToHigherTfIndex(indicator.getBarSeries().getBar(index), higherTimeframeIndicator.getBarSeries());
+                return higherTimeframeIndicator.getBottomBorder(higherTfIndex);
+
+            // Значение на старшем таймфрейме 1m
+            case ShortHighLevelColumnType.SHORT_HIGH_LEVEL_TOP_BORDER_1M_ON_1H:
+                higherTfIndex = IndicatorUtils.mapToHigherTfIndex(indicator.getBarSeries().getBar(index), higherTimeframeIndicator.getBarSeries());
+                return higherTimeframeIndicator.getTopBorder(higherTfIndex);
             default:
                 return getValueByNameGeneric(isLiveSeries, valueName, index, ShortHighLevelColumnType.values());
         }

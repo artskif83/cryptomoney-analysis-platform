@@ -21,6 +21,8 @@ const shortLevelRaw = col("metric_short_trend_1m");
 const shortStopLossRaw = col("metric_short_stop_los_1m");
 const longLevelRaw = col("metric_long_trend_1m");
 const longStopLossRaw = col("metric_long_stop_los_1m");
+const shortHighLevelTopRaw = col("short_high_level_top_border_1m_on_1h");
+const shortHighLevelBottomRaw = col("short_high_level_bottom_border_1m_on_1h");
 
 const posPrice = col("additional_position_price_1m");
 const tpPrice = col("additional_takeprofit_1m");
@@ -80,6 +82,22 @@ for (let i = 0; i < times.length; i++) {
     longBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(rl, sl) },
         { xAxis: tEnd,     yAxis: Math.max(rl, sl) }
+    ]);
+}
+
+// ===== Зона ликвидности (short high level top / bottom border 1m on 1h) =====
+const shortHighLevelBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const top = shortHighLevelTopRaw[i];
+    const bottom = shortHighLevelBottomRaw[i];
+    if (top == null || bottom == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    shortHighLevelBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(top, bottom) },
+        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
     ]);
 }
 
@@ -315,6 +333,25 @@ return {
                     borderWidth: 0
                 },
                 data: longBandSegments
+            }
+        },
+
+        // --- Зона ликвидности (short high level top/bottom border 1m on 1h) ---
+        {
+            name: 'Liquidity Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(77, 163, 255, 0.25)',
+                    borderWidth: 0
+                },
+                data: shortHighLevelBandSegments
             }
         },
 
