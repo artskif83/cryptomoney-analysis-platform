@@ -15,6 +15,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     private final ClosePriceIndicator closePriceIndicator;
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
+    private final ADXAngleIndicator adxAngleIndicator;
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
     private final Num shortZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
@@ -23,6 +24,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     public ShortTrendIndicator(HighPriceIndicator highPriceLowIndicator,
                                DoubleMAIndicator doubleMALowIndicator,
                                DoubleMAIndicator doubleMAHighIndicator,
+                               ADXAngleIndicator adxAngleIndicator,
                                ClosePriceIndicator closePriceIndicator,
                                int lowBarCount,
                                Num shortZonePercentagesLowThreshold,
@@ -33,6 +35,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         this.closePriceIndicator = closePriceIndicator;
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
+        this.adxAngleIndicator = adxAngleIndicator;
         this.lowBarCount = lowBarCount;
         this.shortZonePercentagesLowThreshold = shortZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -43,10 +46,14 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int doubleMAhigherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
+
+        if (adxAngleIndicator.isFalling(doubleMAhigherTfIndex)) {
             return null;
         }
-        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThan(DecimalNum.valueOf(0))){
+        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
+            return null;
+        }
+        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
 

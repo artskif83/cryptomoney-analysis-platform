@@ -24,6 +24,8 @@ const longStopLossRaw = col("metric_long_stop_los_1m");
 const adxAngle1mOn1hRaw = col("metric_adx_angle_1m_on_1h");
 const shortHighLevelTopRaw = col("short_high_level_top_border_1m_on_1h");
 const shortHighLevelBottomRaw = col("short_high_level_bottom_border_1m_on_1h");
+const longHighLevelTopRaw = col("long_high_level_top_border_1m_on_1h");
+const longHighLevelBottomRaw = col("long_high_level_bottom_border_1m_on_1h");
 
 const posPrice = col("additional_position_price_1m");
 const tpPrice = col("additional_takeprofit_1m");
@@ -102,6 +104,22 @@ for (let i = 0; i < times.length; i++) {
     const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
 
     shortHighLevelBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(top, bottom) },
+        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
+    ]);
+}
+
+// ===== Зона ликвидности (long high level top/bottom border 1m on 1h) =====
+const longHighLevelBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const top = longHighLevelTopRaw[i];
+    const bottom = longHighLevelBottomRaw[i];
+    if (top == null || bottom == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    longHighLevelBandSegments.push([
         { xAxis: times[i], yAxis: Math.min(top, bottom) },
         { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
     ]);
@@ -394,6 +412,25 @@ return {
                     borderWidth: 0
                 },
                 data: shortHighLevelBandSegments
+            }
+        },
+
+        // --- Зона ликвидности (long high level top/bottom border 1m on 1h) ---
+        {
+            name: 'Long Liquidity Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(20, 90, 180, 0.35)',
+                    borderWidth: 0
+                },
+                data: longHighLevelBandSegments
             }
         },
 

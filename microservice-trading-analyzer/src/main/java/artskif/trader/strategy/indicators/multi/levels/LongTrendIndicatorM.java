@@ -4,6 +4,7 @@ import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import artskif.trader.strategy.indicators.base.LongTrendIndicator;
+import artskif.trader.strategy.indicators.multi.ADXAngleIndicatorM;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.DoubleMAIndicatorM;
 import artskif.trader.strategy.indicators.multi.LowPriceIndicatorM;
@@ -17,6 +18,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
     private final LowPriceIndicatorM lowPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final DoubleMAIndicatorM doubleMAIndicatorM;
+    private final ADXAngleIndicatorM adxAngleIndicatorM;
 
     // No-args constructor required by CDI
     protected LongTrendIndicatorM() {
@@ -24,17 +26,20 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
         this.lowPriceIndicatorM = null;
         this.closePriceIndicatorM = null;
         this.doubleMAIndicatorM = null;
+        this.adxAngleIndicatorM = null;
     }
 
     @Inject
     public LongTrendIndicatorM(Candle candle,
                                LowPriceIndicatorM lowPriceIndicatorM,
                                ClosePriceIndicatorM closePriceIndicatorM,
-                               DoubleMAIndicatorM doubleMAIndicatorM) {
+                               DoubleMAIndicatorM doubleMAIndicatorM,
+                               ADXAngleIndicatorM adxAngleIndicatorM) {
         super(candle);
         this.lowPriceIndicatorM = lowPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
+        this.adxAngleIndicatorM = adxAngleIndicatorM;
     }
 
     @Override
@@ -43,8 +48,9 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 lowPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                5,
+                6,
                 DecimalNum.valueOf(0.05),
                 DecimalNum.valueOf(0.1),
                 DecimalNum.valueOf(0.15));
