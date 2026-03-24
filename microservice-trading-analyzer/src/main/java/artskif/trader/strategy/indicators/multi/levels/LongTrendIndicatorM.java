@@ -19,6 +19,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final DoubleMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
+    private final LongHighLevelIndicatorM longHighLevelIndicatorM;
 
     // No-args constructor required by CDI
     protected LongTrendIndicatorM() {
@@ -27,6 +28,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
         this.closePriceIndicatorM = null;
         this.doubleMAIndicatorM = null;
         this.adxAngleIndicatorM = null;
+        this.longHighLevelIndicatorM = null;
     }
 
     @Inject
@@ -34,12 +36,14 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                                LowPriceIndicatorM lowPriceIndicatorM,
                                ClosePriceIndicatorM closePriceIndicatorM,
                                DoubleMAIndicatorM doubleMAIndicatorM,
-                               ADXAngleIndicatorM adxAngleIndicatorM) {
+                               ADXAngleIndicatorM adxAngleIndicatorM,
+                               LongHighLevelIndicatorM longHighLevelIndicatorM) {
         super(candle);
         this.lowPriceIndicatorM = lowPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
         this.adxAngleIndicatorM = adxAngleIndicatorM;
+        this.longHighLevelIndicatorM = longHighLevelIndicatorM;
     }
 
     @Override
@@ -49,6 +53,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                longHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 6,
                 DecimalNum.valueOf(0.05),

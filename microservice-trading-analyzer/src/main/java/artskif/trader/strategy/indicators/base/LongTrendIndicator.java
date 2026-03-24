@@ -16,6 +16,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
     private final ADXAngleIndicator adxAngleIndicator;
+    private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень поддержки
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
     private final Num longZonePercentagesLowThreshold; // окно в котором считается общая поддержка нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы поддержки высшего таймфрейма, внутри которого должна находиться текущая цена
@@ -25,6 +26,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
                               DoubleMAIndicator doubleMALowIndicator,
                               DoubleMAIndicator doubleMAHighIndicator,
                               ADXAngleIndicator adxAngleIndicator,
+                              LongHighLevelIndicator longHighLevelIndicator,
                               ClosePriceIndicator closePriceIndicator,
                               int lowBarCount,
                               Num longZonePercentagesLowThreshold,
@@ -36,6 +38,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
         this.adxAngleIndicator = adxAngleIndicator;
+        this.longHighLevelIndicator = longHighLevelIndicator;
         this.lowBarCount = lowBarCount;
         this.longZonePercentagesLowThreshold = longZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -44,19 +47,25 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        int doubleMAlowerTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
-        int doubleMAhigherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
+        int longLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
+        int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
 
-        if (adxAngleIndicator.isFalling(doubleMAhigherTfIndex)) {
-            return null;
+        boolean isCalculating = false;
+
+        Num highLevelTop = longHighLevelIndicator.getTopBorder(longHighLevelIndex);
+        Num highLevelBottom = longHighLevelIndicator.getBottomBorder(longHighLevelIndex);
+        Num currentPrice = closePriceIndicator.getValue(index);
+        if (highLevelTop != null && highLevelBottom != null && currentPrice.isGreaterThanOrEqual(highLevelBottom) && currentPrice.isLessThanOrEqual(highLevelTop)) {
+            isCalculating = true;
         }
 
-        // Для лонга: DoubleMA нижнего ТФ должен быть >= 0 (восходящий тренд)
-        if (doubleMALowIndicator.getValue(doubleMAlowerTfIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
-            return null;
+        if (!isCalculating && adxAngleIndicator.isRising(longHighLevelIndex) &&
+                doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0)) &&
+                doubleMAHighIndicator.getValue(longHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
+            isCalculating = true;
         }
-        // Для лонга: DoubleMA высшего ТФ должен быть <= 0 (не нисходящий), т.е. >= 0
-        if (doubleMAHighIndicator.getValue(doubleMAhigherTfIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
+
+        if (!isCalculating) {
             return null;
         }
 
