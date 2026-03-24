@@ -47,7 +47,8 @@ public class ShortHighLevelIndicator extends CachedIndicator<Num> {
         // price * (1 + calculationRadiusPercentages / 100)
         Num hundred = DecimalNum.valueOf(100);
         Num multiplier = hundred.plus(calculationRadiusPercentages).dividedBy(hundred);
-        return price.multipliedBy(multiplier);
+//        return price.multipliedBy(multiplier);
+        return price;
     }
 
     public Num getBottomBorder(int index) {
@@ -84,9 +85,9 @@ public class ShortHighLevelIndicator extends CachedIndicator<Num> {
 
         Num hundred = DecimalNum.valueOf(100);
 
-        for (int i = 0; i <= prices.size() - 3; i++) {
+        for (int i = 0; i <= prices.size() - 2; i++) {
             Num lowerPrice = prices.get(i).getPrice();
-            Num upperPrice = prices.get(i + 2).getPrice();
+            Num upperPrice = prices.get(i + 1).getPrice();
 
             // процент отклонения = (upperPrice - lowerPrice) / upperPrice * 100
             Num deviation = upperPrice.minus(lowerPrice)

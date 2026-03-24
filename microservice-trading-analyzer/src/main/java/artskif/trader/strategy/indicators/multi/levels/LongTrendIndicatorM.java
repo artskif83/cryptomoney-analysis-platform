@@ -44,7 +44,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
-                10,
+                5,
                 DecimalNum.valueOf(0.05),
                 DecimalNum.valueOf(0.1),
                 DecimalNum.valueOf(0.15));
