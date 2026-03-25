@@ -1,6 +1,7 @@
 package artskif.trader.strategy.indicators.base;
 
 import artskif.trader.strategy.indicators.util.IndicatorUtils;
+import org.ta4j.core.Bar;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.LowPriceIndicator;
@@ -49,6 +50,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int longLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
+        Bar highBar = doubleMAHighIndicator.getBarSeries().getBar(longHighLevelIndex);
 
         boolean isCalculating = false;
 
@@ -58,10 +60,15 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         if (highLevelTop != null && highLevelBottom != null && currentPrice.isGreaterThanOrEqual(highLevelBottom) && currentPrice.isLessThanOrEqual(highLevelTop)) {
             isCalculating = true;
         }
+//
+//        if (!isCalculating && adxAngleIndicator.isRising(longHighLevelIndex) &&
+//                doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0)) &&
+//                doubleMAHighIndicator.getValue(longHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
+//            isCalculating = true;
+//        }
 
-        if (!isCalculating && adxAngleIndicator.isRising(longHighLevelIndex) &&
-                doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0)) &&
-                doubleMAHighIndicator.getValue(longHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
+        if (!isCalculating && highBar.isBullish()
+                && doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculating = true;
         }
 

@@ -1,6 +1,7 @@
 package artskif.trader.strategy.indicators.base;
 
 import artskif.trader.strategy.indicators.util.IndicatorUtils;
+import org.ta4j.core.Bar;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
@@ -49,6 +50,8 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int shortLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
+        Bar highBar = doubleMAHighIndicator.getBarSeries().getBar(shortHighLevelIndex);
+
 
         boolean isCalculating = false;
 
@@ -59,9 +62,14 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
             isCalculating = true;
         }
 
-        if (!isCalculating && adxAngleIndicator.isRising(shortHighLevelIndex) &&
-                doubleMALowIndicator.getValue(shortLowLevelIndex).isLessThan(DecimalNum.valueOf(0)) &&
-                doubleMAHighIndicator.getValue(shortHighLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
+//        if (!isCalculating && adxAngleIndicator.isRising(shortHighLevelIndex) &&
+//                doubleMALowIndicator.getValue(shortLowLevelIndex).isLessThan(DecimalNum.valueOf(0)) &&
+//                doubleMAHighIndicator.getValue(shortHighLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
+//            isCalculating = true;
+//        }
+
+        if (!isCalculating && doubleMALowIndicator.getValue(shortLowLevelIndex).isLessThan(DecimalNum.valueOf(0))
+                && highBar.isBearish()) {
             isCalculating = true;
         }
 
