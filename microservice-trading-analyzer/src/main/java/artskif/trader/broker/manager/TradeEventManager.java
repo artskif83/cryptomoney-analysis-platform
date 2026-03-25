@@ -82,12 +82,12 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
         boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
-
+        boolean farEnough = false;
 
 
         if (hasOppositePosition) {
             log.debug("📊 Есть открытая {} позиция", oppositeLabel);
-            boolean farEnough = positions.stream()
+            farEnough = positions.stream()
                     .filter(p -> isShort ? "long".equalsIgnoreCase(p.posSide) : "short".equalsIgnoreCase(p.posSide))
                     .filter(p -> p.state == artskif.trader.entity.OrderState.LIVE)
                     .filter(p -> p.px != null)
@@ -104,10 +104,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
                                 brokerConfig.getOrderCancelDistancePercent(), ok ? "✅ достаточно" : "❌ слишком близко");
                         return ok;
                     });
-            if (farEnough) {
-                tradingExecutorService.closeAllPositions(event.instrument());
-                hasAnyPosition = false;
-            } else {
+            if (!farEnough) {
                 log.warn("⚠️ Закрытие {} позиции пропущено: eventPrice слишком близко к цене открытия (менее {}%)",
                         oppositeLabel, brokerConfig.getOrderCancelDistancePercent());
             }
@@ -126,7 +123,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             }
         }
 
-        if (!hasAnyPosition) {
+        if (!hasAnyPosition || (hasOppositePosition && farEnough)) {
             log.debug("📊 Нет открытых позиций, открываем новый ордер {}", dirLabel);
 
             // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
