@@ -23,6 +23,42 @@ const shortLevelRaw = col("metric_short_trend_1m", 0);
 const shortStopLossRaw = col("metric_short_stop_los_1m", 0);
 const longLevelRaw = col("metric_long_trend_1m", 0);
 const longStopLossRaw = col("metric_long_stop_los_1m", 0);
+const shortHighLevelTopRaw = col("short_high_level_top_border_1m_on_1h", 0);
+const shortHighLevelBottomRaw = col("short_high_level_bottom_border_1m_on_1h", 0);
+const longHighLevelTopRaw = col("long_high_level_top_border_1m_on_1h", 0);
+const longHighLevelBottomRaw = col("long_high_level_bottom_border_1m_on_1h", 0);
+
+// ===== Зона ликвидности (short high level top/bottom border 1m on 1h) =====
+const shortHighLevelBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const top = shortHighLevelTopRaw[i];
+    const bottom = shortHighLevelBottomRaw[i];
+    if (top == null || bottom == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    shortHighLevelBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(top, bottom) },
+        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
+    ]);
+}
+
+// ===== Зона ликвидности (long high level top/bottom border 1m on 1h) =====
+const longHighLevelBandSegments = [];
+
+for (let i = 0; i < times.length; i++) {
+    const top = longHighLevelTopRaw[i];
+    const bottom = longHighLevelBottomRaw[i];
+    if (top == null || bottom == null) continue;
+
+    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
+
+    longHighLevelBandSegments.push([
+        { xAxis: times[i], yAxis: Math.min(top, bottom) },
+        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
+    ]);
+}
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -466,6 +502,44 @@ return {
                     borderWidth: 0
                 },
                 data: longBandSegments
+            }
+        },
+
+        // --- Зона ликвидности (short high level top/bottom border 1m on 1h) ---
+        {
+            name: 'Short Liquidity Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(255, 77, 77, 0.25)',
+                    borderWidth: 0
+                },
+                data: shortHighLevelBandSegments
+            }
+        },
+
+        // --- Зона ликвидности (long high level top/bottom border 1m on 1h) ---
+        {
+            name: 'Long Liquidity Band',
+            type: 'line',
+            data: [],
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            silent: false,
+            z: 2,
+            markArea: {
+                silent: true,
+                itemStyle: {
+                    color: 'rgba(76, 175, 80, 0.25)',
+                    borderWidth: 0
+                },
+                data: longHighLevelBandSegments
             }
         },
 

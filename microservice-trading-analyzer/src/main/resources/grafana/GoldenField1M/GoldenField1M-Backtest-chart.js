@@ -398,7 +398,7 @@ return {
 
         // --- Зона ликвидности (short high level top/bottom border 1m on 1h) ---
         {
-            name: 'Liquidity Band',
+            name: 'Short Liquidity Band',
             type: 'line',
             data: [],
             xAxisIndex: 0,
@@ -408,7 +408,7 @@ return {
             markArea: {
                 silent: true,
                 itemStyle: {
-                    color: 'rgba(77, 163, 255, 0.25)',
+                    color: 'rgba(255, 77, 77, 0.25)',
                     borderWidth: 0
                 },
                 data: shortHighLevelBandSegments
@@ -427,7 +427,7 @@ return {
             markArea: {
                 silent: true,
                 itemStyle: {
-                    color: 'rgba(20, 90, 180, 0.35)',
+                    color: 'rgba(76, 175, 80, 0.25)',
                     borderWidth: 0
                 },
                 data: longHighLevelBandSegments
