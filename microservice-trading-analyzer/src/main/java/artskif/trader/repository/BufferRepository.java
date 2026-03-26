@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public interface BufferRepository<C> {
 
-    int saveFromMap(Map<Instant, C> buffer);
+    int saveFromMap(Map<Instant, C> buffer, String callerName);
 
     Map<Instant, C> restoreFromStorage(Integer maxBufferSize, CandleTimeframe timeframe, String symbol, boolean isLive);
 

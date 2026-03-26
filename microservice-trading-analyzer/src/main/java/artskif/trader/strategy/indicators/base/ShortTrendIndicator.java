@@ -53,27 +53,13 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         Bar highBar = doubleMAHighIndicator.getBarSeries().getBar(shortHighLevelIndex);
 
 
-        boolean isCalculating = false;
-
         Num highLevelTop = shortHighLevelIndicator.getTopBorder(shortHighLevelIndex);
         Num highLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
         Num currentPrice = closePriceIndicator.getValue(index);
-        if (highLevelTop != null && highLevelBottom != null && currentPrice.isGreaterThanOrEqual(highLevelBottom) && currentPrice.isLessThanOrEqual(highLevelTop)) {
-            isCalculating = true;
-        }
-
-//        if (!isCalculating && adxAngleIndicator.isRising(shortHighLevelIndex) &&
-//                doubleMALowIndicator.getValue(shortLowLevelIndex).isLessThan(DecimalNum.valueOf(0)) &&
-//                doubleMAHighIndicator.getValue(shortHighLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
-//            isCalculating = true;
-//        }
-
-        if (!isCalculating && doubleMALowIndicator.getValue(shortLowLevelIndex).isLessThan(DecimalNum.valueOf(0))
-                && highBar.isBearish()) {
-            isCalculating = true;
-        }
-
-        if (!isCalculating) {
+        if (highLevelTop == null || highLevelBottom == null
+                || currentPrice.isLessThan(highLevelBottom)
+                || currentPrice.isGreaterThan(highLevelTop)
+                || !doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             return null;
         }
 

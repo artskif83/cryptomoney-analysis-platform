@@ -52,6 +52,8 @@ public class OKXCandlesWebSocketClient {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final AtomicBoolean reconnecting = new AtomicBoolean(false);
     private volatile long lastActivityNanos = System.nanoTime();
+    private volatile long lastMessageLogNanos = 0L;
+    private static final long MESSAGE_LOG_INTERVAL_NS = TimeUnit.MINUTES.toNanos(1);
 
     @PostConstruct
     void init() {
@@ -169,7 +171,11 @@ public class OKXCandlesWebSocketClient {
     public void onMessage(String message) {
         lastActivityNanos = System.nanoTime(); // фиксируем «живой» трафик
         if (LOG.isDebugEnabled()) {
-            LOG.debugf("📩 Получено сообщение: %s%n", message);
+            long now = System.nanoTime();
+            if (now - lastMessageLogNanos >= MESSAGE_LOG_INTERVAL_NS) {
+                lastMessageLogNanos = now;
+                LOG.debugf("📩 Получено сообщение: %s%n", message);
+            }
         }
 
         String topic = determineTopic(message);
@@ -234,13 +240,23 @@ public class OKXCandlesWebSocketClient {
 
     private void closeSessionQuietly() {
         final Session s = this.session;
-        if (s != null) {
-            try {
-                if (s.isOpen()) s.close();
-            } catch (Exception ignore) {
-            } finally {
-                this.session = null;
-            }
+        if (s == null) {
+            LOG.debug("🔒 closeSessionQuietly: сессия уже null, закрытие не требуется");
+            return;
+        }
+        if (!s.isOpen()) {
+            LOG.debug("🔒 closeSessionQuietly: сессия уже закрыта (id=" + s.getId() + ")");
+            this.session = null;
+            return;
+        }
+        LOG.info("🔒 closeSessionQuietly: закрываем сессию (id=" + s.getId() + ")");
+        try {
+            s.close();
+            LOG.info("✅ closeSessionQuietly: сессия успешно закрыта (id=" + s.getId() + ")");
+        } catch (Exception e) {
+            LOG.warn("⚠️ closeSessionQuietly: ошибка при закрытии сессии (id=" + s.getId() + "): " + e.getMessage(), e);
+        } finally {
+            this.session = null;
         }
     }
 

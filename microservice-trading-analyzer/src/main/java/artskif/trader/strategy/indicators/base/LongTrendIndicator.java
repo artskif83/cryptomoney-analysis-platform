@@ -52,27 +52,13 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
         Bar highBar = doubleMAHighIndicator.getBarSeries().getBar(longHighLevelIndex);
 
-        boolean isCalculating = false;
-
         Num highLevelTop = longHighLevelIndicator.getTopBorder(longHighLevelIndex);
         Num highLevelBottom = longHighLevelIndicator.getBottomBorder(longHighLevelIndex);
         Num currentPrice = closePriceIndicator.getValue(index);
-        if (highLevelTop != null && highLevelBottom != null && currentPrice.isGreaterThanOrEqual(highLevelBottom) && currentPrice.isLessThanOrEqual(highLevelTop)) {
-            isCalculating = true;
-        }
-//
-//        if (!isCalculating && adxAngleIndicator.isRising(longHighLevelIndex) &&
-//                doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0)) &&
-//                doubleMAHighIndicator.getValue(longHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
-//            isCalculating = true;
-//        }
-
-        if (!isCalculating && highBar.isBullish()
-                && doubleMALowIndicator.getValue(longLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
-            isCalculating = true;
-        }
-
-        if (!isCalculating) {
+        if (highLevelTop == null || highLevelBottom == null
+                || currentPrice.isLessThan(highLevelBottom)
+                || currentPrice.isGreaterThan(highLevelTop)
+                || !doubleMALowIndicator.getValue(longLowLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
             return null;
         }
 
@@ -133,8 +119,8 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
      * {@code price[i] * (1 + longZonePercentages / 100)}.
      * Если подходящей пары не найдено — возвращается {@code null}.
      *
-     * @param prices               список цен с индексами, отсортированный по возрастанию цены
-     * @param longZonePercentages  максимально допустимый процент отклонения между двумя ценами
+     * @param prices              список цен с индексами, отсортированный по возрастанию цены
+     * @param longZonePercentages максимально допустимый процент отклонения между двумя ценами
      * @return нижняя цена зоны поддержки, или {@code null} если зона не найдена
      */
     Num findLongZoneBottomPrice(List<PriceWithIndex> prices, Num longZonePercentages) {

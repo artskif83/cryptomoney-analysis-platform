@@ -6,10 +6,14 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.jboss.logging.Logger;
 
+import java.util.concurrent.TimeUnit;
+
 @ApplicationScoped
 public class KafkaProducer {
 
     private static final Logger LOG = Logger.getLogger(KafkaProducer.class);
+    private volatile long lastSendLogNanos = 0L;
+    private static final long SEND_LOG_INTERVAL_NS = TimeUnit.MINUTES.toNanos(1);
 
     // realtime (как у тебя)
     @Inject
@@ -47,7 +51,11 @@ public class KafkaProducer {
 
     public void sendMessage(String topic, String message) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("📤 Отправка сообщения в топик: " + topic);
+            long now = System.nanoTime();
+            if (now - lastSendLogNanos >= SEND_LOG_INTERVAL_NS) {
+                lastSendLogNanos = now;
+                LOG.debug("📤 Отправка сообщения в топик: " + topic);
+            }
         }
         switch (topic) {
             case "okx-candle-1m" -> emitter1m.send(message);

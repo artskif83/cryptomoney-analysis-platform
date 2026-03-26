@@ -36,7 +36,8 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
 
     @Override
     @Transactional
-    public int saveFromMap(Map<Instant, CandlestickDto> buffer) {
+    public int saveFromMap(Map<Instant, CandlestickDto> buffer, String callerName) {
+        LOG.debugf("💾 [%s] Сохраняем в бд буфер", callerName);
         if (buffer == null || buffer.isEmpty()) return 0;
         Map<Instant, CandlestickDto> unsavedBuffer = buffer.entrySet().stream()
                 .filter(e -> !Boolean.TRUE.equals(e.getValue().getSaved()))
@@ -85,6 +86,7 @@ public class CandleRepository implements PanacheRepositoryBase<Candle, CandleId>
                     throw new RuntimeException(e);
                 }
             });
+            LOG.debugf("💾 [%s] Сохранён в бд буфер: %d записей", callerName, affected[0]);
             return affected[0];
         } catch (RuntimeException ex) {
             LOG.error("Ошибка при сохранении свечей через COPY -> stage_candles", ex);

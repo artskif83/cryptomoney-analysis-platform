@@ -180,10 +180,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     @ActivateRequestContext
     public void saveLiveBuffer() {
         if (isSaveLiveEnabled()) {
-            log().debugf("💾 [%s] Сохраняем в бд актуальный буфер", getName());
-            Integer count = getBufferRepository().saveFromMap(getLiveBuffer().getDataMap());
-            log().debugf("💾 [%s] Сохранен в бд актуальный буфер: %s записей", getName(), count);
-
+            getBufferRepository().saveFromMap(getLiveBuffer().getDataMap(), getName());
             saveLiveEnabled.set(false);
         }
     }
@@ -191,9 +188,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
     @ActivateRequestContext
     public void saveHistoricalBuffer() {
         if (isSaveHistoricalEnabled()) {
-            log().debugf("💾 [%s] Сохраняем исторический буфер", getName());
-            Integer count = getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap());
-            log().debugf("💾 [%s] Сохранен в бд исторический буфер: %s записей", getName(), count);
+            getBufferRepository().saveFromMap(getHistoricalBuffer().getDataMap(), getName());
             saveHistoricalEnabled.set(false);
         }
     }
@@ -469,7 +464,7 @@ public abstract class AbstractCandle implements BufferedPoint<CandlestickDto> {
 
                 // Проверяем актуальность буферов и добавляем в серии (версия не инкрементится)
                 if (isBufferActual(getLiveBuffer(), getMaxLiveBufferSize(), true, "live candle") &&
-                        addBarToLiveSeries(candle)) {
+                        addBarToLiveSeries(candle))  {
                     initSaveLiveBuffer();
                     getEventBus().publish(new CandleEvent(CandleEventType.CANDLE_TICK, getCandleTimeframe(), candlestickPayloadDto.getInstrumentId(), bucket, candle, candle.getConfirmed(), false));
                     log().infof("✅ [%s] Свеча успешно добавлена в live серию: bucket=%s, close=%s", getName(), bucket, candle.getClose());
