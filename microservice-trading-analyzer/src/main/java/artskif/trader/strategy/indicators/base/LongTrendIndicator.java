@@ -58,7 +58,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         if (highLevelTop == null || highLevelBottom == null
                 || currentPrice.isLessThan(highLevelBottom)
                 || currentPrice.isGreaterThan(highLevelTop)
-                || !doubleMALowIndicator.getValue(longLowLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
+                || !doubleMALowIndicator.getValue(longLowLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))) {
             return null;
         }
 

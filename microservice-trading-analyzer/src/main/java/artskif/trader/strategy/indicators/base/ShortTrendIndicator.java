@@ -59,7 +59,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         if (highLevelTop == null || highLevelBottom == null
                 || currentPrice.isLessThan(highLevelBottom)
                 || currentPrice.isGreaterThan(highLevelTop)
-                || !doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
+                || !doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
             return null;
         }
 
