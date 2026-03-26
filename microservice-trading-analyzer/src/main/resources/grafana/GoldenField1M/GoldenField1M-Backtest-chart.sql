@@ -13,7 +13,6 @@ SELECT
     short_high_level_bottom_border_1m_on_1h,
     long_high_level_top_border_1m_on_1h,
     long_high_level_bottom_border_1m_on_1h,
-    metric_adx_angle_1m_on_1h,
     metric_double_ma_value_1m_on_5m,
     metric_double_ma_value_1m_on_1h,
     additional_position_price_1m,
