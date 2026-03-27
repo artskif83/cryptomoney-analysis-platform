@@ -68,7 +68,10 @@ public class LongHighLevelIndicator extends CachedIndicator<Num> {
         if (price == null) {
             return null;
         }
-        return price;
+        // price * (1 - calculationRadiusPercentages / 100)
+        Num hundred = DecimalNum.valueOf(100);
+        Num multiplier = hundred.minus(calculationRadiusPercentages).dividedBy(hundred);
+        return price.multipliedBy(multiplier);
     }
 
     /**

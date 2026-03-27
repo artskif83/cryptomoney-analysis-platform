@@ -47,8 +47,7 @@ public class ShortHighLevelIndicator extends CachedIndicator<Num> {
         // price * (1 + calculationRadiusPercentages / 100)
         Num hundred = DecimalNum.valueOf(100);
         Num multiplier = hundred.plus(calculationRadiusPercentages).dividedBy(hundred);
-//        return price.multipliedBy(multiplier);
-        return price;
+        return price.multipliedBy(multiplier);
     }
 
     public Num getBottomBorder(int index) {

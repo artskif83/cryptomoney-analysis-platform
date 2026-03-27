@@ -138,9 +138,8 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
                 .multipliedBy(hundred);
 
         if (deviation.isLessThanOrEqual(longZonePercentages)) {
-            // возвращаем нижнюю цену плюс longZonePercentages процентов
-            Num multiplier = DecimalNum.valueOf(100).plus(longZonePercentages).dividedBy(hundred);
-            return lowerPrice.multipliedBy(multiplier);
+            // возвращаем нижнюю
+            return lowerPrice;
         }
 
         return null;

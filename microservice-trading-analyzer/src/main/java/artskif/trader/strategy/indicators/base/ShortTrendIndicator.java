@@ -136,9 +136,8 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
                 .multipliedBy(hundred);
 
         if (deviation.isLessThanOrEqual(shortZonePercentages)) {
-            // возвращаем верхнюю цену минус shortZonePercentages процентов
-            Num multiplier = DecimalNum.valueOf(100).minus(shortZonePercentages).dividedBy(hundred);
-            return upperPrice.multipliedBy(multiplier);
+            // возвращаем верхнюю цену
+            return upperPrice;
         }
 
         return null;
