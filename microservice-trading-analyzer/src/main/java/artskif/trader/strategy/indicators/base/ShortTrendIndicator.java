@@ -1,7 +1,6 @@
 package artskif.trader.strategy.indicators.base;
 
 import artskif.trader.strategy.indicators.util.IndicatorUtils;
-import org.ta4j.core.Bar;
 import org.ta4j.core.indicators.CachedIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.HighPriceIndicator;
@@ -16,8 +15,8 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     private final ClosePriceIndicator closePriceIndicator;
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
-    private final ADXAngleIndicator adxAngleIndicator;
-    private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень сопротивления
+    private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень сопротивления старшего таймфрейма
+    private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень поддержки старшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
     private final Num shortZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
@@ -27,6 +26,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
                                DoubleMAIndicator doubleMALowIndicator,
                                DoubleMAIndicator doubleMAHighIndicator,
                                ADXAngleIndicator adxAngleIndicator,
+                               LongHighLevelIndicator longHighLevelIndicator,
                                ShortHighLevelIndicator shortHighLevelIndicator,
                                ClosePriceIndicator closePriceIndicator,
                                int lowBarCount,
@@ -38,7 +38,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         this.closePriceIndicator = closePriceIndicator;
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
-        this.adxAngleIndicator = adxAngleIndicator;
+        this.longHighLevelIndicator = longHighLevelIndicator;
         this.shortHighLevelIndicator = shortHighLevelIndicator;
         this.lowBarCount = lowBarCount;
         this.shortZonePercentagesLowThreshold = shortZonePercentagesLowThreshold;
@@ -51,13 +51,32 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         int shortLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
 
-        Num highLevelTop = shortHighLevelIndicator.getTopBorder(shortHighLevelIndex);
-        Num highLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
+        Num longLevelBottom = longHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
+        Num longLevelMedium = longHighLevelIndicator.getValue(shortHighLevelIndex);
+
+        Num shortLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
+        Num shortLevelMedium = shortHighLevelIndicator.getValue(shortHighLevelIndex);
         Num currentPrice = closePriceIndicator.getValue(index);
-        if (highLevelTop == null || highLevelBottom == null
-                || currentPrice.isLessThan(highLevelBottom)
-                || currentPrice.isGreaterThan(highLevelTop)
-                || !doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+
+        boolean isCalculate = false;
+
+        // Пробили уровень ищем ретест
+        if (shortLevelBottom != null && shortLevelMedium != null
+                && currentPrice.isGreaterThan(shortLevelBottom)
+                && currentPrice.isLessThan(shortLevelMedium)
+                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+            isCalculate = true;
+        }
+
+        // Подошли к уровню ищем сопротивление
+        if (longLevelBottom != null && longLevelMedium != null
+                && currentPrice.isGreaterThan(longLevelBottom)
+                && currentPrice.isLessThan(longLevelMedium)
+                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+            isCalculate = true;
+        }
+
+        if (!isCalculate) {
             return null;
         }
 

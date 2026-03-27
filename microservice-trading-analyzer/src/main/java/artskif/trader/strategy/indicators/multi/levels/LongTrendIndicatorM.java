@@ -20,6 +20,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
     private final DoubleMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
     private final LongHighLevelIndicatorM longHighLevelIndicatorM;
+    private final ShortHighLevelIndicatorM shortHighLevelIndicatorM;
 
     // No-args constructor required by CDI
     protected LongTrendIndicatorM() {
@@ -29,6 +30,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
         this.doubleMAIndicatorM = null;
         this.adxAngleIndicatorM = null;
         this.longHighLevelIndicatorM = null;
+        this.shortHighLevelIndicatorM = null;
     }
 
     @Inject
@@ -37,13 +39,15 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                                ClosePriceIndicatorM closePriceIndicatorM,
                                DoubleMAIndicatorM doubleMAIndicatorM,
                                ADXAngleIndicatorM adxAngleIndicatorM,
-                               LongHighLevelIndicatorM longHighLevelIndicatorM) {
+                               LongHighLevelIndicatorM longHighLevelIndicatorM,
+                               ShortHighLevelIndicatorM shortHighLevelIndicatorM) {
         super(candle);
         this.lowPriceIndicatorM = lowPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
         this.adxAngleIndicatorM = adxAngleIndicatorM;
         this.longHighLevelIndicatorM = longHighLevelIndicatorM;
+        this.shortHighLevelIndicatorM = shortHighLevelIndicatorM;
     }
 
     @Override
@@ -54,6 +58,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 longHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                shortHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 7,
                 DecimalNum.valueOf(0.05),
