@@ -69,7 +69,7 @@ public class GoldenFieldShortEventProcessor extends AbstractTradeEventProcessor 
 
     @Override
     public Num getStopLossPercentage() {
-        return DecimalNum.valueOf(0.15);
+        return DecimalNum.valueOf(0.16);
     }
 
     @Override
