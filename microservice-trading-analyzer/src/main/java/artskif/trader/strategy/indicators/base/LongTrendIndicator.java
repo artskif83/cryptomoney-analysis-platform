@@ -50,7 +50,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int longLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-        Bar highBar = doubleMAHighIndicator.getBarSeries().getBar(longHighLevelIndex);
 
         Num highLevelTop = longHighLevelIndicator.getTopBorder(longHighLevelIndex);
         Num highLevelBottom = longHighLevelIndicator.getBottomBorder(longHighLevelIndex);
