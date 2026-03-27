@@ -124,7 +124,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         if (!hasAnyPosition || (hasOppositePosition && farEnough)) {
-            log.debug("📊 Нет открытых позиций, открываем новый ордер {}", dirLabel);
+            log.debug("📊 Нет открытых позиций или есль давняя противоположная позиция, открываем новый ордер {}", dirLabel);
 
             // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
             long losingCount = snapshot.getPositionsHistory() == null ? 0L :
