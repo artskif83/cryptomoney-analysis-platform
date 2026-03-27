@@ -2,6 +2,12 @@ plugins {
     id 'io.quarkus' version "$quarkusPluginVersion"
 }
 
+configurations.all {
+    // jline тянется через xgboost4j -> scala-compiler (нужен только для Scala REPL).
+    // В Quarkus native-image он ломает сборку из-за некорректного native-image.properties в jline 3.27.x.
+    exclude group: 'org.jline'
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
