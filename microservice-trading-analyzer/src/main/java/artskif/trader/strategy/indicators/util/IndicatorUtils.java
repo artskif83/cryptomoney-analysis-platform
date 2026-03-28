@@ -35,6 +35,10 @@ public final class IndicatorUtils {
             Bar lowerTfBar,
             BarSeries higherSeries
     ) {
+        if (higherSeries.getBarCount() == 0) {
+            return -1;
+        }
+
         Instant t = lowerTfBar.getEndTime();
 
         for (int i = higherSeries.getEndIndex(); i >= higherSeries.getBeginIndex(); i--) {

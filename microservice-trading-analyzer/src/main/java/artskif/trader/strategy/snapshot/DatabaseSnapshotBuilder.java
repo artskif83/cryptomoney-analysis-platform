@@ -60,7 +60,7 @@ public class DatabaseSnapshotBuilder {
                         } else if (columnTypeMetadataByValueName.getMetadataType() == MetadataType.ADDITIONAL) {
                             columnValue = additionalColumns.get(columnTypeMetadataByValueName);
                         }
-                        row.addColumn(metadata.name, columnValue != null ? columnValue.bigDecimalValue() : null);
+                        row.addColumn(metadata.name, columnValue != null && !columnValue.isNaN() ? columnValue.bigDecimalValue() : null);
                     } else {
                         Log.debugf("⚠️ Колонка %s не поддерживает таймфрейм %s",
                                 metadata.name, timeframe);

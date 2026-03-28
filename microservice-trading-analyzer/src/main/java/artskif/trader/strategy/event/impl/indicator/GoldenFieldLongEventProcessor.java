@@ -66,12 +66,12 @@ public class GoldenFieldLongEventProcessor extends AbstractTradeEventProcessor {
 
     @Override
     public Num getStopLossPercentage() {
-        return DecimalNum.valueOf(0.16);
+        return DecimalNum.valueOf(0.2);
     }
 
     @Override
     public Num getTakeProfitPercentage() {
-        return DecimalNum.valueOf(3);
+        return DecimalNum.valueOf(5);
     }
 
     @Override

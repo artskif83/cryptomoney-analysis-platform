@@ -60,6 +60,10 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
         boolean isCalculate = false;
 
+        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))){
+            return null;
+        }
+
         // Пробили уровень ищем ретест
         if (shortLevelBottom != null && shortLevelMedium != null
                 && currentPrice.isGreaterThan(shortLevelBottom)

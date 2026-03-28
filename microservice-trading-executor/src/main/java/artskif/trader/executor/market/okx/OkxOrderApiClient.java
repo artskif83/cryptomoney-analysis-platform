@@ -229,8 +229,8 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
             // 4. Вычисляем цены для 3 уровней TP (20%, 50%, 100% от целевого профита)
             BigDecimal[] tpPercentages = {
-                takeProfitPercent.multiply(BigDecimal.valueOf(0.1)),      // TP1: 20% от целевого профита
-                takeProfitPercent.multiply(BigDecimal.valueOf(0.33)),      // TP2: 50% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.06)),      // TP1: 6% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.5)),      // TP2: 50% от целевого профита
                 takeProfitPercent                                         // TP3: 100% от целевого профита
             };
 
