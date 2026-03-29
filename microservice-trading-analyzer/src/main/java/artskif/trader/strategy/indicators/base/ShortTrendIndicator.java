@@ -52,10 +52,10 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
 
         Num longLevelTop = longHighLevelIndicator.getTopBorder(shortHighLevelIndex);
-        Num longLevelMedium = longHighLevelIndicator.getValue(shortHighLevelIndex);
+        Num longLevelBottom = longHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
 
         Num shortLevelTop = shortHighLevelIndicator.getTopBorder(shortHighLevelIndex);
-        Num shortLevelMedium = shortHighLevelIndicator.getValue(shortHighLevelIndex);
+        Num shortLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
         Num currentPrice = closePriceIndicator.getValue(index);
 
         boolean isCalculate = false;
@@ -65,16 +65,16 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         }
 
         // Пробили уровень ищем ретест
-        if (shortLevelTop != null && shortLevelMedium != null
-                && currentPrice.isGreaterThan(shortLevelMedium)
+        if (shortLevelTop != null && shortLevelBottom != null
+                && currentPrice.isGreaterThan(shortLevelBottom)
                 && currentPrice.isLessThan(shortLevelTop)
                 && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculate = true;
         }
 
         // Подошли к уровню ищем сопротивление
-        if (longLevelTop != null && longLevelMedium != null
-                && currentPrice.isGreaterThan(longLevelMedium)
+        if (longLevelTop != null && longLevelBottom != null
+                && currentPrice.isGreaterThan(longLevelBottom)
                 && currentPrice.isLessThan(longLevelTop)
                 && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculate = true;

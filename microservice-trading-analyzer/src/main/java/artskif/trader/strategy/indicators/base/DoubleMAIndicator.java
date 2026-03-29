@@ -47,15 +47,28 @@ public class DoubleMAIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        Num fastSMAAngle = getFastSMAAngle(index);
 
-        if (getFastSMA(index).isGreaterThan(getMediumSMA(index)) && fastSMAAngle.isGreaterThan(getBarSeries().numFactory().zero())) {
-            return getBarSeries().numFactory().one();
-        } else if (getFastSMA(index).isLessThan(getMediumSMA(index)) && fastSMAAngle.isLessThan(getBarSeries().numFactory().zero())) {
-            return getBarSeries().numFactory().minusOne();
+        int score = 0;
+
+        if (getFastSMA(index).isGreaterThan(getMediumSMA(index))) {
+            score ++;
         } else {
-            return getBarSeries().numFactory().zero();
+            score--;
         }
+
+        if (getFastSMAAngle(index).isGreaterThan(getBarSeries().numFactory().zero())) {
+            score ++;
+        } else {
+            score--;
+        }
+
+        if (getMediumSMAAngle(index).isGreaterThan(getBarSeries().numFactory().zero())) {
+            score ++;
+        } else {
+            score--;
+        }
+
+        return  score > 0 ? getBarSeries().numFactory().one() : getBarSeries().numFactory().minusOne();
     }
 
     /**

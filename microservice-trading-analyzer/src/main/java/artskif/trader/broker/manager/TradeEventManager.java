@@ -111,8 +111,8 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового
-        if (!hasAnyPosition && hasAnyOrder) {
-            log.debug("🔄 Нет открытых позиций, но есть ордера — отменяем все для переоткрытия с новой ценой");
+        if (hasAnyOrder) {
+            log.debug("🔄 Есть ордера — отменяем все для переоткрытия с новой ценой");
             for (PendingOrder order : pendingOrders) {
                 try {
                     tradingExecutorService.cancelOrders(order.ordId, order.clOrdId);
