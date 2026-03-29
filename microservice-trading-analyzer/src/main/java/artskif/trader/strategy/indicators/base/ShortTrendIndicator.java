@@ -51,10 +51,10 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         int shortLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
 
-        Num longLevelBottom = longHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
+        Num longLevelTop = longHighLevelIndicator.getTopBorder(shortHighLevelIndex);
         Num longLevelMedium = longHighLevelIndicator.getValue(shortHighLevelIndex);
 
-        Num shortLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
+        Num shortLevelTop = shortHighLevelIndicator.getTopBorder(shortHighLevelIndex);
         Num shortLevelMedium = shortHighLevelIndicator.getValue(shortHighLevelIndex);
         Num currentPrice = closePriceIndicator.getValue(index);
 
@@ -65,18 +65,18 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         }
 
         // Пробили уровень ищем ретест
-        if (shortLevelBottom != null && shortLevelMedium != null
-                && currentPrice.isGreaterThan(shortLevelBottom)
-                && currentPrice.isLessThan(shortLevelMedium)
-                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+        if (shortLevelTop != null && shortLevelMedium != null
+                && currentPrice.isGreaterThan(shortLevelMedium)
+                && currentPrice.isLessThan(shortLevelTop)
+                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculate = true;
         }
 
         // Подошли к уровню ищем сопротивление
-        if (longLevelBottom != null && longLevelMedium != null
-                && currentPrice.isGreaterThan(longLevelBottom)
-                && currentPrice.isLessThan(longLevelMedium)
-                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+        if (longLevelTop != null && longLevelMedium != null
+                && currentPrice.isGreaterThan(longLevelMedium)
+                && currentPrice.isLessThan(longLevelTop)
+                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculate = true;
         }
 
