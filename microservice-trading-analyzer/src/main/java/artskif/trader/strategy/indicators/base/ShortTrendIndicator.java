@@ -60,7 +60,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
         boolean isCalculate = false;
 
-        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThan(DecimalNum.valueOf(0))){
+        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
 

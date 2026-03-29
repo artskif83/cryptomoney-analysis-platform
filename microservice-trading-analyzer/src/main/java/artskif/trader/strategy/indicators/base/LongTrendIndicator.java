@@ -59,7 +59,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         Num currentPrice = closePriceIndicator.getValue(index);
         boolean isCalculate = false;
 
-        if (doubleMAHighIndicator.getValue(longHighLevelIndex).isLessThan(DecimalNum.valueOf(0))){
+        if (doubleMAHighIndicator.getValue(longHighLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
 
