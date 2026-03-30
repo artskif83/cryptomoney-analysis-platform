@@ -66,7 +66,7 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 10,
                 DecimalNum.valueOf(0.05),
-                DecimalNum.valueOf(0.15),
+                DecimalNum.valueOf(0.10),
                 DecimalNum.valueOf(0.2));
     }
 }

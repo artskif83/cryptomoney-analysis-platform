@@ -62,7 +62,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 10,
                 DecimalNum.valueOf(0.05),
-                DecimalNum.valueOf(0.15),
+                DecimalNum.valueOf(0.10),
                 DecimalNum.valueOf(0.2));
     }
 }

@@ -25,7 +25,7 @@ public class ShortHighLevelIndicatorM extends MultiAbstractIndicator<ShortHighLe
     public static final double DEFAULT_HIGH_THRESHOLD_PERCENTAGES = 0.1;
 
     /** Радиус окна для определения точки входа */
-    public static final double DEFAULT_CALCULATION_RADIUS_PERCENTAGES = 0.2;
+    public static final double DEFAULT_CALCULATION_RADIUS_PERCENTAGES = 0.1;
 
     private final LowPriceIndicatorM lowPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;

@@ -19,13 +19,13 @@ import org.ta4j.core.num.DecimalNum;
 public class LongHighLevelIndicatorM extends MultiAbstractIndicator<LongHighLevelIndicator> {
 
     /** Количество баров для определения уровня сопротивления высшего таймфрейма */
-    public static final int DEFAULT_HIGH_BAR_COUNT = 5;
+    public static final int DEFAULT_HIGH_BAR_COUNT = 4;
 
     /** Допустимый процент отклонения для определения зоны уровня */
     public static final double DEFAULT_HIGH_THRESHOLD_PERCENTAGES = 0.1;
 
     /** Радиус окна для определения точки входа */
-    public static final double DEFAULT_CALCULATION_RADIUS_PERCENTAGES = 0.2;
+    public static final double DEFAULT_CALCULATION_RADIUS_PERCENTAGES = 0.1;
 
     private final HighPriceIndicatorM highPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
