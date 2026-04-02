@@ -19,6 +19,15 @@ public class BrokerConfig {
     double orderCancelDistancePercent;
 
     /**
+     * Минимальное расстояние (в процентах) от текущей eventPrice до цены открытия существующей позиции,
+     * при котором противоположная позиция считается «достаточно далёкой» для закрытия и переоткрытия.
+     * По умолчанию: 1.0%
+     */
+    @Inject
+    @ConfigProperty(name = "broker.min-position-distance-percent", defaultValue = "1.0")
+    double minPositionDistancePercent;
+
+    /**
      * Процент от депозита, используемый для расчёта максимально допустимого убытка
      * до стоп-лосса (riskPerTrade = deposit * depositRiskPercent / 100).
      * Например, значение 5 означает 5% от депозита на ставку.
@@ -65,6 +74,10 @@ public class BrokerConfig {
 
     public double getOrderCancelDistancePercent() {
         return orderCancelDistancePercent;
+    }
+
+    public double getMinPositionDistancePercent() {
+        return minPositionDistancePercent;
     }
 
     public double getDepositRiskPercent() {

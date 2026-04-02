@@ -287,10 +287,14 @@ public abstract class AbstractStrategy implements CandleEventListener {
      * Общая логика бэктеста с возможностью кастомизации через хуки
      */
     public final void backtest() {
-        backtest(null);
+        backtest(null, null);
     }
 
     public final void backtest(Integer startIndex) {
+        backtest(startIndex, null);
+    }
+
+    public final void backtest(Integer startIndex, Integer endIndex) {
         Log.info("📋 Начало генерации бектеста для контракта");
 
         dataService.checkColumnsExist(getBacktestSchema());
@@ -298,9 +302,9 @@ public abstract class AbstractStrategy implements CandleEventListener {
         BaseBarSeries historicalBarSeries = candle.getInstance(getTimeframe()).getHistoricalBarSeries();
 
         TradingRecord tradingRecord;
-        if (startIndex != null) {
-            Log.infof("📋 Бэктест запущен с индекса: %d", startIndex);
-            tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false, startIndex);
+        if (startIndex != null || endIndex != null) {
+            Log.infof("📋 Бэктест запущен с индекса: %d по индекс: %s", startIndex, endIndex);
+            tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false, startIndex, endIndex);
         } else {
             tradingRecord = processCandleSeries(historicalBarSeries, getName() + "-backtest", getBacktestSchema(), false);
         }
@@ -314,17 +318,22 @@ public abstract class AbstractStrategy implements CandleEventListener {
     }
 
     private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife) {
-        return processCandleSeries(barSeries, tagName, schema, isLife, barSeries != null ? barSeries.getBeginIndex() : 0);
+        return processCandleSeries(barSeries, tagName, schema, isLife, barSeries != null ? barSeries.getBeginIndex() : 0, null);
     }
 
-    private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife, int startIndex) {
+    private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife, Integer startIndex) {
+        return processCandleSeries(barSeries, tagName, schema, isLife, startIndex, null);
+    }
+
+    private TradingRecord processCandleSeries(BarSeries barSeries, String tagName, AbstractSchema schema, boolean isLife, Integer startIndex, Integer endIndex) {
         if (barSeries == null || barSeries.isEmpty()) {
             Log.warnf("⚠️ BarSeries пуста или null для стратегии %s, пропускаем обработку", getName());
             return null;
         }
 
-        int effectiveStartIndex = Math.max(startIndex, barSeries.getBeginIndex());
-        int totalBars = barSeries.getEndIndex() - effectiveStartIndex + 1;
+        int effectiveStartIndex = Math.max(startIndex != null ? startIndex : barSeries.getBeginIndex(), barSeries.getBeginIndex());
+        int effectiveEndIndex = (endIndex != null) ? Math.min(endIndex, barSeries.getEndIndex()) : barSeries.getEndIndex();
+        int totalBars = effectiveEndIndex - effectiveStartIndex + 1;
         int progressStep = Math.max(1, totalBars / 20); // Выводим примерно 20 сообщений (каждые 5%)
 
         List<DatabaseSnapshot> dbRows = new ArrayList<>();
@@ -341,7 +350,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
         }
 
         int processedCount = 0;
-        for (int index = effectiveStartIndex; index <= barSeries.getEndIndex(); index++) {
+        for (int index = effectiveStartIndex; index <= effectiveEndIndex; index++) {
 
             // Хук для обработки каждой свечи - здесь можно открывать/закрывать позиции и сохранять метрики
             if (!isLife) {

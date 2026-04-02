@@ -98,15 +98,19 @@ public class TradeEventManager extends AbstractTradeEventManager {
                                 .divide(p.px, new MathContext(10, RoundingMode.HALF_UP))
                                 .multiply(BigDecimal.valueOf(100));
                         boolean ok = distancePercent.compareTo(
-                                BigDecimal.valueOf(brokerConfig.getOrderCancelDistancePercent())) >= 0;
+                                BigDecimal.valueOf(brokerConfig.getMinPositionDistancePercent())) >= 0;
                         log.debug("📏 Расстояние от eventPrice={} до px позиции={}: {}% (минимум {}%) — {}",
                                 event.tradeEventData().eventPrice(), p.px, distancePercent,
-                                brokerConfig.getOrderCancelDistancePercent(), ok ? "✅ достаточно" : "❌ слишком близко");
+                                brokerConfig.getMinPositionDistancePercent(), ok ? "✅ достаточно" : "❌ слишком близко");
                         return ok;
                     });
-            if (!farEnough) {
+
+            if (farEnough) {
+                tradingExecutorService.closeAllPositions(event.instrument());
+            } else {
                 log.warn("⚠️ Закрытие {} позиции пропущено: eventPrice слишком близко к цене открытия (менее {}%)",
                         oppositeLabel, brokerConfig.getOrderCancelDistancePercent());
+
             }
         }
 

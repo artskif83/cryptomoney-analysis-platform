@@ -60,23 +60,22 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
         boolean isCalculate = false;
 
+        // Текущий бар часового графика должен быть отрицательным
         if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
 
-        // Пробили уровень ищем ретест
-        if (shortLevelTop != null && shortLevelBottom != null
-                && currentPrice.isGreaterThan(shortLevelBottom)
-                && currentPrice.isLessThan(shortLevelTop)
-                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
-            isCalculate = true;
+        // График падает только последние 2 часа: предыдущий или позапрошлый бар должен быть положительным
+        boolean prevPositive = shortHighLevelIndex >= 1
+                && doubleMAHighIndicator.getValue(shortHighLevelIndex - 1).isGreaterThan(DecimalNum.valueOf(0));
+        boolean prevPrevPositive = shortHighLevelIndex >= 2
+                && doubleMAHighIndicator.getValue(shortHighLevelIndex - 2).isGreaterThan(DecimalNum.valueOf(0));
+        if (!prevPositive && !prevPrevPositive) {
+            return null;
         }
 
-        // Подошли к уровню ищем сопротивление
-        if (longLevelTop != null && longLevelBottom != null
-                && currentPrice.isGreaterThan(longLevelBottom)
-                && currentPrice.isLessThan(longLevelTop)
-                && doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
+        // Пробили уровень ищем ретест
+        if (doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
             isCalculate = true;
         }
 
@@ -97,6 +96,15 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         // Если текущая цена выше зоны сопротивления — возвращаем null
         if (closePriceIndicatorValue.isGreaterThan(shortZoneTopPrice)) {
             return null;
+        }
+
+        // Прибавляем 0.02% к shortZoneTopPrice
+        Num adjustedPrice = shortZoneTopPrice.minus(
+                shortZoneTopPrice.multipliedBy(DecimalNum.valueOf(0.02)).dividedBy(DecimalNum.valueOf(100))
+        );
+        // Если скорректированная цена выше текущей — оставляем shortZoneTopPrice, иначе берём скорректированную
+        if (adjustedPrice.isGreaterThan(closePriceIndicatorValue)) {
+            shortZoneTopPrice = adjustedPrice;
         }
 
         // Если расстояние между shortZoneTopPrice и closePriceIndicatorValue больше порога — возвращаем null

@@ -81,9 +81,11 @@ public class StrategyService {
      * Запустить бэктест для стратегии по имени
      *
      * @param strategyName имя стратегии
+     * @param startIndex   индекс бара, с которого начать бэктест (опционально)
+     * @param endIndex     индекс бара, которым закончить бэктест (опционально)
      * @return true если бэктест успешно запущен
      */
-    public boolean runBacktest(String strategyName, Integer startIndex) {
+    public boolean runBacktest(String strategyName, Integer startIndex, Integer endIndex) {
         AbstractStrategy strategy = strategyMap.get(strategyName);
 
         if (strategy == null) {
@@ -93,7 +95,7 @@ public class StrategyService {
 
         try {
             Log.infof("📊 Запуск бэктеста для стратегии: %s", strategyName);
-            strategy.backtest(startIndex);
+            strategy.backtest(startIndex, endIndex);
             Log.infof("✅ Бэктест завершен для стратегии: %s", strategyName);
             return true;
 
