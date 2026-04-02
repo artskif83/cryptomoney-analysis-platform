@@ -94,7 +94,7 @@ public class StrategyDataService {
      * Использует PostgreSQL COPY для быстрой загрузки данных
      */
     @Transactional
-    public void saveContractSnapshotRowsBatch(Iterable<DatabaseSnapshot> rows) {
+    public void saveContractSnapshotRowsBatch(Iterable<DatabaseSnapshot> rows, String tagName) {
         var iterator = rows.iterator();
         if (!iterator.hasNext()) {
             Log.warn("⚠️ Пустой список строк для сохранения");
@@ -103,22 +103,22 @@ public class StrategyDataService {
 
         DatabaseSnapshot firstRow = iterator.next();
 
-        // Проверяем, существует ли запись для этого контракта
-        String checkSql = "SELECT COUNT(*) FROM wide_candles WHERE contract_hash = :contract_hash";
+        // Проверяем, существует ли запись для этого тега
+        String checkSql = "SELECT COUNT(*) FROM wide_candles WHERE tag = :tagName";
         Long existingCount = (Long) entityManager.createNativeQuery(checkSql)
-                .setParameter("contract_hash", firstRow.contractHash())
+                .setParameter("tagName", tagName)
                 .getSingleResult();
 
         if (existingCount > 0) {
             Log.debugf("⚠️ Найдено %d существующих записей для стратегии %s. Удаляем их...",
-                    existingCount, firstRow.tag());
+                    existingCount, tagName);
 
-            String deleteSql = "DELETE FROM wide_candles WHERE contract_hash = :contract_hash";
+            String deleteSql = "DELETE FROM wide_candles WHERE tag = :tagName";
             int deleted = entityManager.createNativeQuery(deleteSql)
-                    .setParameter("contract_hash", firstRow.contractHash())
+                    .setParameter("tagName", tagName)
                     .executeUpdate();
 
-            Log.debugf("✅ Удалено %d записей для стратегии %s", deleted, firstRow.tag());
+            Log.debugf("✅ Удалено %d записей для стратегии %s", deleted, tagName);
         }
 
         // Собираем все строки обратно в список для формирования CSV

@@ -370,7 +370,7 @@ public abstract class AbstractStrategy implements CandleEventListener {
             }
         }
         // Сохраняем в БД
-        dataService.saveContractSnapshotRowsBatch(dbRows);
+        dataService.saveContractSnapshotRowsBatch(dbRows, tagName);
 
         return shortTradingRecord;
     }
