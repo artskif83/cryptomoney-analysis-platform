@@ -252,9 +252,9 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Обработка торговых событий (если процессор настроен)
         TradeEventData eventData = null;
 
-        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
-            eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
-        }
+//        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+//            eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
+//        }
 
         if (longTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
             eventData = longTradeEventProcessor.getLifeTradeEventData(endIndex);
@@ -262,10 +262,9 @@ public abstract class AbstractStrategy implements CandleEventListener {
 
         if (eventData != null) {
             Log.infof(
-                    "✅ Произошло торговое событие: %s %s [Процессор: %s]",
+                    "✅ Произошло торговое событие: %s %s",
                     eventData.type(),
-                    eventData.direction(),
-                    shortTradeEventProcessor.getClass().getSimpleName()
+                    eventData.direction()
             );
 
             // Публикуем событие TradeEvent
