@@ -19,46 +19,11 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const doubleMaValue5mRaw = col("metric_double_ma_value_1m_on_5m", 0);
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
+const doubleMaValue1wRaw = col("metric_double_ma_value_1m_on_1w", 0);
 const shortLevelRaw = col("metric_short_trend_1m", 0);
 const shortStopLossRaw = col("metric_short_stop_los_1m", 0);
 const longLevelRaw = col("metric_long_trend_1m", 0);
 const longStopLossRaw = col("metric_long_stop_los_1m", 0);
-const shortHighLevelTopRaw = col("short_high_level_top_border_1m_on_1h", 0);
-const shortHighLevelBottomRaw = col("short_high_level_bottom_border_1m_on_1h", 0);
-const longHighLevelTopRaw = col("long_high_level_top_border_1m_on_1h", 0);
-const longHighLevelBottomRaw = col("long_high_level_bottom_border_1m_on_1h", 0);
-
-// ===== Зона ликвидности (short high level top/bottom border 1m on 1h) =====
-const shortHighLevelBandSegments = [];
-
-for (let i = 0; i < times.length; i++) {
-    const top = shortHighLevelTopRaw[i];
-    const bottom = shortHighLevelBottomRaw[i];
-    if (top == null || bottom == null) continue;
-
-    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
-
-    shortHighLevelBandSegments.push([
-        { xAxis: times[i], yAxis: Math.min(top, bottom) },
-        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
-    ]);
-}
-
-// ===== Зона ликвидности (long high level top/bottom border 1m on 1h) =====
-const longHighLevelBandSegments = [];
-
-for (let i = 0; i < times.length; i++) {
-    const top = longHighLevelTopRaw[i];
-    const bottom = longHighLevelBottomRaw[i];
-    if (top == null || bottom == null) continue;
-
-    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
-
-    longHighLevelBandSegments.push([
-        { xAxis: times[i], yAxis: Math.min(top, bottom) },
-        { xAxis: tEnd,     yAxis: Math.max(top, bottom) }
-    ]);
-}
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -123,6 +88,11 @@ const doubleMaValue5m = times.map((t, i) => [
 const doubleMaValue1h = times.map((t, i) => [
     t,
     doubleMaValue1hRaw[i] == null ? null : doubleMaValue1hRaw[i]
+]);
+
+const doubleMaValue1w = times.map((t, i) => [
+    t,
+    doubleMaValue1wRaw[i] == null ? null : doubleMaValue1wRaw[i]
 ]);
 
 // ===== Зона сопротивления (short level + stop loss band) =====
@@ -309,9 +279,10 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '70%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '76%', height: '10%' },   // Double MA value 1m on 5m (grid 1)
-        { left: '5%', right: '5%', top: '89%', height: '10%' }    // Double MA value 1m on 1h (grid 2)
+        { left: '5%', right: '5%', top: 10, height: '63%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '70%', height: '8%' },    // Double MA value 1m on 5m (grid 1)
+        { left: '5%', right: '5%', top: '81%', height: '8%' },    // Double MA value 1m on 1h (grid 2)
+        { left: '5%', right: '5%', top: '92%', height: '8%' }     // Double MA value 1m on 1w (grid 3)
     ],
 
     xAxis: [
@@ -357,6 +328,26 @@ return {
         {
             type: 'time',
             gridIndex: 2,
+            boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 3,
             boundaryGap: false,
             axisLabel: {
                 formatter: {
@@ -423,11 +414,28 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: false,
+            min: -1,
+            max: 1,
+            gridIndex: 3,
+            axisLabel: {
+                formatter: (v) => v.toFixed(2)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v.toFixed(2)}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3] }]
     },
 
     toolbox: {
@@ -442,7 +450,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2],
+            xAxisIndex: [0, 1, 2, 3],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -505,44 +513,6 @@ return {
             }
         },
 
-        // --- Зона ликвидности (short high level top/bottom border 1m on 1h) ---
-        {
-            name: 'Short Liquidity Band',
-            type: 'line',
-            data: [],
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            silent: false,
-            z: 2,
-            markArea: {
-                silent: true,
-                itemStyle: {
-                    color: 'rgba(255, 77, 77, 0.25)',
-                    borderWidth: 0
-                },
-                data: shortHighLevelBandSegments
-            }
-        },
-
-        // --- Зона ликвидности (long high level top/bottom border 1m on 1h) ---
-        {
-            name: 'Long Liquidity Band',
-            type: 'line',
-            data: [],
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            silent: false,
-            z: 2,
-            markArea: {
-                silent: true,
-                itemStyle: {
-                    color: 'rgba(76, 175, 80, 0.25)',
-                    borderWidth: 0
-                },
-                data: longHighLevelBandSegments
-            }
-        },
-
 
         // --- Double MA value 1m on 5m ---
         {
@@ -566,6 +536,18 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#AB47BC' }
+        },
+
+        // --- Double MA value 1m on 1w ---
+        {
+            name: 'Double MA value (1m on 1w)',
+            type: 'line',
+            data: doubleMaValue1w,
+            xAxisIndex: 3,
+            yAxisIndex: 3,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1, color: '#26C6DA' }
         },
 
         // --- Торговые события: LONG ---
@@ -754,6 +736,9 @@ return {
             const doubleMa1hOn1hPoint = list.find(p => p.seriesName === 'Double MA value (1m on 1h)');
             const doubleMa1hOn1hVal = doubleMa1hOn1hPoint && Array.isArray(doubleMa1hOn1hPoint.data) ? doubleMa1hOn1hPoint.data[1] : null;
 
+            const doubleMa1mOn1wPoint = list.find(p => p.seriesName === 'Double MA value (1m on 1w)');
+            const doubleMa1mOn1wVal = doubleMa1mOn1wPoint && Array.isArray(doubleMa1mOn1wPoint.data) ? doubleMa1mOn1wPoint.data[1] : null;
+
             // Торговые события
             const tradeEventPoint = list.find(p =>
                 p.seriesName === 'Trade Event LONG' ||
@@ -821,6 +806,7 @@ return {
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (doubleMaVal != null) lines.push(`Double MA value (1m on 5m): ${doubleMaVal.toFixed(2)}`);
             if (doubleMa1hOn1hVal != null) lines.push(`Double MA value (1m on 1h): ${doubleMa1hOn1hVal.toFixed(2)}`);
+            if (doubleMa1mOn1wVal != null) lines.push(`Double MA value (1m on 1w): ${doubleMa1mOn1wVal.toFixed(2)}`);
 
             // Информация о торговых событиях
             if (tradeEventPoint) {
@@ -907,7 +893,7 @@ return {
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2] }],
+            link: [{ xAxisIndex: [0, 1, 2, 3] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
