@@ -190,6 +190,15 @@ public class DoubleMAIndicatorColumn extends AbstractColumn<DoubleMAIndicatorM> 
                 CandleTimeframe.CANDLE_1M,
                 CandleTimeframe.CANDLE_5M,
                 MetadataType.METRIC
+        ),
+
+        DOUBLE_MA_VALUE_1M_ON_1W(
+                "metric_double_ma_value_1m_on_1w",
+                "Основное значение индикатора DoubleMA на таймфрейме 1w для индекса 1m",
+                "numeric(12, 4)",
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_1W,
+                MetadataType.METRIC
         );
         private final ColumnMetadata metadata;
 
@@ -267,6 +276,7 @@ public class DoubleMAIndicatorColumn extends AbstractColumn<DoubleMAIndicatorM> 
             case DOUBLE_MA_VALUE_1M_ON_4H:
             case DOUBLE_MA_VALUE_1M_ON_1H:
             case DOUBLE_MA_VALUE_1M_ON_5M:
+            case DOUBLE_MA_VALUE_1M_ON_1W:
                 return getHigherTimeframeValue(index, metadata.timeframe(),
                         metadata.higherTimeframe(), isLiveSeries);
 

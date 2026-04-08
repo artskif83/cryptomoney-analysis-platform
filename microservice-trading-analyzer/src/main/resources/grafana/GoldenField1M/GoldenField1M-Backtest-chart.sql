@@ -15,6 +15,7 @@ SELECT
     long_high_level_bottom_border_1m_on_1h,
     metric_double_ma_value_1m_on_5m,
     metric_double_ma_value_1m_on_1h,
+    metric_double_ma_value_1m_on_1w,
     additional_position_price_1m,
     additional_takeprofit_1m,
     additional_stoploss_1m

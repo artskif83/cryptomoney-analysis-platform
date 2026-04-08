@@ -252,9 +252,9 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Обработка торговых событий (если процессор настроен)
         TradeEventData eventData = null;
 
-//        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
-//            eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
-//        }
+        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+            eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
+        }
 
         if (longTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
             eventData = longTradeEventProcessor.getLifeTradeEventData(endIndex);

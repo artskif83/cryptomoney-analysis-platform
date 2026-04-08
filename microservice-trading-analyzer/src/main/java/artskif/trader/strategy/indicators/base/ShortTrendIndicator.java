@@ -15,6 +15,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     private final ClosePriceIndicator closePriceIndicator;
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
+    private final DoubleMAIndicator doubleMAWeeklyIndicator;
     private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень сопротивления старшего таймфрейма
     private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень поддержки старшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
@@ -25,6 +26,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     public ShortTrendIndicator(HighPriceIndicator highPriceLowIndicator,
                                DoubleMAIndicator doubleMALowIndicator,
                                DoubleMAIndicator doubleMAHighIndicator,
+                               DoubleMAIndicator doubleMAWeeklyIndicator,
                                ADXAngleIndicator adxAngleIndicator,
                                LongHighLevelIndicator longHighLevelIndicator,
                                ShortHighLevelIndicator shortHighLevelIndicator,
@@ -38,6 +40,7 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         this.closePriceIndicator = closePriceIndicator;
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
+        this.doubleMAWeeklyIndicator = doubleMAWeeklyIndicator;
         this.longHighLevelIndicator = longHighLevelIndicator;
         this.shortHighLevelIndicator = shortHighLevelIndicator;
         this.lowBarCount = lowBarCount;
@@ -50,18 +53,17 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int shortLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-
-        Num longLevelTop = longHighLevelIndicator.getTopBorder(shortHighLevelIndex);
-        Num longLevelBottom = longHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
-
-        Num shortLevelTop = shortHighLevelIndicator.getTopBorder(shortHighLevelIndex);
-        Num shortLevelBottom = shortHighLevelIndicator.getBottomBorder(shortHighLevelIndex);
-        Num currentPrice = closePriceIndicator.getValue(index);
+        int shortWeeklyLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAWeeklyIndicator.getBarSeries());
 
         boolean isCalculate = false;
 
         // Текущий бар часового графика должен быть отрицательным
-        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))){
+        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
+            return null;
+        }
+
+        // Текущий бар часового графика должен быть отрицательным
+        if (doubleMAWeeklyIndicator.getValue(shortWeeklyLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
             return null;
         }
 
@@ -147,8 +149,8 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
      * При выполнении условия возвращается {@code price[i]} — верхняя (большая) цена зоны.
      * Если подходящей пары не найдено — возвращается {@code null}.
      *
-     * @param prices                          список цен с индексами, отсортированный по убыванию цены
-     * @param shortZonePercentages       максимально допустимый процент отклонения между двумя ценами
+     * @param prices               список цен с индексами, отсортированный по убыванию цены
+     * @param shortZonePercentages максимально допустимый процент отклонения между двумя ценами
      * @return верхняя цена зоны сопротивления, или {@code null} если зона не найдена
      */
     Num findShortZoneTopPrice(List<PriceWithIndex> prices, Num shortZonePercentages) {

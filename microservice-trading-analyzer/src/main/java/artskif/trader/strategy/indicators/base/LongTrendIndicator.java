@@ -15,6 +15,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     private final ClosePriceIndicator closePriceIndicator;
     private final DoubleMAIndicator doubleMALowIndicator;
     private final DoubleMAIndicator doubleMAHighIndicator;
+    private final DoubleMAIndicator doubleMAWeeklyIndicator;
     private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень сопротивления старшего таймфрейма
     private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень поддержки старшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
@@ -25,6 +26,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     public LongTrendIndicator(LowPriceIndicator lowPriceLowIndicator,
                               DoubleMAIndicator doubleMALowIndicator,
                               DoubleMAIndicator doubleMAHighIndicator,
+                              DoubleMAIndicator doubleMAWeeklyIndicator,
                               ADXAngleIndicator adxAngleIndicator,
                               LongHighLevelIndicator longHighLevelIndicator,
                               ShortHighLevelIndicator shortHighLevelIndicator,
@@ -38,6 +40,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         this.closePriceIndicator = closePriceIndicator;
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
+        this.doubleMAWeeklyIndicator = doubleMAWeeklyIndicator;
         this.longHighLevelIndicator = longHighLevelIndicator;
         this.shortHighLevelIndicator = shortHighLevelIndicator;
         this.lowBarCount = lowBarCount;
@@ -50,17 +53,17 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     protected Num calculate(int index) {
         int longLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
         int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
+        int longWeeklyLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAWeeklyIndicator.getBarSeries());
 
-        Num longLevelBottom = longHighLevelIndicator.getBottomBorder(longHighLevelIndex);
-        Num longLevelTop = longHighLevelIndicator.getTopBorder(longHighLevelIndex);
-
-        Num shortLevelBottom = shortHighLevelIndicator.getBottomBorder(longHighLevelIndex);
-        Num shortLevelTop = shortHighLevelIndicator.getTopBorder(longHighLevelIndex);
-        Num currentPrice = closePriceIndicator.getValue(index);
         boolean isCalculate = false;
 
         // Текущий бар часового графика должен быть положительным
         if (doubleMAHighIndicator.getValue(longHighLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))){
+            return null;
+        }
+
+        // Текущий бар недельного графика должен быть положительным
+        if (doubleMAWeeklyIndicator.getValue(longWeeklyLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))){
             return null;
         }
 

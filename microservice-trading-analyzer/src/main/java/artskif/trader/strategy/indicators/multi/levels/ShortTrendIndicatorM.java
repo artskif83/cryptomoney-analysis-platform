@@ -60,6 +60,7 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
                 highPriceIndicatorM.getIndicator(CandleTimeframe.CANDLE_1M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_5M, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
+                doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1W, isLifeSeries),
                 adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 longHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 shortHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
