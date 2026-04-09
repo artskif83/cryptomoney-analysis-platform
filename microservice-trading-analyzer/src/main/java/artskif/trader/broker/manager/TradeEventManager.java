@@ -84,6 +84,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
 
         boolean farEnough = false;
+        boolean canCreate = true;
 
         if (hasOppositePosition) {
             log.debug("📊 Есть открытая {} позиция", oppositeLabel);
@@ -117,17 +118,16 @@ public class TradeEventManager extends AbstractTradeEventManager {
         // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового
         if (hasAnyOrder) {
             log.debug("🔄 Есть ордера — отменяем все для переоткрытия с новой ценой");
-            for (PendingOrder order : pendingOrders) {
-                try {
-                    tradingExecutorService.cancelOrders(order.ordId, order.clOrdId);
-                    log.debug("🗑️ Ордер отменён: ordId={}, clOrdId={}", order.ordId, order.clOrdId);
-                } catch (Exception e) {
-                    log.error("❌ Ошибка при отмене ордера ordId={}: {}", order.ordId, e.getMessage());
-                }
+            try {
+                tradingExecutorService.cancelOrders(null,null);
+                log.debug("🗑️ Ордера отмены");
+            } catch (Exception e) {
+                log.error("❌ Ошибка при отмене ордера: {}", e.getMessage());
+                canCreate = false;
             }
         }
 
-        if (!hasAnyPosition || (hasOppositePosition && farEnough)) {
+        if ((!hasAnyPosition || (hasOppositePosition && farEnough) && canCreate)) {
             log.debug("📊 Нет открытых позиций или есть давняя противоположная позиция, открываем новый ордер {}", dirLabel);
 
             // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
