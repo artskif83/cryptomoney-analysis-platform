@@ -16,6 +16,7 @@ const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
 const doubleMaValue1hOn1hRaw = col("metric_double_ma_value_1m_on_1h");
+const rsi14Raw = col("metric_rsi_14_1m_on_5m");
 const shortLevelRaw = col("metric_short_trend_1m");
 const shortStopLossRaw = col("metric_short_stop_los_1m");
 const longLevelRaw = col("metric_long_trend_1m");
@@ -41,6 +42,11 @@ const doubleMaValue1hOn1h = times.map((t, i) => [
     t,
     doubleMaValue1hOn1hRaw[i] == null ? null : doubleMaValue1hOn1hRaw[i]
 ]);
+
+const rsi14 = times.map((t, i) => {
+    const v = rsi14Raw[i];
+    return { value: [t, v == null ? null : v] };
+});
 
 
 
@@ -119,8 +125,9 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '65%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '78%', height: '15%' }    // Double MA value 1m on 1h (grid 1)
+        { left: '5%', right: '5%', top: 10, height: '55%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '68%', height: '12%' },   // Double MA value 1m on 1h (grid 1)
+        { left: '5%', right: '5%', top: '83%', height: '12%' }    // RSI 14 (grid 2)
     ],
 
     xAxis: [
@@ -146,6 +153,26 @@ return {
         {
             type: 'time',
             gridIndex: 1,
+            boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 2,
             boundaryGap: false,
             axisLabel: {
                 formatter: {
@@ -195,11 +222,29 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: false,
+            min: 0,
+            max: 100,
+            gridIndex: 2,
+            splitNumber: 4,
+            axisLabel: {
+                formatter: (v) => v.toFixed(0)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v.toFixed(1)}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1] }]
+        link: [{ xAxisIndex: [0, 1, 2] }]
     },
 
     toolbox: {
@@ -214,7 +259,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1],
+            xAxisIndex: [0, 1, 2],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -341,6 +386,54 @@ return {
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#AB47BC' }
+        },
+
+        // --- RSI 14 (1m on 5m) ---
+        {
+            name: 'RSI 14',
+            type: 'line',
+            data: rsi14.map(p => {
+                const v = p.value[1];
+                let color = '#90CAF9'; // neutral
+                if (v != null && v >= 70) color = '#FF5252';
+                if (v != null && v <= 30) color = '#69F0AE';
+                return { value: p.value, itemStyle: { color } };
+            }),
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1.5, color: '#90CAF9' },
+            visualMap: false,
+            markLine: {
+                silent: true,
+                symbol: 'none',
+                data: [
+                    {
+                        yAxis: 70,
+                        lineStyle: { type: 'dashed', color: '#FF5252', width: 1 },
+                        label: { formatter: '70', position: 'end', color: '#FF5252' }
+                    },
+                    {
+                        yAxis: 30,
+                        lineStyle: { type: 'dashed', color: '#69F0AE', width: 1 },
+                        label: { formatter: '30', position: 'end', color: '#69F0AE' }
+                    }
+                ]
+            },
+            markArea: {
+                silent: true,
+                data: [
+                    [
+                        { yAxis: 70, itemStyle: { color: 'rgba(255, 82, 82, 0.12)' } },
+                        { yAxis: 100 }
+                    ],
+                    [
+                        { yAxis: 0, itemStyle: { color: 'rgba(105, 240, 174, 0.12)' } },
+                        { yAxis: 30 }
+                    ]
+                ]
+            }
         }
     ],
 
@@ -385,6 +478,9 @@ return {
 
             const doubleMa1hOn1hPoint = list.find(p => p.seriesName === 'Double MA value (1h on 1h)');
             const doubleMa1hOn1hVal = doubleMa1hOn1hPoint && Array.isArray(doubleMa1hOn1hPoint.data) ? doubleMa1hOn1hPoint.data[1] : null;
+
+            const rsi14Point = list.find(p => p.seriesName === 'RSI 14');
+            const rsi14Val = rsi14Point && rsi14Point.data && rsi14Point.data.value ? rsi14Point.data.value[1] : null;
 
 
 
@@ -440,12 +536,13 @@ return {
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (doubleMa1hOn1hVal != null) lines.push(`Double MA value (1m on 1h): ${doubleMa1hOn1hVal.toFixed(2)}`);
+            if (rsi14Val != null) lines.push(`RSI 14 (1m on 5m): ${rsi14Val.toFixed(2)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1] }],
+            link: [{ xAxisIndex: [0, 1, 2] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {

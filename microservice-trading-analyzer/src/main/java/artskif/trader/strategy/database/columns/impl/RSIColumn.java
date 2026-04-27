@@ -35,12 +35,12 @@ public class RSIColumn extends AbstractColumn<RSIIndicatorM> {
                 null,
                 MetadataType.METRIC
         ),
-        RSI_5M_ON_4H(
-                "metric_rsi_14_5m_on_4h",
-                "RSI индикатор с периодом 14 на таймфрейме 4h для индекса 5m",
+        RSI_1M_ON_5M(
+                "metric_rsi_14_1m_on_5m",
+                "RSI индикатор с периодом 14 на таймфрейме 5m для индекса 1m",
                 "numeric(5, 2)",
-                CandleTimeframe.CANDLE_5M,
-                CandleTimeframe.CANDLE_4H, // higher timeframe
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_5M, // lower timeframe
                 MetadataType.METRIC
         );
 
