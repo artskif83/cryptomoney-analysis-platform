@@ -229,15 +229,15 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
 
             // 4. Вычисляем цены для 3 уровней TP (20%, 50%, 100% от целевого профита)
             BigDecimal[] tpPercentages = {
-                takeProfitPercent.multiply(BigDecimal.valueOf(0.1)),      // TP1: 10% от целевого профита
+                takeProfitPercent.multiply(BigDecimal.valueOf(0.25)),      // TP1: 25% от целевого профита
                 takeProfitPercent.multiply(BigDecimal.valueOf(0.5)),      // TP2: 50% от целевого профита
                 takeProfitPercent                                         // TP3: 100% от целевого профита
             };
 
             BigDecimal[] sizePercentages = {
-                BigDecimal.valueOf(0.1),   // TP1: 10% позиции
-                BigDecimal.valueOf(0.4),   // TP2: 30% позиции
-                BigDecimal.valueOf(0.5)    // TP3: 40% позиции
+                BigDecimal.valueOf(0.3),   // TP1: 30% позиции
+                BigDecimal.valueOf(0.4),   // TP2: 40% позиции
+                BigDecimal.valueOf(0.3)    // TP3: 30% позиции
             };
 
             // 5. Формируем массив attachAlgoOrds со всеми SL и TP
