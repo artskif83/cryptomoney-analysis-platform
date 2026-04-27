@@ -13,19 +13,12 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     private final LowPriceIndicator lowPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
-    private final MultiMAIndicator doubleMALowIndicator;
-    private final MultiMAIndicator doubleMAHighIndicator;
-    private final MultiMAIndicator doubleMAWeeklyIndicator;
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
     private final Num longZonePercentagesLowThreshold; // окно в котором считается общая поддержка нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы поддержки высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены поддержки
 
     public LongTrendIndicator(LowPriceIndicator lowPriceLowIndicator,
-                              MultiMAIndicator doubleMALowIndicator,
-                              MultiMAIndicator doubleMAHighIndicator,
-                              MultiMAIndicator doubleMAWeeklyIndicator,
-                              ADXAngleIndicator adxAngleIndicator,
                               ClosePriceIndicator closePriceIndicator,
                               int lowBarCount,
                               Num longZonePercentagesLowThreshold,
@@ -34,9 +27,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         super(closePriceIndicator);
         this.lowPriceLowIndicator = lowPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
-        this.doubleMALowIndicator = doubleMALowIndicator;
-        this.doubleMAHighIndicator = doubleMAHighIndicator;
-        this.doubleMAWeeklyIndicator = doubleMAWeeklyIndicator;
         this.lowBarCount = lowBarCount;
         this.longZonePercentagesLowThreshold = longZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -45,40 +35,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        int longLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
-        int longHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-        int longWeeklyLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAWeeklyIndicator.getBarSeries());
-
-        boolean isCalculate = false;
-
-        // Текущий бар часового графика должен быть положительным
-        if (doubleMAHighIndicator.getValue(longHighLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))){
-            return null;
-        }
-
-        // Текущий бар недельного графика должен быть положительным
-        if (doubleMAWeeklyIndicator.getValue(longWeeklyLevelIndex).isLessThanOrEqual(DecimalNum.valueOf(0))){
-            return null;
-        }
-
-        // График растёт только последние 2 часа: предыдущий или позапрошлый бар должен быть отрицательным
-        boolean prevNegative = longHighLevelIndex >= 1
-                && doubleMAHighIndicator.getValue(longHighLevelIndex - 1).isLessThan(DecimalNum.valueOf(0));
-        boolean prevPrevNegative = longHighLevelIndex >= 2
-                && doubleMAHighIndicator.getValue(longHighLevelIndex - 2).isLessThan(DecimalNum.valueOf(0));
-        if (!prevNegative && !prevPrevNegative) {
-            return null;
-        }
-
-        // Пробили уровень ищем ретест
-        if (doubleMALowIndicator.getValue(longLowLevelIndex).isLessThan(DecimalNum.valueOf(0))) {
-            isCalculate = true;
-        }
-
-        if (!isCalculate) {
-            return null;
-        }
-
         List<PriceWithIndex> sortedLowPrices = IndicatorUtils.sortByLowPrice(lowPriceLowIndicator, lowBarCount, index);
 
         Num longZoneBottomPrice = findLongZoneBottomPrice(sortedLowPrices, longZonePercentagesLowThreshold);

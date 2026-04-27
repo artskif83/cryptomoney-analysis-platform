@@ -13,19 +13,12 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
-    private final MultiMAIndicator doubleMALowIndicator;
-    private final MultiMAIndicator doubleMAHighIndicator;
-    private final MultiMAIndicator doubleMAWeeklyIndicator;
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
     private final Num shortZonePercentagesLowThreshold; // окно в котором считается общее сопротивление нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы сопротивления высшего таймфрейма, внутри которого должна находиться текущая цена
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
     public ShortTrendIndicator(HighPriceIndicator highPriceLowIndicator,
-                               MultiMAIndicator doubleMALowIndicator,
-                               MultiMAIndicator doubleMAHighIndicator,
-                               MultiMAIndicator doubleMAWeeklyIndicator,
-                               ADXAngleIndicator adxAngleIndicator,
                                ClosePriceIndicator closePriceIndicator,
                                int lowBarCount,
                                Num shortZonePercentagesLowThreshold,
@@ -34,9 +27,6 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
         super(closePriceIndicator);
         this.highPriceLowIndicator = highPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
-        this.doubleMALowIndicator = doubleMALowIndicator;
-        this.doubleMAHighIndicator = doubleMAHighIndicator;
-        this.doubleMAWeeklyIndicator = doubleMAWeeklyIndicator;
         this.lowBarCount = lowBarCount;
         this.shortZonePercentagesLowThreshold = shortZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -45,40 +35,6 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
-        int shortLowLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMALowIndicator.getBarSeries());
-        int shortHighLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAHighIndicator.getBarSeries());
-        int shortWeeklyLevelIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), doubleMAWeeklyIndicator.getBarSeries());
-
-        boolean isCalculate = false;
-
-        // Текущий бар часового графика должен быть отрицательным
-        if (doubleMAHighIndicator.getValue(shortHighLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
-            return null;
-        }
-
-        // Текущий бар часового графика должен быть отрицательным
-        if (doubleMAWeeklyIndicator.getValue(shortWeeklyLevelIndex).isGreaterThanOrEqual(DecimalNum.valueOf(0))) {
-            return null;
-        }
-
-        // График падает только последние 2 часа: предыдущий или позапрошлый бар должен быть положительным
-        boolean prevPositive = shortHighLevelIndex >= 1
-                && doubleMAHighIndicator.getValue(shortHighLevelIndex - 1).isGreaterThan(DecimalNum.valueOf(0));
-        boolean prevPrevPositive = shortHighLevelIndex >= 2
-                && doubleMAHighIndicator.getValue(shortHighLevelIndex - 2).isGreaterThan(DecimalNum.valueOf(0));
-        if (!prevPositive && !prevPrevPositive) {
-            return null;
-        }
-
-        // Пробили уровень ищем ретест
-        if (doubleMALowIndicator.getValue(shortLowLevelIndex).isGreaterThan(DecimalNum.valueOf(0))) {
-            isCalculate = true;
-        }
-
-        if (!isCalculate) {
-            return null;
-        }
-
         List<PriceWithIndex> sortedLowPrices = IndicatorUtils.sortByHighPrice(highPriceLowIndicator, lowBarCount, index);
 
         Num shortZoneTopPrice = findShortZoneTopPrice(sortedLowPrices, shortZonePercentagesLowThreshold);
