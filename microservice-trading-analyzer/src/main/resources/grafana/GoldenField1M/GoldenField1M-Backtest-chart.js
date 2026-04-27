@@ -15,9 +15,7 @@ const lows = col("low");
 const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
-const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_5m");
 const doubleMaValue1hOn1hRaw = col("metric_double_ma_value_1m_on_1h");
-const doubleMaValue1mOn1wRaw = col("metric_double_ma_value_1m_on_1w");
 const shortLevelRaw = col("metric_short_trend_1m");
 const shortStopLossRaw = col("metric_short_stop_los_1m");
 const longLevelRaw = col("metric_long_trend_1m");
@@ -39,20 +37,11 @@ const candles = times.map((t, i) => [
 ]);
 
 
-const doubleMaValue1h = times.map((t, i) => [
-    t,
-    doubleMaValue1hRaw[i] == null ? null : doubleMaValue1hRaw[i]
-]);
-
 const doubleMaValue1hOn1h = times.map((t, i) => [
     t,
     doubleMaValue1hOn1hRaw[i] == null ? null : doubleMaValue1hOn1hRaw[i]
 ]);
 
-const doubleMaValue1mOn1w = times.map((t, i) => [
-    t,
-    doubleMaValue1mOn1wRaw[i] == null ? null : doubleMaValue1mOn1wRaw[i]
-]);
 
 
 // ===== Зона сопротивления (short level + stop loss band) =====
@@ -130,10 +119,8 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '55%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '63%', height: '8%' },    // Double MA value 1m on 5m (grid 1)
-        { left: '5%', right: '5%', top: '74%', height: '8%' },    // Double MA value 1m on 1h (grid 2)
-        { left: '5%', right: '5%', top: '85%', height: '8%' }     // Double MA value 1m on 1w (grid 3)
+        { left: '5%', right: '5%', top: 10, height: '65%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '78%', height: '15%' }    // Double MA value 1m on 1h (grid 1)
     ],
 
     xAxis: [
@@ -175,46 +162,6 @@ return {
                 show: true,
                 label: { show: false }
             }
-        },
-        {
-            type: 'time',
-            gridIndex: 2,
-            boundaryGap: false,
-            axisLabel: {
-                formatter: {
-                    year: '{yyyy}',
-                    month: '{dd}.{MM}',
-                    day: '{dd}.{MM}',
-                    hour: '{dd}.{MM} {HH}:{mm}',
-                    minute: '{dd}.{MM} {HH}:{mm}',
-                    second: '{HH}:{mm}:{ss}',
-                    millisecond: '{HH}:{mm}:{ss}'
-                }
-            },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 3,
-            boundaryGap: false,
-            axisLabel: {
-                formatter: {
-                    year: '{yyyy}',
-                    month: '{dd}.{MM}',
-                    day: '{dd}.{MM}',
-                    hour: '{dd}.{MM} {HH}:{mm}',
-                    minute: '{dd}.{MM} {HH}:{mm}',
-                    second: '{HH}:{mm}:{ss}',
-                    millisecond: '{HH}:{mm}:{ss}'
-                }
-            },
-            axisPointer: {
-                show: true,
-                label: { show: false }
-            }
         }
     ],
 
@@ -234,43 +181,9 @@ return {
         },
         {
             scale: false,
-            min: -1,
-            max: 1,
+            min: -5,
+            max: 5,
             gridIndex: 1,
-            axisLabel: {
-                formatter: (v) => v.toFixed(2)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v.toFixed(2)}`;
-                    }
-                }
-            }
-        },
-        {
-            scale: false,
-            min: -1,
-            max: 1,
-            gridIndex: 2,
-            axisLabel: {
-                formatter: (v) => v.toFixed(2)
-            },
-            axisPointer: {
-                label: {
-                    formatter: (params) => {
-                        const v = params.value;
-                        return v == null ? '' : `${v.toFixed(2)}`;
-                    }
-                }
-            }
-        },
-        {
-            scale: false,
-            min: -1,
-            max: 1,
-            gridIndex: 3,
             axisLabel: {
                 formatter: (v) => v.toFixed(2)
             },
@@ -286,7 +199,7 @@ return {
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2, 3] }]
+        link: [{ xAxisIndex: [0, 1] }]
     },
 
     toolbox: {
@@ -301,7 +214,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2, 3],
+            xAxisIndex: [0, 1],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -418,40 +331,16 @@ return {
             lineStyle: { width: 1, color: '#FF5252', type: 'dashed' }
         },
 
-        // --- Double MA value 1m on 5m ---
-        {
-            name: 'Double MA value (1h)',
-            type: 'line',
-            data: doubleMaValue1h,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#FFA726' }
-        },
-
         // --- Double MA value 1m on 1h ---
         {
             name: 'Double MA value (1h on 1h)',
             type: 'line',
             data: doubleMaValue1hOn1h,
-            xAxisIndex: 2,
-            yAxisIndex: 2,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
             symbol: 'none',
             connectNulls: false,
             lineStyle: { width: 1, color: '#AB47BC' }
-        },
-
-        // --- Double MA value 1m on 1w ---
-        {
-            name: 'Double MA value (1m on 1w)',
-            type: 'line',
-            data: doubleMaValue1mOn1w,
-            xAxisIndex: 3,
-            yAxisIndex: 3,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: { width: 1, color: '#26C6DA' }
         }
     ],
 
@@ -494,14 +383,9 @@ return {
             }
 
 
-            const doubleMaPoint = list.find(p => p.seriesName === 'Double MA value (1h)');
-            const doubleMaVal = doubleMaPoint && Array.isArray(doubleMaPoint.data) ? doubleMaPoint.data[1] : null;
-
             const doubleMa1hOn1hPoint = list.find(p => p.seriesName === 'Double MA value (1h on 1h)');
             const doubleMa1hOn1hVal = doubleMa1hOn1hPoint && Array.isArray(doubleMa1hOn1hPoint.data) ? doubleMa1hOn1hPoint.data[1] : null;
 
-            const doubleMa1mOn1wPoint = list.find(p => p.seriesName === 'Double MA value (1m on 1w)');
-            const doubleMa1mOn1wVal = doubleMa1mOn1wPoint && Array.isArray(doubleMa1mOn1wPoint.data) ? doubleMa1mOn1wPoint.data[1] : null;
 
 
             // Расчет теней и изменений
@@ -555,15 +439,13 @@ return {
             if (highChangePct != null) lines.push(`High vs Prev High: ${highChangePct >= 0 ? '+' : ''}${highChangePct.toFixed(2)}%`);
             if (upperShadowPct != null) lines.push(`Upper shadow: ${upperShadowPct.toFixed(2)}%`);
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
-            if (doubleMaVal != null) lines.push(`Double MA value (1m on 5m): ${doubleMaVal.toFixed(2)}`);
             if (doubleMa1hOn1hVal != null) lines.push(`Double MA value (1m on 1h): ${doubleMa1hOn1hVal.toFixed(2)}`);
-            if (doubleMa1mOn1wVal != null) lines.push(`Double MA value (1m on 1w): ${doubleMa1mOn1wVal.toFixed(2)}`);
 
             return lines.join('<br/>');
         },
 
         axisPointer: {
-            link: [{ xAxisIndex: [0, 1, 2, 3] }],
+            link: [{ xAxisIndex: [0, 1] }],
             triggerTooltip: false,
             type: 'cross',
             crossStyle: {
