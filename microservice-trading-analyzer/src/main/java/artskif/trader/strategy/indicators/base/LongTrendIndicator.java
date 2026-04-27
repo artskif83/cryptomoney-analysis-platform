@@ -16,8 +16,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
     private final MultiMAIndicator doubleMALowIndicator;
     private final MultiMAIndicator doubleMAHighIndicator;
     private final MultiMAIndicator doubleMAWeeklyIndicator;
-    private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень сопротивления старшего таймфрейма
-    private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень поддержки старшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
     private final Num longZonePercentagesLowThreshold; // окно в котором считается общая поддержка нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы поддержки высшего таймфрейма, внутри которого должна находиться текущая цена
@@ -28,8 +26,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
                               MultiMAIndicator doubleMAHighIndicator,
                               MultiMAIndicator doubleMAWeeklyIndicator,
                               ADXAngleIndicator adxAngleIndicator,
-                              LongHighLevelIndicator longHighLevelIndicator,
-                              ShortHighLevelIndicator shortHighLevelIndicator,
                               ClosePriceIndicator closePriceIndicator,
                               int lowBarCount,
                               Num longZonePercentagesLowThreshold,
@@ -41,8 +37,6 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         this.doubleMALowIndicator = doubleMALowIndicator;
         this.doubleMAHighIndicator = doubleMAHighIndicator;
         this.doubleMAWeeklyIndicator = doubleMAWeeklyIndicator;
-        this.longHighLevelIndicator = longHighLevelIndicator;
-        this.shortHighLevelIndicator = shortHighLevelIndicator;
         this.lowBarCount = lowBarCount;
         this.longZonePercentagesLowThreshold = longZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;

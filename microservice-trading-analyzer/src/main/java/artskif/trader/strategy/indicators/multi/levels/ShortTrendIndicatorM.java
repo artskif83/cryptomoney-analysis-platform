@@ -8,8 +8,6 @@ import artskif.trader.strategy.indicators.multi.ADXAngleIndicatorM;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.MultiMAIndicatorM;
 import artskif.trader.strategy.indicators.multi.HighPriceIndicatorM;
-import artskif.trader.strategy.indicators.multi.levels.ShortHighLevelIndicatorM;
-import artskif.trader.strategy.indicators.multi.levels.LongHighLevelIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.ta4j.core.num.DecimalNum;
@@ -21,9 +19,6 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final MultiMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
-    private final LongHighLevelIndicatorM longHighLevelIndicatorM;
-    private final ShortHighLevelIndicatorM shortHighLevelIndicatorM;
-
 
     // No-args constructor required by CDI
     protected ShortTrendIndicatorM() {
@@ -32,8 +27,6 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
         this.closePriceIndicatorM = null;
         this.doubleMAIndicatorM = null;
         this.adxAngleIndicatorM = null;
-        this.longHighLevelIndicatorM = null;
-        this.shortHighLevelIndicatorM = null;
     }
 
     @Inject
@@ -41,17 +34,13 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
                                 HighPriceIndicatorM highPriceIndicatorM,
                                 ClosePriceIndicatorM closePriceIndicatorM,
                                 MultiMAIndicatorM doubleMAIndicatorM,
-                                ADXAngleIndicatorM adxAngleIndicatorM,
-                                LongHighLevelIndicatorM longHighLevelIndicatorM,
-                                ShortHighLevelIndicatorM shortHighLevelIndicatorM
+                                ADXAngleIndicatorM adxAngleIndicatorM
     ) {
         super(candle);
         this.highPriceIndicatorM = highPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
         this.adxAngleIndicatorM = adxAngleIndicatorM;
-        this.longHighLevelIndicatorM = longHighLevelIndicatorM;
-        this.shortHighLevelIndicatorM = shortHighLevelIndicatorM;
     }
 
     @Override
@@ -62,8 +51,6 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1W, isLifeSeries),
                 adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                longHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                shortHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 5,
                 DecimalNum.valueOf(0.05),

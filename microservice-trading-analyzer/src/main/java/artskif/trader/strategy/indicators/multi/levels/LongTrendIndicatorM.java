@@ -19,8 +19,6 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
     private final ClosePriceIndicatorM closePriceIndicatorM;
     private final MultiMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
-    private final LongHighLevelIndicatorM longHighLevelIndicatorM;
-    private final ShortHighLevelIndicatorM shortHighLevelIndicatorM;
 
     // No-args constructor required by CDI
     protected LongTrendIndicatorM() {
@@ -29,8 +27,6 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
         this.closePriceIndicatorM = null;
         this.doubleMAIndicatorM = null;
         this.adxAngleIndicatorM = null;
-        this.longHighLevelIndicatorM = null;
-        this.shortHighLevelIndicatorM = null;
     }
 
     @Inject
@@ -38,16 +34,12 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                                LowPriceIndicatorM lowPriceIndicatorM,
                                ClosePriceIndicatorM closePriceIndicatorM,
                                MultiMAIndicatorM doubleMAIndicatorM,
-                               ADXAngleIndicatorM adxAngleIndicatorM,
-                               LongHighLevelIndicatorM longHighLevelIndicatorM,
-                               ShortHighLevelIndicatorM shortHighLevelIndicatorM) {
+                               ADXAngleIndicatorM adxAngleIndicatorM) {
         super(candle);
         this.lowPriceIndicatorM = lowPriceIndicatorM;
         this.closePriceIndicatorM = closePriceIndicatorM;
         this.doubleMAIndicatorM = doubleMAIndicatorM;
         this.adxAngleIndicatorM = adxAngleIndicatorM;
-        this.longHighLevelIndicatorM = longHighLevelIndicatorM;
-        this.shortHighLevelIndicatorM = shortHighLevelIndicatorM;
     }
 
     @Override
@@ -58,8 +50,6 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 doubleMAIndicatorM.getIndicator(CandleTimeframe.CANDLE_1W, isLifeSeries),
                 adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                longHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
-                shortHighLevelIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLifeSeries),
                 closePriceIndicatorM.getIndicator(timeframe, isLifeSeries),
                 5,
                 DecimalNum.valueOf(0.05),
