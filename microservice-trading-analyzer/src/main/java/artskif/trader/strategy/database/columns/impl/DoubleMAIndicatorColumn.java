@@ -5,7 +5,7 @@ import artskif.trader.entity.MetadataType;
 import artskif.trader.strategy.database.columns.AbstractColumn;
 import artskif.trader.strategy.database.columns.ColumnMetadata;
 import artskif.trader.strategy.database.columns.ColumnTypeMetadata;
-import artskif.trader.strategy.indicators.base.DoubleMAIndicator;
+import artskif.trader.strategy.indicators.base.MultiMAIndicator;
 import artskif.trader.strategy.indicators.multi.DoubleMAIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -232,7 +232,7 @@ public class DoubleMAIndicatorColumn extends AbstractColumn<DoubleMAIndicatorM> 
         ColumnMetadata metadata = featureType.getMetadata();
 
         // Получаем индикатор для нужного таймфрейма
-        DoubleMAIndicator indicator = (DoubleMAIndicator) getIndicator(
+        MultiMAIndicator indicator = (MultiMAIndicator) getIndicator(
                 metadata.timeframe(), isLiveSeries);
 
         // Определяем, какое значение нужно вернуть

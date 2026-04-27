@@ -3,7 +3,7 @@ package artskif.trader.strategy.indicators.multi;
 import artskif.trader.candle.Candle;
 import artskif.trader.candle.CandleTimeframe;
 import artskif.trader.strategy.indicators.MultiAbstractIndicator;
-import artskif.trader.strategy.indicators.base.DoubleMAIndicator;
+import artskif.trader.strategy.indicators.base.MultiMAIndicator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -12,7 +12,7 @@ import jakarta.inject.Inject;
  * Позволяет использовать DoubleMAIndicator на разных таймфреймах.
  */
 @ApplicationScoped
-public class DoubleMAIndicatorM extends MultiAbstractIndicator<DoubleMAIndicator> {
+public class DoubleMAIndicatorM extends MultiAbstractIndicator<MultiMAIndicator> {
 
     public static final int DEFAULT_FAST_PERIOD = 3;
     public static final int DEFAULT_MEDIUM_PERIOD = 6;
@@ -51,8 +51,8 @@ public class DoubleMAIndicatorM extends MultiAbstractIndicator<DoubleMAIndicator
     }
 
     @Override
-    protected DoubleMAIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
-        return new DoubleMAIndicator(
+    protected MultiMAIndicator createIndicator(CandleTimeframe timeframe, boolean isLifeSeries) {
+        return new MultiMAIndicator(
             closeIndicator.getIndicator(timeframe, isLifeSeries),
             fastPeriod,
             mediumPeriod,

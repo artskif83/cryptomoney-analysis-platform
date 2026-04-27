@@ -7,10 +7,10 @@ import org.ta4j.core.num.Num;
 
 
 /**
- * Индикатор тройной скользящей средней с расчетом углов наклона.
- * Содержит три SMA с разными периодами и вычисляет угол наклона для каждой из них.
+ * Индикатор скользящей средней с расчетом углов наклона.
+ * Содержит SMA с разными периодами и вычисляет угол наклона для каждой из них.
  */
-public class DoubleMAIndicator extends CachedIndicator<Num> {
+public class MultiMAIndicator extends CachedIndicator<Num> {
 
     private final SMAIndicator fastSMA;
     private final SMAIndicator mediumSMA;
@@ -22,7 +22,7 @@ public class DoubleMAIndicator extends CachedIndicator<Num> {
      *
      * @param closePriceIndicator индикатор цены закрытия
      */
-    public DoubleMAIndicator(ClosePriceIndicator closePriceIndicator) {
+    public MultiMAIndicator(ClosePriceIndicator closePriceIndicator) {
         this(closePriceIndicator, 3, 6, 1);
     }
 
@@ -34,7 +34,7 @@ public class DoubleMAIndicator extends CachedIndicator<Num> {
      * @param mediumPeriod        период средней SMA
      * @param angleBarCount       количество баров для расчета угла наклона
      */
-    public DoubleMAIndicator(ClosePriceIndicator closePriceIndicator,
+    public MultiMAIndicator(ClosePriceIndicator closePriceIndicator,
                              int fastPeriod,
                              int mediumPeriod,
                              int angleBarCount) {
@@ -153,3 +153,5 @@ public class DoubleMAIndicator extends CachedIndicator<Num> {
         return 27;
     }
 }
+
+
