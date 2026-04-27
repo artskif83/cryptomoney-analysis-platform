@@ -13,9 +13,9 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
 
     private final HighPriceIndicator highPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
-    private final DoubleMAIndicator doubleMALowIndicator;
-    private final DoubleMAIndicator doubleMAHighIndicator;
-    private final DoubleMAIndicator doubleMAWeeklyIndicator;
+    private final MultiMAIndicator doubleMALowIndicator;
+    private final MultiMAIndicator doubleMAHighIndicator;
+    private final MultiMAIndicator doubleMAWeeklyIndicator;
     private final LongHighLevelIndicator longHighLevelIndicator; // часовой уровень сопротивления старшего таймфрейма
     private final ShortHighLevelIndicator shortHighLevelIndicator; // часовой уровень поддержки старшего таймфрейма
     private final int lowBarCount; // количество баров в котором считается сопротивление нижнего таймфрейма
@@ -24,9 +24,9 @@ public class ShortTrendIndicator extends CachedIndicator<Num> {
     private final Num stopLossPercentage; // процент отклонения стоп-лосса от цены сопротивления
 
     public ShortTrendIndicator(HighPriceIndicator highPriceLowIndicator,
-                               DoubleMAIndicator doubleMALowIndicator,
-                               DoubleMAIndicator doubleMAHighIndicator,
-                               DoubleMAIndicator doubleMAWeeklyIndicator,
+                               MultiMAIndicator doubleMALowIndicator,
+                               MultiMAIndicator doubleMAHighIndicator,
+                               MultiMAIndicator doubleMAWeeklyIndicator,
                                ADXAngleIndicator adxAngleIndicator,
                                LongHighLevelIndicator longHighLevelIndicator,
                                ShortHighLevelIndicator shortHighLevelIndicator,

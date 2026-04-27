@@ -6,7 +6,7 @@ import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import artskif.trader.strategy.indicators.base.ShortTrendIndicator;
 import artskif.trader.strategy.indicators.multi.ADXAngleIndicatorM;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
-import artskif.trader.strategy.indicators.multi.DoubleMAIndicatorM;
+import artskif.trader.strategy.indicators.multi.MultiMAIndicatorM;
 import artskif.trader.strategy.indicators.multi.HighPriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.levels.ShortHighLevelIndicatorM;
 import artskif.trader.strategy.indicators.multi.levels.LongHighLevelIndicatorM;
@@ -19,7 +19,7 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
 
     private final HighPriceIndicatorM highPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
-    private final DoubleMAIndicatorM doubleMAIndicatorM;
+    private final MultiMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
     private final LongHighLevelIndicatorM longHighLevelIndicatorM;
     private final ShortHighLevelIndicatorM shortHighLevelIndicatorM;
@@ -40,7 +40,7 @@ public class ShortTrendIndicatorM extends MultiAbstractIndicator<ShortTrendIndic
     public ShortTrendIndicatorM(Candle candle,
                                 HighPriceIndicatorM highPriceIndicatorM,
                                 ClosePriceIndicatorM closePriceIndicatorM,
-                                DoubleMAIndicatorM doubleMAIndicatorM,
+                                MultiMAIndicatorM doubleMAIndicatorM,
                                 ADXAngleIndicatorM adxAngleIndicatorM,
                                 LongHighLevelIndicatorM longHighLevelIndicatorM,
                                 ShortHighLevelIndicatorM shortHighLevelIndicatorM

@@ -6,7 +6,7 @@ import artskif.trader.strategy.indicators.MultiAbstractIndicator;
 import artskif.trader.strategy.indicators.base.LongTrendIndicator;
 import artskif.trader.strategy.indicators.multi.ADXAngleIndicatorM;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
-import artskif.trader.strategy.indicators.multi.DoubleMAIndicatorM;
+import artskif.trader.strategy.indicators.multi.MultiMAIndicatorM;
 import artskif.trader.strategy.indicators.multi.LowPriceIndicatorM;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,7 +17,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
 
     private final LowPriceIndicatorM lowPriceIndicatorM;
     private final ClosePriceIndicatorM closePriceIndicatorM;
-    private final DoubleMAIndicatorM doubleMAIndicatorM;
+    private final MultiMAIndicatorM doubleMAIndicatorM;
     private final ADXAngleIndicatorM adxAngleIndicatorM;
     private final LongHighLevelIndicatorM longHighLevelIndicatorM;
     private final ShortHighLevelIndicatorM shortHighLevelIndicatorM;
@@ -37,7 +37,7 @@ public class LongTrendIndicatorM extends MultiAbstractIndicator<LongTrendIndicat
     public LongTrendIndicatorM(Candle candle,
                                LowPriceIndicatorM lowPriceIndicatorM,
                                ClosePriceIndicatorM closePriceIndicatorM,
-                               DoubleMAIndicatorM doubleMAIndicatorM,
+                               MultiMAIndicatorM doubleMAIndicatorM,
                                ADXAngleIndicatorM adxAngleIndicatorM,
                                LongHighLevelIndicatorM longHighLevelIndicatorM,
                                ShortHighLevelIndicatorM shortHighLevelIndicatorM) {
