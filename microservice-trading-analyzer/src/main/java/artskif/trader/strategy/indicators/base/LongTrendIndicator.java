@@ -2,6 +2,7 @@ package artskif.trader.strategy.indicators.base;
 
 import artskif.trader.strategy.indicators.util.IndicatorUtils;
 import org.ta4j.core.indicators.CachedIndicator;
+import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.LowPriceIndicator;
 import org.ta4j.core.num.DecimalNum;
@@ -13,6 +14,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     private final LowPriceIndicator lowPriceLowIndicator;
     private final ClosePriceIndicator closePriceIndicator;
+    private final RSIIndicator rsiIndicator5m; // RSI индикатор для свечи 5 минут
     private final int lowBarCount; // количество баров в котором считается поддержка нижнего таймфрейма
     private final Num longZonePercentagesLowThreshold; // окно в котором считается общая поддержка нижнего таймфрейма
     private final Num calculationZonePercentagesHighThreshold; // окно для расчета силы поддержки высшего таймфрейма, внутри которого должна находиться текущая цена
@@ -20,6 +22,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     public LongTrendIndicator(LowPriceIndicator lowPriceLowIndicator,
                               ClosePriceIndicator closePriceIndicator,
+                              RSIIndicator rsiIndicator5m,
                               int lowBarCount,
                               Num longZonePercentagesLowThreshold,
                               Num calculationZonePercentagesHighThreshold,
@@ -27,6 +30,7 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
         super(closePriceIndicator);
         this.lowPriceLowIndicator = lowPriceLowIndicator;
         this.closePriceIndicator = closePriceIndicator;
+        this.rsiIndicator5m = rsiIndicator5m;
         this.lowBarCount = lowBarCount;
         this.longZonePercentagesLowThreshold = longZonePercentagesLowThreshold;
         this.calculationZonePercentagesHighThreshold = calculationZonePercentagesHighThreshold;
@@ -35,6 +39,14 @@ public class LongTrendIndicator extends CachedIndicator<Num> {
 
     @Override
     protected Num calculate(int index) {
+        int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(closePriceIndicator.getBarSeries().getBar(index), rsiIndicator5m.getBarSeries());
+
+        // Фильтр по RSI 5m: для лонга RSI должен быть ниже 30 (перепроданность)
+        Num rsiValue = rsiIndicator5m.getValue(higherTfIndex);
+        if (rsiValue == null || rsiValue.isGreaterThan(DecimalNum.valueOf(30))) {
+            return null;
+        }
+
         List<PriceWithIndex> sortedLowPrices = IndicatorUtils.sortByLowPrice(lowPriceLowIndicator, lowBarCount, index);
 
         Num longZoneBottomPrice = findLongZoneBottomPrice(sortedLowPrices, longZonePercentagesLowThreshold);
