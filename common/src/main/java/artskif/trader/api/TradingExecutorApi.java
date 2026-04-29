@@ -1,5 +1,6 @@
 package artskif.trader.api;
 
+import artskif.trader.api.dto.FuturesChaseOrderRequest;
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
@@ -72,6 +73,26 @@ public interface TradingExecutorApi {
     @POST
     @Path("/futures/limit/short")
     TradingResponse<OrderExecutionResult> placeFuturesLimitShort(FuturesLimitOrderRequest request);
+
+    /**
+     * Разместить Chase-ордер лонг на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/chase/long")
+    TradingResponse<OrderExecutionResult> placeFuturesChaseLong(FuturesChaseOrderRequest request);
+
+    /**
+     * Разместить Chase-ордер шорт на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/chase/short")
+    TradingResponse<OrderExecutionResult> placeFuturesChaseShort(FuturesChaseOrderRequest request);
 
     /**
      * Получает список всех активных (ожидающих) SWAP ордеров

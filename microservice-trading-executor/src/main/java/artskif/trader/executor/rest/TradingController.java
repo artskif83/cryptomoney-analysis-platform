@@ -1,6 +1,7 @@
 package artskif.trader.executor.rest;
 
 import artskif.trader.api.TradingExecutorApi;
+import artskif.trader.api.dto.FuturesChaseOrderRequest;
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
@@ -190,11 +191,76 @@ public class TradingController implements TradingExecutorApi {
         }
     }
 
+    @Override
+    @PostMapping("/futures/chase/long")
+    public TradingResponse<OrderExecutionResult> placeFuturesChaseLong(@RequestBody FuturesChaseOrderRequest request) {
+        log.info("📥 Получен запрос на фьючерсный Chase лонг: инструмент {}, размер: {} USDT, SL: {}%",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent());
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeFuturesChaseLong(
+                    symbol,
+                    request.positionSizeUsdt(),
+                    request.stopLossPercent()
+            );
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Фьючерсный Chase лонг-ордер размещён: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при размещении фьючерсного Chase лонг-ордера: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Неверный формат инструмента: {}", request.instrument());
+            return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при размещении фьючерсного Chase лонг-ордера: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @PostMapping("/futures/chase/short")
+    public TradingResponse<OrderExecutionResult> placeFuturesChaseShort(@RequestBody FuturesChaseOrderRequest request) {
+        log.info("📥 Получен запрос на фьючерсный Chase шорт: инструмент {}, размер: {} USDT, SL: {}%",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent());
+
+        try {
+            Symbol symbol = Symbol.fromInstrument(request.instrument());
+            OperationResult operationResult = orderManagerService.executeFuturesChaseShort(
+                    symbol,
+                    request.positionSizeUsdt(),
+                    request.stopLossPercent()
+            );
+
+            return operationResult.map(
+                    result -> {
+                        log.info("✅ Фьючерсный Chase шорт-ордер размещён: {}", result);
+                        return TradingResponse.success(result);
+                    },
+                    error -> {
+                        log.error("❌ Ошибка при размещении фьючерсного Chase шорт-ордера: {} - {}", error.code(), error.message());
+                        return TradingResponse.error(error.code(), error.message());
+                    }
+            );
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Неверный формат инструмента: {}", request.instrument());
+            return TradingResponse.error("INVALID_INSTRUMENT", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при размещении фьючерсного Chase шорт-ордера: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
     /**
      * Получает список всех активных (ожидающих) SWAP ордеров
-     * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
-     * @return Список активных SWAP ордеров
      */
+    @Override
     @GetMapping("/orders/pending")
     public TradingResponse<List<Map<String, Object>>> getPendingOrders(
             @RequestParam(value = "instId", required = false) String instId) {

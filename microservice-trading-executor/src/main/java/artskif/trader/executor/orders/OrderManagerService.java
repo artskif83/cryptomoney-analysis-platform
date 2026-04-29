@@ -112,6 +112,48 @@ public final class OrderManagerService {
     }
 
     /**
+     * Размещает Chase-ордер лонг на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса
+     * @return Результат операции
+     */
+    public OperationResult executeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
+                                                   BigDecimal stopLossPercent) throws Exception {
+        var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
+        lock.lock();
+        try {
+            log.debug("📈 Выполняется фьючерсный Chase лонг: {}, размер: {} USDT, SL: {}%",
+                    symbol.asPair(), positionSizeUsdt, stopLossPercent);
+            OrderExecutionResult result = exchange.placeFuturesChaseLong(symbol, positionSizeUsdt, stopLossPercent);
+            return OperationResult.success(result);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Размещает Chase-ордер шорт на фьючерсном рынке
+     * @param symbol Торговая пара
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса
+     * @return Результат операции
+     */
+    public OperationResult executeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
+                                                    BigDecimal stopLossPercent) throws Exception {
+        var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
+        lock.lock();
+        try {
+            log.debug("📉 Выполняется фьючерсный Chase шорт: {}, размер: {} USDT, SL: {}%",
+                    symbol.asPair(), positionSizeUsdt, stopLossPercent);
+            OrderExecutionResult result = exchange.placeFuturesChaseShort(symbol, positionSizeUsdt, stopLossPercent);
+            return OperationResult.success(result);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
      * Получает список всех активных (ожидающих) SWAP ордеров
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех SWAP ордеров
      * @return Список активных SWAP ордеров

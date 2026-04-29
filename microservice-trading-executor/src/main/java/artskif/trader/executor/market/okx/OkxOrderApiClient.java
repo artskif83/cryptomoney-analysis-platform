@@ -162,6 +162,189 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     }
 
     /**
+     * Размещает Chase-ордер лонг на фьючерсном рынке.
+     */
+    @Override
+    public OrderExecutionResult placeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
+                                                      BigDecimal stopLossPercent) throws Exception {
+        return placeFuturesChase(symbol, "buy", positionSizeUsdt, stopLossPercent);
+    }
+
+    /**
+     * Размещает Chase-ордер шорт на фьючерсном рынке.
+     */
+    @Override
+    public OrderExecutionResult placeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
+                                                       BigDecimal stopLossPercent) throws Exception {
+        return placeFuturesChase(symbol, "sell", positionSizeUsdt, stopLossPercent);
+    }
+
+    /**
+     * Размещает Chase-ордер (открытие позиции) + conditional Stop-Loss ордер (закрытие позиции)
+     * через /api/v5/trade/order-algo.
+     *
+     * Порядок:
+     *  1. Рассчитывается sz по текущей цене — используется в обоих ордерах.
+     *  2. Conditional SL-ордер (reduceOnly=true, противоположный side, posSide).
+     *  3. Chase-ордер (ordType=chase, тот же side и posSide).
+     *
+     * @param symbol           Торговая пара
+     * @param side             "buy" для лонга, "sell" для шорта
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent  Процент отклонения для стоп-лосса
+     * @return Результат размещения: algoId Chase-ордера, текущая цена, contractSize
+     */
+    private OrderExecutionResult placeFuturesChase(Symbol symbol, String side,
+                                                   BigDecimal positionSizeUsdt,
+                                                   BigDecimal stopLossPercent) throws Exception {
+        final String instId = symbol.base() + "-" + symbol.quote() + "-SWAP";
+
+        // 1. Получаем параметры инструмента
+        Map<String, Object> instrumentInfo = getInstrumentInfo(instId);
+        if (instrumentInfo == null) {
+            throw new RuntimeException("Не удалось получить параметры инструмента " + instId);
+        }
+
+        BigDecimal ctVal = parseBigDec(instrumentInfo.get("ctVal"));
+        BigDecimal lotSz = parseBigDec(instrumentInfo.get("lotSz"));
+
+        if (ctVal == null || lotSz == null) {
+            throw new RuntimeException("Некорректные параметры инструмента: ctVal=" + ctVal + ", lotSz=" + lotSz);
+        }
+
+        log.debug("📊 Параметры инструмента {}: ctVal={}, lotSz={}", instId, ctVal, lotSz);
+
+        // 2. Получаем текущую цену
+        BigDecimal currentPrice = getCurrentPrice(symbol);
+
+        // 3. Рассчитываем размер позиции в контрактах (идентично placeFuturesLimit)
+        BigDecimal volumeInBase = positionSizeUsdt.divide(currentPrice, 8, RoundingMode.DOWN);
+        BigDecimal contractsRaw = volumeInBase.divide(ctVal, 8, RoundingMode.DOWN);
+        BigDecimal contractSize = contractsRaw.divide(lotSz, 0, RoundingMode.DOWN).multiply(lotSz);
+
+        if (contractSize.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Размер позиции слишком мал: volumeInBase=" + volumeInBase +
+                    ", contractsRaw=" + contractsRaw + ", contractSize=" + contractSize);
+        }
+
+        log.debug("🎯 Chase-ордер {}: instId={}, currentPrice={}, contractSize={} контрактов",
+                side, instId, currentPrice, contractSize);
+
+        // 4. Рассчитываем цену стоп-лосса
+        BigDecimal slTriggerPx;
+        if ("buy".equals(side)) {
+            // Лонг: SL ниже текущей цены
+            slTriggerPx = currentPrice.multiply(
+                    BigDecimal.ONE.subtract(stopLossPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP))
+            );
+        } else {
+            // Шорт: SL выше текущей цены
+            slTriggerPx = currentPrice.multiply(
+                    BigDecimal.ONE.add(stopLossPercent.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP))
+            );
+        }
+
+        log.debug("💰 Цены: currentPrice={}, slTriggerPx={}", currentPrice, slTriggerPx);
+
+        // 5. Определяем posSide и противоположный side для SL
+        String posSide = "buy".equals(side) ? "long" : "short";
+        String slSide  = "buy".equals(side) ? "sell" : "buy";
+
+        String sz = contractSize.stripTrailingZeros().toPlainString();
+
+        // 6. Размещаем conditional Stop-Loss ордер
+        Map<String, Object> slBody = new LinkedHashMap<>();
+        slBody.put("instId", instId);
+        slBody.put("tdMode", "isolated");
+        slBody.put("side", slSide);
+        slBody.put("ordType", "conditional");
+        slBody.put("sz", sz);
+        slBody.put("reduceOnly", true);
+        slBody.put("slTriggerPx", slTriggerPx.stripTrailingZeros().toPlainString());
+        slBody.put("slTriggerPxType", "last");
+        slBody.put("slOrdPx", "-1");   // market-исполнение при срабатывании SL
+
+        String slRequestBody = mapper.writeValueAsString(slBody);
+        log.debug("🛡️ Размещение conditional SL-ордера: instId={}, slSide={}, posSide={}, sz={}, slTriggerPx={}",
+                instId, slSide, posSide, sz, slTriggerPx);
+
+        Map<String, Object> slResponse = executeRestRequest("POST", "/api/v5/trade/order-algo", slRequestBody);
+
+        if (!isSuccessAlgoResponse(slResponse)) {
+            throw new RuntimeException("Не удалось разместить SL-ордер. " + getAlgoErrorMessage(slResponse));
+        }
+
+        String slAlgoId = extractAlgoId(slResponse);
+        log.debug("✅ SL-ордер размещён, algoId={}", slAlgoId);
+
+        // 7. Размещаем Chase-ордер (открытие позиции)
+        Map<String, Object> chaseBody = new LinkedHashMap<>();
+        chaseBody.put("instId", instId);
+        chaseBody.put("tdMode", "isolated");
+        chaseBody.put("side", side);
+        chaseBody.put("ordType", "chase");
+        chaseBody.put("sz", sz);
+
+        String chaseRequestBody = mapper.writeValueAsString(chaseBody);
+        log.debug("🏃 Размещение Chase-ордера: instId={}, side={}, posSide={}, sz={}",
+                instId, side, posSide, sz);
+
+        Map<String, Object> chaseResponse = executeRestRequest("POST", "/api/v5/trade/order-algo", chaseRequestBody);
+
+        if (!isSuccessAlgoResponse(chaseResponse)) {
+            throw new RuntimeException("Не удалось разместить Chase-ордер. " + getAlgoErrorMessage(chaseResponse));
+        }
+
+        String chaseAlgoId = extractAlgoId(chaseResponse);
+        log.debug("✅ Chase-ордер размещён, algoId={}", chaseAlgoId);
+
+        log.info("✅ Фьючерсный Chase {} успешно создан: instId={}, sz={}, slTriggerPx={}, chaseAlgoId={}, slAlgoId={}",
+                side, instId, sz, slTriggerPx, chaseAlgoId, slAlgoId);
+
+        return new OrderExecutionResult(chaseAlgoId, currentPrice, contractSize);
+    }
+
+    private boolean isSuccessAlgoResponse(Map<String, Object> response) {
+        if (!isSuccessResponse(response)) return false;
+        if (response.get("data") instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) first;
+                return "0".equals(String.valueOf(m.getOrDefault("sCode", "-1")));
+            }
+        }
+        return false;
+    }
+
+    private String getAlgoErrorMessage(Map<String, Object> response) {
+        if (response.get("data") instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) first;
+                String sCode = String.valueOf(m.getOrDefault("sCode", ""));
+                String sMsg  = String.valueOf(m.getOrDefault("sMsg", ""));
+                return "sCode=" + sCode + ", sMsg=" + sMsg;
+            }
+        }
+        return getErrorMessage(response);
+    }
+
+    private String extractAlgoId(Map<String, Object> response) {
+        if (response.get("data") instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) first;
+                Object id = m.get("algoId");
+                if (id != null) return String.valueOf(id);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Размещает лимитный ордер на фьючерсном рынке с поддержкой stop-loss и take-profit.
      * @param symbol Торговая пара
      * @param side "buy" для лонг, "sell" для шорт

@@ -54,6 +54,28 @@ public interface OrdersClient {
                                                 BigDecimal stopLossPercent, BigDecimal takeProfitPercent) throws Exception;
 
     /**
+     * Размещает Chase-ордер лонг на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param symbol Торговая пара
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса (например, 2.0 для 2%)
+     * @return Результат размещения ордера (algoId Chase-ордера)
+     */
+    OrderExecutionResult placeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
+                                               BigDecimal stopLossPercent) throws Exception;
+
+    /**
+     * Размещает Chase-ордер шорт на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param symbol Торговая пара
+     * @param positionSizeUsdt Размер позиции в USDT
+     * @param stopLossPercent Процент отклонения для стоп-лосса (например, 2.0 для 2%)
+     * @return Результат размещения ордера (algoId Chase-ордера)
+     */
+    OrderExecutionResult placeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
+                                                BigDecimal stopLossPercent) throws Exception;
+
+    /**
      * Получает список всех активных (ожидающих) SWAP ордеров
      * @return Список активных SWAP ордеров
      */
