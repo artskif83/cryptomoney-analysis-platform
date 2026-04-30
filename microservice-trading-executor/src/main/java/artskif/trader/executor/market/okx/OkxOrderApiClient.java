@@ -227,7 +227,22 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             log.warn("⚠️ SL-ордер algoId={} не найден на бирже после размещения Chase-ордера algoId={}", slAlgoId, chaseAlgoId);
             throw new RuntimeException("SL-ордер algoId=" + slAlgoId + " не найден на бирже после размещения Chase-ордера.");
         }
-        log.debug("✅ SL-ордер подтверждён на бирже: algoId={}, state={}", slAlgoId, slOrderDetails.get("state"));
+
+        String slState = String.valueOf(slOrderDetails.getOrDefault("state", ""));
+        if (!"live".equals(slState)) {
+            log.warn("⚠️ SL-ордер algoId={} имеет неожиданный state='{}' — размещаем компенсационный ордер для закрытия позиции sz={}",
+                    slAlgoId, slState, sz);
+            String compensateSide = "buy".equals(side) ? "sell" : "buy";
+            try {
+                placeChaseAlgoOrder(instId, compensateSide, sz, slAlgoId);
+            } catch (Exception compensateEx) {
+                log.warn("⚠️ Не удалось разместить компенсационный ордер: {}", compensateEx.getMessage());
+            }
+            throw new RuntimeException("SL-ордер algoId=" + slAlgoId + " не активен (state=" + slState +
+                    "). Инициировано экстренное закрытие позиции.");
+        }
+
+        log.debug("✅ SL-ордер подтверждён на бирже: algoId={}, state={}", slAlgoId, slState);
 
         log.info("✅ Фьючерсный Chase {} успешно создан: instId={}, sz={}, slTriggerPx={}, chaseAlgoId={}, slAlgoId={}",
                 side, instId, sz, slTriggerPx, chaseAlgoId, slAlgoId);
