@@ -101,6 +101,21 @@ public class TradingController implements TradingExecutorApi {
     }
 
     @Override
+    @GetMapping("/balance/total-equity")
+    public TradingResponse<BigDecimal> getTotalEquityInUsdt() {
+        log.info("📥 Получен запрос на получение суммарного баланса счёта в USDT");
+
+        try {
+            BigDecimal equity = accountManagerService.getTotalEquityInUsdt();
+            log.info("✅ Суммарный баланс счёта: {} USDT", equity);
+            return TradingResponse.success(equity);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении суммарного баланса счёта: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    @Override
     @GetMapping("/price/{instrument}")
     public TradingResponse<BigDecimal> getCurrentPrice(@PathVariable("instrument") String instrument) {
         log.info("📥 Получен запрос на получение текущей цены для инструмента: {}", instrument);

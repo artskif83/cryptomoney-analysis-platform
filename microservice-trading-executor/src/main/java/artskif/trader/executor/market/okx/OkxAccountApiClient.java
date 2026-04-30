@@ -69,4 +69,49 @@ public class OkxAccountApiClient extends OkxApiClient implements AccountClient {
         log.warn("⚠️ {} баланс не найден в ответе API", currency);
         return BigDecimal.ZERO;
     }
+
+    @Override
+    public BigDecimal getTotalEquityInUsdt() throws Exception {
+        String endpoint = "/api/v5/account/balance";
+        Map<String, Object> response = executeRestRequest("GET", endpoint, null);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить баланс аккаунта. " + getErrorMessage(response));
+        }
+
+        if (response.containsKey("data") && response.get("data") instanceof List<?> dataList && !dataList.isEmpty()) {
+            Object first = dataList.getFirst();
+            if (first instanceof Map<?, ?> accountData) {
+                BigDecimal totalEq = parseBigDec(accountData.get("totalEq"));
+                if (totalEq != null) {
+                    log.info("💹 Суммарный баланс счёта (totalEq): {} USDT", totalEq);
+                    return totalEq;
+                }
+            }
+        }
+
+        log.warn("⚠️ totalEq не найден в ответе API, расчёт по деталям");
+        return calculateTotalEquityFromDetails(response);
+    }
+
+    /**
+     * Резервный расчёт: суммирует eqUsd по всем монетам из details, если totalEq недоступен.
+     */
+    private BigDecimal calculateTotalEquityFromDetails(Map<String, Object> response) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (response.get("data") instanceof List<?> dataList && !dataList.isEmpty()
+                && dataList.getFirst() instanceof Map<?, ?> accountData
+                && accountData.get("details") instanceof List<?> details) {
+            for (Object detailObj : details) {
+                if (detailObj instanceof Map<?, ?> detail) {
+                    BigDecimal eqUsd = parseBigDec(detail.get("eqUsd"));
+                    if (eqUsd != null) {
+                        total = total.add(eqUsd);
+                    }
+                }
+            }
+        }
+        log.info("💹 Суммарный баланс (расчёт по eqUsd): {} USDT", total);
+        return total;
+    }
 }

@@ -48,6 +48,14 @@ public interface TradingExecutorApi {
     TradingResponse<BigDecimal> getUsdtBalance();
 
     /**
+     * Получить полный баланс счёта в USDT с учётом всех монет и открытых позиций (unrealized PnL)
+     * @return суммарный эквивалент счёта в USDT или ошибка
+     */
+    @GET
+    @Path("/balance/total-equity")
+    TradingResponse<BigDecimal> getTotalEquityInUsdt();
+
+    /**
      * Получить текущую цену символа в квотируемой валюте
      * @param instrument Инструмент в формате BASE-QUOTE (например, BTC-USDT)
      * @return текущая цена или ошибка

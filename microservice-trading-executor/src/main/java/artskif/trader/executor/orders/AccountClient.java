@@ -16,5 +16,11 @@ public interface AccountClient {
      */
     BigDecimal getCurrencyBalance(String currency) throws Exception;
 
+    /**
+     * Возвращает полный баланс счёта в USDT с учётом всех монет и открытых позиций (unrealized PnL).
+     * Использует поле totalEq из /api/v5/account/balance.
+     * @return Суммарный эквивалент счёта в USDT
+     */
+    BigDecimal getTotalEquityInUsdt() throws Exception;
 
 }

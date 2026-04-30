@@ -32,6 +32,15 @@ public final class AccountManagerService {
     }
 
     /**
+     * Возвращает полный баланс счёта в USDT: все монеты + открытые позиции (unrealized PnL).
+     * @return Суммарный эквивалент счёта в USDT
+     */
+    public BigDecimal getTotalEquityInUsdt() throws Exception {
+        log.debug("💹 Запрос суммарного баланса счёта в USDT");
+        return accountClient.getTotalEquityInUsdt();
+    }
+
+    /**
      * Получает историю закрытых SWAP позиций по инструменту.
      *
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP"), может быть null
