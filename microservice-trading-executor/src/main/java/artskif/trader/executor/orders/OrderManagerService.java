@@ -119,13 +119,13 @@ public final class OrderManagerService {
      * @return Результат операции
      */
     public OperationResult executeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
-                                                   BigDecimal stopLossPercent) throws Exception {
+                                                   BigDecimal stopLossPercent, boolean reduceOnly) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("📈 Выполняется фьючерсный Chase лонг: {}, размер: {} USDT, SL: {}%",
-                    symbol.asPair(), positionSizeUsdt, stopLossPercent);
-            OrderExecutionResult result = exchange.placeFuturesChaseLong(symbol, positionSizeUsdt, stopLossPercent);
+            log.debug("📈 Выполняется фьючерсный Chase лонг: {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                    symbol.asPair(), positionSizeUsdt, stopLossPercent, reduceOnly);
+            OrderExecutionResult result = exchange.placeFuturesChaseLong(symbol, positionSizeUsdt, stopLossPercent, reduceOnly);
             return OperationResult.success(result);
         } finally {
             lock.unlock();
@@ -140,13 +140,13 @@ public final class OrderManagerService {
      * @return Результат операции
      */
     public OperationResult executeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
-                                                    BigDecimal stopLossPercent) throws Exception {
+                                                    BigDecimal stopLossPercent, boolean reduceOnly) throws Exception {
         var lock = symbolLocks.computeIfAbsent(symbol.asPair(), k -> new ReentrantLock());
         lock.lock();
         try {
-            log.debug("📉 Выполняется фьючерсный Chase шорт: {}, размер: {} USDT, SL: {}%",
-                    symbol.asPair(), positionSizeUsdt, stopLossPercent);
-            OrderExecutionResult result = exchange.placeFuturesChaseShort(symbol, positionSizeUsdt, stopLossPercent);
+            log.debug("📉 Выполняется фьючерсный Chase шорт: {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                    symbol.asPair(), positionSizeUsdt, stopLossPercent, reduceOnly);
+            OrderExecutionResult result = exchange.placeFuturesChaseShort(symbol, positionSizeUsdt, stopLossPercent, reduceOnly);
             return OperationResult.success(result);
         } finally {
             lock.unlock();

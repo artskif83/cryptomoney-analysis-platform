@@ -62,7 +62,7 @@ public interface OrdersClient {
      * @return Результат размещения ордера (algoId Chase-ордера)
      */
     OrderExecutionResult placeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
-                                               BigDecimal stopLossPercent) throws Exception;
+                                               BigDecimal stopLossPercent, boolean reduceOnly) throws Exception;
 
     /**
      * Размещает Chase-ордер шорт на фьючерсном рынке.
@@ -73,7 +73,7 @@ public interface OrdersClient {
      * @return Результат размещения ордера (algoId Chase-ордера)
      */
     OrderExecutionResult placeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
-                                                BigDecimal stopLossPercent) throws Exception;
+                                                BigDecimal stopLossPercent, boolean reduceOnly) throws Exception;
 
     /**
      * Получает список всех активных (ожидающих) SWAP ордеров

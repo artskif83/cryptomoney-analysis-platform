@@ -166,8 +166,8 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     public OrderExecutionResult placeFuturesChaseLong(Symbol symbol, BigDecimal positionSizeUsdt,
-                                                      BigDecimal stopLossPercent) throws Exception {
-        return placeFuturesChase(symbol, "buy", positionSizeUsdt, stopLossPercent);
+                                                      BigDecimal stopLossPercent, boolean reduceOnly) throws Exception {
+        return placeFuturesChase(symbol, "buy", positionSizeUsdt, stopLossPercent, reduceOnly);
     }
 
     /**
@@ -175,28 +175,33 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      */
     @Override
     public OrderExecutionResult placeFuturesChaseShort(Symbol symbol, BigDecimal positionSizeUsdt,
-                                                       BigDecimal stopLossPercent) throws Exception {
-        return placeFuturesChase(symbol, "sell", positionSizeUsdt, stopLossPercent);
+                                                       BigDecimal stopLossPercent, boolean reduceOnly) throws Exception {
+        return placeFuturesChase(symbol, "sell", positionSizeUsdt, stopLossPercent, reduceOnly);
     }
 
     /**
-     * Размещает Chase-ордер (открытие позиции) + conditional Stop-Loss ордер (закрытие позиции)
-     * через /api/v5/trade/order-algo.
+     * Размещает Chase-ордер (открытие/закрытие позиции).
      *
-     * Порядок:
-     *  1. Рассчитывается sz по текущей цене — используется в обоих ордерах.
+     * Если reduceOnly=false (стандартный режим):
+     *  1. Рассчитывается sz по текущей цене.
      *  2. Conditional SL-ордер (reduceOnly=true, противоположный side, posSide).
      *  3. Chase-ордер (ordType=chase, тот же side и posSide).
+     *
+     * Если reduceOnly=true (режим закрытия позиции):
+     *  1. Рассчитывается sz по текущей цене.
+     *  2. Chase-ордер размещается с флагом reduceOnly=true; SL-ордер не создаётся.
      *
      * @param symbol           Торговая пара
      * @param side             "buy" для лонга, "sell" для шорта
      * @param positionSizeUsdt Размер позиции в USDT
-     * @param stopLossPercent  Процент отклонения для стоп-лосса
+     * @param stopLossPercent  Процент отклонения для стоп-лосса (игнорируется при reduceOnly=true)
+     * @param reduceOnly       Если true — ордер только закрывает позицию, SL не создаётся
      * @return Результат размещения: algoId Chase-ордера, текущая цена, contractSize
      */
     private OrderExecutionResult placeFuturesChase(Symbol symbol, String side,
                                                    BigDecimal positionSizeUsdt,
-                                                   BigDecimal stopLossPercent) throws Exception {
+                                                   BigDecimal stopLossPercent,
+                                                   boolean reduceOnly) throws Exception {
         final String instId = symbol.base() + "-" + symbol.quote() + "-SWAP";
 
         // 1. Получаем текущую цену
@@ -206,8 +211,20 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
         BigDecimal contractSize = calculateContractSize(positionSizeUsdt, currentPrice, instId);
         String sz = contractSize.stripTrailingZeros().toPlainString();
 
-        log.debug("🎯 Chase-ордер {}: instId={}, currentPrice={}, contractSize={} контрактов",
-                side, instId, currentPrice, contractSize);
+        log.debug("🎯 Chase-ордер {} (reduceOnly={}): instId={}, currentPrice={}, contractSize={} контрактов",
+                side, reduceOnly, instId, currentPrice, contractSize);
+
+        if (reduceOnly) {
+            // Режим закрытия позиции: только Chase-ордер с reduceOnly=true, без SL
+            String chaseAlgoId = placeChaseAlgoOrder(instId, side, sz, null, true);
+
+            log.info("✅ Фьючерсный Chase {} (reduceOnly) успешно создан: instId={}, sz={}, chaseAlgoId={}",
+                    side, instId, sz, chaseAlgoId);
+
+            return new OrderExecutionResult(chaseAlgoId, currentPrice, contractSize);
+        }
+
+        // Стандартный режим: SL-ордер + Chase-ордер
 
         // 3. Рассчитываем цену стоп-лосса
         BigDecimal slTriggerPx = calculateStopLossPrice(currentPrice, stopLossPercent, side);
@@ -219,7 +236,7 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
         String slAlgoId = placeConditionalStopLossOrder(instId, slSide, sz, slTriggerPx);
 
         // 5. Размещаем Chase-ордер (открытие позиции)
-        String chaseAlgoId = placeChaseAlgoOrder(instId, side, sz, slAlgoId);
+        String chaseAlgoId = placeChaseAlgoOrder(instId, side, sz, slAlgoId, false);
 
         // 6. Убеждаемся что SL-ордер существует на бирже
         Map<String, Object> slOrderDetails = getAlgoOrderDetails(slAlgoId, instId);
@@ -234,12 +251,12 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
                     slAlgoId, slState, sz);
             String compensateSide = "buy".equals(side) ? "sell" : "buy";
             try {
-                placeChaseAlgoOrder(instId, compensateSide, sz, slAlgoId);
+                placeChaseAlgoOrder(instId, compensateSide, sz, slAlgoId, false);
             } catch (Exception compensateEx) {
                 log.warn("⚠️ Не удалось разместить компенсационный ордер: {}", compensateEx.getMessage());
             }
             throw new RuntimeException("SL-ордер algoId=" + slAlgoId + " не активен (state=" + slState +
-                    "). Инициировано экстренное закрытие позиции.");
+                    "). Инициировано экстренное открытие компенсирующего ордера на ту же сумму.");
         }
 
         log.debug("✅ SL-ордер подтверждён на бирже: algoId={}, state={}", slAlgoId, slState);
@@ -338,31 +355,36 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
      * @return algoId размещённого Chase-ордера
      */
     private String placeChaseAlgoOrder(String instId, String side, String sz,
-                                       String slAlgoId) throws Exception {
+                                       String slAlgoId, boolean reduceOnly) throws Exception {
         Map<String, Object> chaseBody = new LinkedHashMap<>();
         chaseBody.put("instId", instId);
         chaseBody.put("tdMode", "isolated");
         chaseBody.put("side", side);
         chaseBody.put("ordType", "chase");
         chaseBody.put("sz", sz);
+        if (reduceOnly) {
+            chaseBody.put("reduceOnly", true);
+        }
 
         String requestBody = mapper.writeValueAsString(chaseBody);
-        log.debug("🏃 Размещение Chase-ордера: instId={}, side={}, sz={}", instId, side, sz);
+        log.debug("🏃 Размещение Chase-ордера: instId={}, side={}, sz={}, reduceOnly={}", instId, side, sz, reduceOnly);
 
         Map<String, Object> chaseResponse = executeRestRequest("POST", "/api/v5/trade/order-algo", requestBody);
 
         if (!isSuccessAlgoResponse(chaseResponse)) {
             String chaseError = getAlgoErrorMessage(chaseResponse);
-            try {
-                boolean cancelled = cancelAlgoOrder(slAlgoId, instId);
-                if (cancelled) {
-                    log.warn("⚠️ Chase-ордер не удалось разместить ({}). SL-ордер algoId={} успешно отменён.", chaseError, slAlgoId);
-                } else {
-                    log.warn("⚠️ Chase-ордер не удалось разместить ({}). Не удалось отменить SL-ордер algoId={}!", chaseError, slAlgoId);
+            if (slAlgoId != null) {
+                try {
+                    boolean cancelled = cancelAlgoOrder(slAlgoId, instId);
+                    if (cancelled) {
+                        log.warn("⚠️ Chase-ордер не удалось разместить ({}). SL-ордер algoId={} успешно отменён.", chaseError, slAlgoId);
+                    } else {
+                        log.warn("⚠️ Chase-ордер не удалось разместить ({}). Не удалось отменить SL-ордер algoId={}!", chaseError, slAlgoId);
+                    }
+                } catch (Exception cancelEx) {
+                    log.warn("⚠️ Chase-ордер не удалось разместить ({}). Ошибка при отмене SL-ордера algoId={}: {}",
+                            chaseError, slAlgoId, cancelEx.getMessage());
                 }
-            } catch (Exception cancelEx) {
-                log.warn("⚠️ Chase-ордер не удалось разместить ({}). Ошибка при отмене SL-ордера algoId={}: {}",
-                        chaseError, slAlgoId, cancelEx.getMessage());
             }
             throw new RuntimeException("Не удалось разместить Chase-ордер. " + chaseError);
         }

@@ -209,15 +209,16 @@ public class TradingController implements TradingExecutorApi {
     @Override
     @PostMapping("/futures/chase/long")
     public TradingResponse<OrderExecutionResult> placeFuturesChaseLong(@RequestBody FuturesChaseOrderRequest request) {
-        log.info("📥 Получен запрос на фьючерсный Chase лонг: инструмент {}, размер: {} USDT, SL: {}%",
-                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent());
+        log.info("📥 Получен запрос на фьючерсный Chase лонг: инструмент {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent(), request.isReduceOnly());
 
         try {
             Symbol symbol = Symbol.fromInstrument(request.instrument());
             OperationResult operationResult = orderManagerService.executeFuturesChaseLong(
                     symbol,
                     request.positionSizeUsdt(),
-                    request.stopLossPercent()
+                    request.stopLossPercent(),
+                    request.isReduceOnly()
             );
 
             return operationResult.map(
@@ -242,15 +243,16 @@ public class TradingController implements TradingExecutorApi {
     @Override
     @PostMapping("/futures/chase/short")
     public TradingResponse<OrderExecutionResult> placeFuturesChaseShort(@RequestBody FuturesChaseOrderRequest request) {
-        log.info("📥 Получен запрос на фьючерсный Chase шорт: инструмент {}, размер: {} USDT, SL: {}%",
-                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent());
+        log.info("📥 Получен запрос на фьючерсный Chase шорт: инструмент {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent(), request.isReduceOnly());
 
         try {
             Symbol symbol = Symbol.fromInstrument(request.instrument());
             OperationResult operationResult = orderManagerService.executeFuturesChaseShort(
                     symbol,
                     request.positionSizeUsdt(),
-                    request.stopLossPercent()
+                    request.stopLossPercent(),
+                    request.isReduceOnly()
             );
 
             return operationResult.map(
