@@ -114,33 +114,17 @@ public class AccountStateMonitor {
 
             // Преобразуем в Entity
             List<Position> positions = positionsData.stream()
-                    .map(positionMapper::mapToEntity)
+                    .map(data -> positionMapper.mapToEntity(data, "1m"))
                     .collect(Collectors.toList());
 
             // Сохраняем позиции в БД
             saveLivePositions(positions);
 
-            // Вычисляем Unix timestamp 24 часа назад в миллисекундах
-            String before24h = String.valueOf(Instant.now().minusSeconds(24 * 60 * 60).toEpochMilli());
-
-            // Получаем историю позиций за последние 24 часа
-            List<Map<String, Object>> positionsHistoryData = tradingExecutorService.getPositionsHistory("BTC-USDT", before24h);
-            log.debug("📜 Количество записей истории позиций за 24 часа: {}", positionsHistoryData.size());
-
-            // Преобразуем историю позиций в Entity
-            List<Position> positionsHistory = positionsHistoryData.stream()
-                    .map(positionMapper::mapToHistoryEntity)
-                    .collect(Collectors.toList());
-
-            // Сохраняем историю позиций в БД со статусом CLOSED
-            savePositionsHistory(positionsHistory);
-
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
                     Instant.now(),
                     pendingOrders,
-                    positions,
-                    positionsHistory
+                    positions
             );
 
             // Сохраняем снимок и поднимаем флаг актуальности
@@ -208,18 +192,6 @@ public class AccountStateMonitor {
         }
     }
 
-    /**
-     * Сохраняет историю позиций в БД со статусом CLOSED.
-     * Не перезаписывает активные (LIVE) позиции историческими данными.
-     */
-    private void savePositionsHistory(List<Position> positionsHistory) {
-        try {
-            positionRepository.saveAllHistory(positionsHistory);
-            log.debug("✅ Обработано записей истории позиций: {}", positionsHistory.size());
-        } catch (Exception e) {
-            log.error("❌ Ошибка при сохранении истории позиций в БД", e);
-        }
-    }
 
     /**
      * Принудительный сбор данных (вне расписания)

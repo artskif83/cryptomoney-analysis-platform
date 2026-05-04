@@ -130,35 +130,28 @@ public class TradeEventManager extends AbstractTradeEventManager {
         if ((!hasAnyPosition || (hasOppositePosition && farEnough) && canCreate)) {
             log.debug("📊 Нет открытых позиций или есть давняя противоположная позиция, открываем новый ордер {}", dirLabel);
 
-            // Проверяем лимит убыточных позиций за последние 24 часа по истории из снимка
-            long losingCount = snapshot.getPositionsHistory() == null ? 0L :
-                    snapshot.getPositionsHistory().stream()
-                            .filter(p -> p.realizedPnl != null && p.realizedPnl.compareTo(BigDecimal.ZERO) < 0)
-                            .count();
-            int maxLosing = brokerConfig.getMaxLosingPositionsPerDay();
-            if (losingCount >= maxLosing) {
-                log.warn("🚫 Достигнут лимит убыточных позиций за последние 24 часа: {} из {}. Новая позиция не открывается.",
-                        losingCount, maxLosing);
-                return;
-            }
 
-            // Проверяем минимальный интервал между позициями по cTime последней позиции из истории
-            if (snapshot.getPositionsHistory() != null && !snapshot.getPositionsHistory().isEmpty()) {
-                Optional<Instant> lastPositionTime = snapshot.getPositionsHistory().stream()
-                        .map(p -> p.cTime)
-                        .filter(Objects::nonNull)
-                        .max(Instant::compareTo);
 
-                if (lastPositionTime.isPresent()) {
-                    long minutesSinceLast = Duration.between(lastPositionTime.get(), Instant.now()).toMinutes();
-                    int minMinutes = brokerConfig.getMinutesBetweenPositions();
-                    if (minutesSinceLast < minMinutes) {
-                        log.warn("⏳ С момента последней позиции прошло {} мин., минимум {} мин. Новая позиция не открывается.",
-                                minutesSinceLast, minMinutes);
-                        return;
-                    }
-                }
-            }
+
+
+            // Проверяем минимальный интервал между ордерами
+            // TODO: Сделать минимальный интервал между открытием ордеров
+//            if (snapshot.getPositionsHistory() != null && !snapshot.getPositionsHistory().isEmpty()) {
+//                Optional<Instant> lastPositionTime = snapshot.getPositionsHistory().stream()
+//                        .map(p -> p.cTime)
+//                        .filter(Objects::nonNull)
+//                        .max(Instant::compareTo);
+//
+//                if (lastPositionTime.isPresent()) {
+//                    long minutesSinceLast = Duration.between(lastPositionTime.get(), Instant.now()).toMinutes();
+//                    int minMinutes = brokerConfig.getMinutesBetweenPositions();
+//                    if (minutesSinceLast < minMinutes) {
+//                        log.warn("⏳ С момента последней позиции прошло {} мин., минимум {} мин. Новая позиция не открывается.",
+//                                minutesSinceLast, minMinutes);
+//                        return;
+//                    }
+//                }
+//            }
 
             FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
                     event.instrument().replace("-SWAP", ""),

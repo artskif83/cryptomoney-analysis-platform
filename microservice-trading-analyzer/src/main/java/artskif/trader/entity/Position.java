@@ -16,13 +16,7 @@ import java.time.Instant;
  * Когда будем подключать сохранение позиций, вероятно, стоит уточнить контракт и PK.
  */
 @Entity
-@Table(
-        name = "positions",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_positions_pos_id_c_time",
-                columnNames = {"pos_id", "c_time"}
-        )
-)
+@Table(name = "positions")
 public class Position extends PanacheEntityBase {
 
     /**
@@ -113,6 +107,24 @@ public class Position extends PanacheEntityBase {
      */
     @Column(name = "realized_pnl", precision = 24, scale = 8)
     public BigDecimal realizedPnl;
+
+    /**
+     * Размер позиции в USDT (notionalUsd из OKX API).
+     */
+    @Column(name = "notional_usd", precision = 18, scale = 8)
+    public BigDecimal notionalUsd;
+
+    /**
+     * Таймфрейм свечи, к которой привязана позиция (например, "1m").
+     */
+    @Column(name = "tf", nullable = false, length = 10)
+    public String tf;
+
+    /**
+     * Временная метка, соответствующая свече (текущее время, округлённое до целой минуты вниз).
+     */
+    @Column(name = "ts", nullable = false)
+    public Instant ts;
 
     /**
      * Время создания позиции/события в источнике (если доступно)

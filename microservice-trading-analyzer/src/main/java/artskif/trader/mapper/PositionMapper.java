@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -100,7 +101,7 @@ public class PositionMapper {
         return "net";
     }
 
-    public Position mapToEntity(Map<String, Object> data) {
+    public Position mapToEntity(Map<String, Object> data, String tf) {
         try {
             Position position = new Position();
 
@@ -138,6 +139,10 @@ public class PositionMapper {
 
             // Реализованный PnL из поля realizedPnl (для live позиций — текущий)
             position.realizedPnl = getBigDecimalValue(data, "realizedPnl");
+
+            position.notionalUsd = getBigDecimalValue(data, "notionalUsd");
+            position.tf = tf;
+            position.ts = Instant.now().truncatedTo(ChronoUnit.MINUTES);
 
             position.cTime = getInstantFromMillis(data, "cTime");
             position.uTime = getInstantFromMillis(data, "uTime");
