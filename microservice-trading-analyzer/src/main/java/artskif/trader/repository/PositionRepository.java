@@ -42,10 +42,19 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
     }
 
     /**
-     * Сохранить/обновить позиции по составному ключу (posId, cTime).
+     * Найти позицию по уникальному ключу (ts, tf).
+     */
+    public Position findByTsAndTf(Instant ts, String tf) {
+        return find("ts = ?1 and tf = ?2", ts, tf).firstResult();
+    }
+
+    /**
+     * Сохранить/обновить живые позиции по уникальному ключу (ts, tf).
+     * Если запись с такими ts и tf уже существует — обновляет все поля.
+     * Если нет — вставляет новую запись со статусом LIVE.
      */
     @Transactional
-    public void saveAll(List<Position> positions) {
+    public void saveAllByTsTf(List<Position> positions) {
         try {
             if (positions.isEmpty()) {
                 LOG.debug("Список позиций пуст, нечего сохранять");
@@ -55,7 +64,7 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
             int updated = 0;
             int inserted = 0;
             for (Position position : positions) {
-                Position existing = findByPosIdAndCTime(position.posId, position.cTime);
+                Position existing = findByTsAndTf(position.ts, position.tf);
                 if (existing != null) {
                     position.id = existing.id;
                     position.createdAt = existing.createdAt;
@@ -129,39 +138,6 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
         }
     }
 
-    /**
-     * Помечает позиции статусом CLOSED, если они не присутствуют в текущем снимке с биржи.
-     * Затрагиваются только позиции с состоянием, отличным от CLOSED (т.е. LIVE).
-     * Текущие позиции идентифицируются составным ключом (posId, cTime).
-     *
-     * @param positionKeys список строк вида "posId::cTimeEpochMilli" для текущих позиций
-     * @return количество позиций, помеченных как CLOSED
-     */
-    @Transactional
-    public long markAsClosedNotIn(List<String> positionKeys) {
-        // Берём только не-CLOSED позиции (т.е. LIVE)
-        List<Position> livePositions = list("state != ?1", OrderState.CLOSED);
-
-        if (livePositions.isEmpty()) {
-            return 0;
-        }
-
-        long marked = 0;
-        for (Position pos : livePositions) {
-            String key = buildPositionKey(pos.posId, pos.cTime);
-            if (!positionKeys.contains(key)) {
-                pos.state = OrderState.CLOSED;
-                pos.updatedAt = Instant.now();
-                getEntityManager().merge(pos);
-                marked++;
-            }
-        }
-
-        if (marked > 0) {
-            LOG.debugf("🔒 Помечено CLOSED позиций, отсутствующих на бирже: %d", marked);
-        }
-        return marked;
-    }
 
     /**
      * Подсчитывает количество убыточных закрытых позиций за последние 24 часа.
@@ -175,10 +151,5 @@ public class PositionRepository implements PanacheRepositoryBase<Position, Long>
                 OrderState.CLOSED, BigDecimal.ZERO, since);
     }
 
-    /**
-     * Строит составной ключ для идентификации позиции.
-     */
-    public static String buildPositionKey(String posId, Instant cTime) {
-        return posId + "::" + (cTime != null ? cTime.toEpochMilli() : "null");
-    }
 }
+

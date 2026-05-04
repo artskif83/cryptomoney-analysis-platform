@@ -170,23 +170,13 @@ public class AccountStateMonitor {
 
     /**
      * Сохраняет список открытых позиций в БД.
-     * Удаляет LIVE-позиции, которых нет в текущем списке (синхронизация с биржей).
+     * Каждая позиция upsert-ится по уникальному ключу (ts, tf):
+     * если запись уже существует — обновляется, иначе вставляется новая.
      */
     private void saveLivePositions(List<Position> positions) {
         try {
-            // Собираем составные ключи (posId::cTime) для синхронизации с биржей
-            List<String> currentPositionKeys = positions.stream()
-                    .map(p -> PositionRepository.buildPositionKey(p.posId, p.cTime))
-                    .collect(Collectors.toList());
-
-            if (!positions.isEmpty()) {
-                positionRepository.saveAll(positions);
-                log.debug("✅ Обработано открытых позиций: {}", positions.size());
-            }
-
-            // Помечаем как CLOSED позиции, которых нет в текущем снимке
-            positionRepository.markAsClosedNotIn(currentPositionKeys);
-
+            positionRepository.saveAllByTsTf(positions);
+            log.debug("✅ Обработано открытых позиций: {}", positions.size());
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении позиций в БД", e);
         }

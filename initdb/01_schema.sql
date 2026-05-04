@@ -175,5 +175,10 @@ CREATE TABLE IF NOT EXISTS positions
     c_time        timestamp,
     u_time        timestamp,
     created_at    timestamp    NOT NULL DEFAULT NOW(),
-    updated_at    timestamp    NOT NULL DEFAULT NOW()
+    updated_at    timestamp    NOT NULL DEFAULT NOW(),
+    CONSTRAINT positions_ts_tf_unique UNIQUE (ts, tf)
 );
+
+-- Индекс для JOIN-ов со свечами по (ts, tf)
+CREATE INDEX IF NOT EXISTS positions_ts_tf_idx ON positions (tf, ts DESC);
+
