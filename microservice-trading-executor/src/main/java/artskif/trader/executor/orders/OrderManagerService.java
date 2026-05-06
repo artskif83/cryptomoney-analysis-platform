@@ -164,6 +164,18 @@ public final class OrderManagerService {
     }
 
     /**
+     * Получает список всех активных алго-ордеров через /api/v5/trade/orders-algo-pending
+     * @param instId  Опциональный идентификатор инструмента (например, "BTC-USDT") или null для всех инструментов
+     * @param ordType Тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap"
+     * @return Список активных алго-ордеров
+     */
+    public List<Map<String, Object>> getPendingAlgoOrders(String instId, String ordType) throws Exception {
+        log.debug("📋 Получение списка активных алго-ордеров (ordType={}){}", ordType,
+                instId != null ? " для " + instId : "");
+        return exchange.getPendingAlgoOrders(instId, ordType);
+    }
+
+    /**
      * Отменяет ордера по заданным критериям.
      * @param ordId   Опциональный биржевой идентификатор ордера (ordId)
      * @param clOrdId Опциональный клиентский идентификатор ордера (clOrdId)

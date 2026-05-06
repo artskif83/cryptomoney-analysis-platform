@@ -89,6 +89,15 @@ public interface OrdersClient {
     java.util.List<java.util.Map<String, Object>> getPendingLimitSwapOrders(String instId) throws Exception;
 
     /**
+     * Получает список всех активных (ожидающих) алго-ордеров через /api/v5/trade/orders-algo-pending.
+     * @param instId   Опциональный идентификатор инструмента (например, "BTC-USDT"); если null — по всем инструментам
+     * @param ordType  Тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap".
+     *                 Обязательный параметр согласно OKX API.
+     * @return Список активных алго-ордеров или пустой список
+     */
+    java.util.List<java.util.Map<String, Object>> getPendingAlgoOrders(String instId, String ordType) throws Exception;
+
+    /**
      * Отменяет все текущие ордера или конкретный ордер по его ID.
      * <ul>
      *   <li>Оба null — отменяются все активные ордера</li>

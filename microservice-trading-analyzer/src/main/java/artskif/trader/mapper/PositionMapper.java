@@ -22,85 +22,6 @@ public class PositionMapper {
 
     private static final Logger log = LoggerFactory.getLogger(PositionMapper.class);
 
-    /**
-     * Маппит историческую позицию (из /account/positions-history) принудительно со статусом CLOSED.
-     * Поля соответствуют ответу OKX API: /api/v5/account/positions-history
-     */
-    public Position mapToHistoryEntity(Map<String, Object> data) {
-        try {
-            Position position = new Position();
-
-            // Детерминированный primary key
-            position.posId = getStringValue(data, "posId");
-
-            position.instId = getStringValue(data, "instId");
-            position.instType = getStringValue(data, "instType");
-            position.tdMode = getStringValue(data, "mgnMode"); // isolated/cross
-
-            // В history API направление хранится в поле "direction": long/short
-            // "posSide" тоже присутствует, но может быть "net"
-            String direction = getStringValue(data, "direction");
-            String posSide = getStringValue(data, "posSide");
-            position.posSide = resolveHistoryPosSide(direction, posSide);
-
-            // Размер: closeTotalPos — суммарный закрытый объём (абсолютное значение)
-            position.sz = getBigDecimalValue(data, "closeTotalPos");
-
-            // Цена: closeAvgPx — средняя цена закрытия
-            BigDecimal closeAvgPx = getBigDecimalValue(data, "closeAvgPx");
-            BigDecimal openAvgPx = getBigDecimalValue(data, "openAvgPx");
-            // Основной ценой считаем openAvgPx, fallback — openAvgPx
-            position.px = openAvgPx != null ? openAvgPx : closeAvgPx;
-
-            position.lever = getBigDecimalValue(data, "lever");
-
-            // SL триггера в history нет в closeOrderAlgo, поле triggerPx может присутствовать
-            BigDecimal triggerPx = getBigDecimalValue(data, "triggerPx");
-            position.slTriggerPx = triggerPx;
-
-            // Реализованный PnL из поля realizedPnl
-            position.realizedPnl = getBigDecimalValue(data, "realizedPnl");
-
-            position.cTime = getInstantFromMillis(data, "cTime");
-            position.uTime = getInstantFromMillis(data, "uTime");
-
-            // История — всегда закрытая позиция
-            position.state = OrderState.CLOSED;
-
-            if (position.posId == null || position.posId.isBlank()) {
-                throw new IllegalArgumentException("posId не может быть null/пустым");
-            }
-            if (position.instId == null || position.instId.isBlank()) {
-                log.debug("ClosedPosition posId={} без instId: data={}", position.posId, data);
-            }
-
-            log.debug("📦 История позиции смаплена: posId={}, instId={}, direction={}, closeAvgPx={}, sz={}",
-                    position.posId, position.instId, position.posSide, position.px, position.sz);
-
-            return position;
-        } catch (Exception e) {
-            log.error("❌ Ошибка при преобразовании Map в закрытую Position: {}", data, e);
-            throw new RuntimeException("Ошибка преобразования данных исторической позиции", e);
-        }
-    }
-
-    /**
-     * Определяет направление позиции для history API.
-     * Приоритет: поле "direction" (long/short), fallback — "posSide".
-     */
-    private String resolveHistoryPosSide(String direction, String posSide) {
-        if (direction != null && !direction.isBlank()) {
-            String normalized = direction.trim().toLowerCase();
-            if ("long".equals(normalized) || "short".equals(normalized)) {
-                return normalized;
-            }
-        }
-        if (posSide != null && !posSide.isBlank()) {
-            return posSide.trim().toLowerCase();
-        }
-        return "net";
-    }
-
     public Position mapToEntity(Map<String, Object> data, String tf) {
         try {
             Position position = new Position();
@@ -134,8 +55,6 @@ public class PositionMapper {
 
             // side храним как posSide (long/short/net)
             position.posSide = resolvedPosSide;
-
-            position.slTriggerPx = extractStopLossPrice(data);
 
             // Реализованный PnL из поля realizedPnl (для live позиций — текущий)
             position.realizedPnl = getBigDecimalValue(data, "realizedPnl");
@@ -199,42 +118,6 @@ public class PositionMapper {
             return OrderState.CLOSED;
         }
         return pos.compareTo(BigDecimal.ZERO) == 0 ? OrderState.CLOSED : OrderState.LIVE;
-    }
-
-    /**
-     * Извлекает цену триггера стоп-лосса из closeOrderAlgo.
-     * OKX возвращает массив SL/TP алго-ордеров в поле closeOrderAlgo позиции.
-     * Берём первую запись, в которой заполнено slTriggerPx.
-     *
-     * @param data данные позиции из API OKX
-     * @return цена триггера стоп-лосса или null, если не найдена
-     */
-    private BigDecimal extractStopLossPrice(Map<String, Object> data) {
-        try {
-            Object closeOrderAlgoObj = data.get("closeOrderAlgo");
-
-            if (closeOrderAlgoObj == null) {
-                return null;
-            }
-
-            if (closeOrderAlgoObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> closeOrderAlgo = (List<Map<String, Object>>) closeOrderAlgoObj;
-
-                for (Map<String, Object> algoOrd : closeOrderAlgo) {
-                    BigDecimal slTriggerPx = getBigDecimalValue(algoOrd, "slTriggerPx");
-                    if (slTriggerPx != null) {
-                        log.debug("📍 Найден SL позиции с ценой триггера: {}", slTriggerPx);
-                        return slTriggerPx;
-                    }
-                }
-            }
-
-            return null;
-        } catch (Exception e) {
-            log.warn("⚠️ Ошибка при извлечении SL из closeOrderAlgo: {}", e.getMessage());
-            return null;
-        }
     }
 
     private String getStringValue(Map<String, Object> data, String key) {

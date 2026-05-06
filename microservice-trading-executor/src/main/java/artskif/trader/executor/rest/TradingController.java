@@ -296,6 +296,27 @@ public class TradingController implements TradingExecutorApi {
     }
 
     /**
+     * Получает список всех активных (ожидающих) алго-ордеров.
+     * Использует OKX API: GET /api/v5/trade/orders-algo-pending
+     */
+    @Override
+    @GetMapping("/orders/algo/pending")
+    public TradingResponse<List<Map<String, Object>>> getPendingAlgoOrders(
+            @RequestParam(value = "instId", required = false) String instId,
+            @RequestParam(value = "ordType", defaultValue = "conditional") String ordType) {
+        log.info("📥 Получен запрос на получение списка активных алго-ордеров (ordType={}){}",
+                ordType, instId != null ? " для " + instId : "");
+        try {
+            List<Map<String, Object>> orders = orderManagerService.getPendingAlgoOrders(instId, ordType);
+            log.info("✅ Получено {} активных алго-ордеров (ordType={})", orders.size(), ordType);
+            return TradingResponse.success(orders);
+        } catch (Exception e) {
+            log.error("❌ Ошибка при получении списка активных алго-ордеров: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    /**
      * Отменяет ордера по заданным критериям.
      * @param ordId   Опциональный биржевой идентификатор ордера
      * @param clOrdId Опциональный клиентский идентификатор ордера

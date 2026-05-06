@@ -651,6 +651,55 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
     }
 
     /**
+     * Получает список всех активных (ожидающих) алго-ордеров через /api/v5/trade/orders-algo-pending.
+     * <p>Параметр {@code ordType} является обязательным согласно OKX API.</p>
+     *
+     * @param instId  Опциональный идентификатор инструмента (например, "BTC-USDT").
+     *                Если не null — автоматически добавляется суффикс "-SWAP".
+     * @param ordType Тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop",
+     *                "iceberg", "twap". Обязательный параметр.
+     * @return Список активных алго-ордеров или пустой список
+     */
+    @Override
+    public List<Map<String, Object>> getPendingAlgoOrders(String instId, String ordType) throws Exception {
+        if (ordType == null || ordType.isBlank()) {
+            throw new IllegalArgumentException("ordType является обязательным параметром для /api/v5/trade/orders-algo-pending");
+        }
+
+        StringBuilder endpoint = new StringBuilder("/api/v5/trade/orders-algo-pending?instType=SWAP");
+        endpoint.append("&ordType=").append(ordType);
+
+        if (instId != null && !instId.isBlank()) {
+            // Добавляем суффикс -SWAP, если его ещё нет
+            String fullInstId = instId.endsWith("-SWAP") ? instId : instId + "-SWAP";
+            endpoint.append("&instId=").append(fullInstId);
+        }
+
+        Map<String, Object> response = executeRestRequest("GET", endpoint.toString(), null);
+
+        if (!isSuccessResponse(response)) {
+            throw new RuntimeException("Не удалось получить список активных алго-ордеров. " + getErrorMessage(response));
+        }
+
+        if (response.containsKey("data") && response.get("data") instanceof List<?> list) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> order = (Map<String, Object>) m;
+                    result.add(order);
+                }
+            }
+            String instInfo = instId != null ? " для " + instId : "";
+            log.debug("📋 Получено {} активных алго-ордеров (ordType={}){}", result.size(), ordType, instInfo);
+            return result;
+        }
+
+        log.warn("⚠️ Активные алго-ордера отсутствуют или данные некорректны (ordType={})", ordType);
+        return Collections.emptyList();
+    }
+
+    /**
      * Отменяет ордера по заданным критериям.
      * <ul>
      *   <li>Оба null — отменяются все активные ордера</li>

@@ -112,6 +112,18 @@ public interface TradingExecutorApi {
     TradingResponse<List<Map<String, Object>>> getPendingOrders(@QueryParam("instId") String instId);
 
     /**
+     * Получает список всех активных (ожидающих) алго-ордеров через /api/v5/trade/orders-algo-pending
+     * @param instId  Опциональный идентификатор инструмента (например, "BTC-USDT")
+     * @param ordType Тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap"
+     * @return Список активных алго-ордеров
+     */
+    @GET
+    @Path("/orders/algo/pending")
+    TradingResponse<List<Map<String, Object>>> getPendingAlgoOrders(
+            @QueryParam("instId") String instId,
+            @QueryParam("ordType") String ordType);
+
+    /**
      * Отменяет ордера по заданным критериям.
      * @param ordId   Опциональный биржевой идентификатор ордера
      * @param clOrdId Опциональный клиентский идентификатор ордера

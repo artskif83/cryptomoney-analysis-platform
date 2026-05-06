@@ -191,6 +191,30 @@ public class TradingExecutorService {
     }
 
     /**
+     * Получить список активных (ожидающих) алго-ордеров
+     * @param instId  опциональный идентификатор инструмента (например, "BTC-USDT")
+     * @param ordType тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap"
+     * @return список активных алго-ордеров
+     * @throws TradingExecutionException если произошла ошибка при получении ордеров
+     */
+    public List<Map<String, Object>> getPendingAlgoOrders(String instId, String ordType) {
+        log.debug("🔄 Запрос списка активных алго-ордеров (ordType={}) для: {}", ordType,
+                instId != null ? instId : "всех инструментов");
+
+        TradingResponse<List<Map<String, Object>>> response = executorClient.getPendingAlgoOrders(instId, ordType);
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при получении алго-ордеров: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        List<Map<String, Object>> orders = response.result();
+        log.debug("✅ Получено активных алго-ордеров: {}", orders.size());
+
+        return orders;
+    }
+
+    /**
      * Отменить ордера по заданным критериям.
      * @param ordId   опциональный биржевой идентификатор ордера
      * @param clOrdId опциональный клиентский идентификатор ордера

@@ -1,5 +1,6 @@
 package artskif.trader.broker.client;
 
+import artskif.trader.api.dto.FuturesChaseOrderRequest;
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
@@ -47,6 +48,14 @@ public interface TradingExecutorClient {
     TradingResponse<BigDecimal> getUsdtBalance();
 
     /**
+     * Получить полный баланс счёта в USDT с учётом всех монет и открытых позиций (unrealized PnL)
+     * @return суммарный эквивалент счёта в USDT или ошибка
+     */
+    @GET
+    @Path("/balance/total-equity")
+    TradingResponse<BigDecimal> getTotalEquityInUsdt();
+
+    /**
      * Получить текущую цену символа в квотируемой валюте
      * @param instrument Инструмент в формате BASE-QUOTE (например, BTC-USDT)
      * @return текущая цена или ошибка
@@ -74,6 +83,26 @@ public interface TradingExecutorClient {
     TradingResponse<OrderExecutionResult> placeFuturesLimitShort(FuturesLimitOrderRequest request);
 
     /**
+     * Разместить Chase-ордер лонг на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/chase/long")
+    TradingResponse<OrderExecutionResult> placeFuturesChaseLong(FuturesChaseOrderRequest request);
+
+    /**
+     * Разместить Chase-ордер шорт на фьючерсном рынке.
+     * Chase-ордер открывает позицию, conditional SL закрывает её.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера или ошибка
+     */
+    @POST
+    @Path("/futures/chase/short")
+    TradingResponse<OrderExecutionResult> placeFuturesChaseShort(FuturesChaseOrderRequest request);
+
+    /**
      * Получает список всех активных (ожидающих) SWAP ордеров
      * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
      * @return Список активных SWAP ордеров
@@ -81,6 +110,18 @@ public interface TradingExecutorClient {
     @GET
     @Path("/orders/pending")
     TradingResponse<List<Map<String, Object>>> getPendingOrders(@QueryParam("instId") String instId);
+
+    /**
+     * Получает список всех активных (ожидающих) алго-ордеров через /api/v5/trade/orders-algo-pending
+     * @param instId  Опциональный идентификатор инструмента (например, "BTC-USDT")
+     * @param ordType Тип алго-ордера: "conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap"
+     * @return Список активных алго-ордеров
+     */
+    @GET
+    @Path("/orders/algo/pending")
+    TradingResponse<List<Map<String, Object>>> getPendingAlgoOrders(
+            @QueryParam("instId") String instId,
+            @QueryParam("ordType") String ordType);
 
     /**
      * Отменяет ордера по заданным критериям.
