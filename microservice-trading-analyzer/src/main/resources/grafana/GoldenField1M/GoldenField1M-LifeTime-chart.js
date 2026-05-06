@@ -18,11 +18,7 @@ const closes = col("close");
 let basePrice = closes[closes.length - 1]; // например, последний close
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
-const rsi14Raw = col("metric_rsi_14_1m_on_5m", 0);
-const shortLevelRaw = col("metric_short_trend_1m", 0);
-const shortStopLossRaw = col("metric_short_stop_los_1m", 0);
-const longLevelRaw = col("metric_long_trend_1m", 0);
-const longStopLossRaw = col("metric_long_stop_los_1m", 0);
+const rsi14Raw = col("metric_rsi_14_1m", 0);
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -33,23 +29,14 @@ const eventStopLoss = col("stop_loss_percentage", 1);
 const eventTakeProfit = col("take_profit_percentage", 1);
 const eventIsTest = col("is_test", 1);
 
-// ===== Pending Orders (из третьего query) =====
-const orderTimes = col("time", 2);
-const orderEndTimes = col("end_time", 2);
-const orderIds = col("ord_id", 2);
-const orderPrices = col("order_price", 2);
-const stopLossPrices = col("stop_loss_price", 2);
-const orderPosSides = col("pos_side", 2);
-const orderStates = col("state", 2);
-
-// ===== Positions (из четвёртого query) =====
-const posTimes = col("time", 3);
-const posEndTimes = col("end_time", 3);
-const posIds = col("pos_id", 3);
-const posPrices = col("position_price", 3);
-const posSlPrices = col("stop_loss_price", 3);
-const posPosSides = col("pos_side", 3);
-const posStates = col("state", 3);
+// ===== Positions (из третьего query) =====
+const posTimes = col("time", 2);
+const posEndTimes = col("end_time", 2);
+const posIds = col("pos_id", 2);
+const posPrices = col("position_price", 2);
+const posSlPrices = col("stop_loss_price", 2);
+const posPosSides = col("pos_side", 2);
+const posStates = col("state", 2);
 
 if (!times.length) return {};
 
@@ -89,39 +76,6 @@ const rsi14 = times.map((t, i) => [
     rsi14Raw[i] == null ? null : rsi14Raw[i]
 ]);
 
-// ===== Зона сопротивления (short level + stop loss band) =====
-// Рисуем отдельный прямоугольник для каждой свечи, чтобы зона точно
-// следовала значениям short_trend (верх) и stop_loss (низ).
-const shortBandSegments = [];
-
-for (let i = 0; i < times.length; i++) {
-    const rl = shortLevelRaw[i];
-    const sl = shortStopLossRaw[i];
-    if (rl == null || sl == null) continue;
-
-    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
-
-    shortBandSegments.push([
-        { xAxis: times[i], yAxis: Math.min(rl, sl) },
-        { xAxis: tEnd, yAxis: Math.max(rl, sl) }
-    ]);
-}
-
-// ===== Зона поддержки (long level + stop loss band) =====
-const longBandSegments = [];
-
-for (let i = 0; i < times.length; i++) {
-    const rl = longLevelRaw[i];
-    const sl = longStopLossRaw[i];
-    if (rl == null || sl == null) continue;
-
-    const tEnd = i + 1 < times.length ? times[i + 1] : times[i];
-
-    longBandSegments.push([
-        { xAxis: times[i], yAxis: Math.min(rl, sl) },
-        { xAxis: tEnd, yAxis: Math.max(rl, sl) }
-    ]);
-}
 
 // ===== Торговые события - подготовка данных =====
 const tradeEventsLong = [];
@@ -129,8 +83,7 @@ const tradeEventsShort = [];
 
 for (let i = 0; i < eventTimes.length; i++) {
     const eventPrice = eventPrices[i];
-    const stopLossPercent = eventStopLoss[i];
-    const direction = eventDirections[i];
+        const direction = eventDirections[i];
     let displayPrice = eventPrice;
 
     if (direction === 'SHORT') {
@@ -156,57 +109,6 @@ for (let i = 0; i < eventTimes.length; i++) {
     }
 }
 
-
-// ===== Pending Orders - подготовка линий =====
-const orderLines = [];
-const stopLossLines = [];
-
-for (let i = 0; i < orderTimes.length; i++) {
-    const startTime = snapToCandle(orderTimes[i]);
-    const endTime = snapToCandle(orderEndTimes[i]);
-    const orderPrice = orderPrices[i];
-    const stopLossPrice = stopLossPrices[i];
-    const orderId = orderIds[i];
-    const posSide = orderPosSides[i];
-    const state = orderStates[i];
-
-    // Цвет линии ордера зависит от pos_side: long → зелёный, short → красный, net → жёлтый
-    const orderLineColor = posSide === 'long' ? '#00FF66'
-        : posSide === 'short' ? '#FF1A1A'
-            : '#FFD700'; // net
-
-    // Создаем линию для ордера (пунктирная, цвет по pos_side)
-    if (orderPrice != null && startTime != null && endTime != null) {
-        orderLines.push({
-            id: `order_${orderId}`,
-            data: [
-                [startTime, orderPrice],
-                [endTime, orderPrice]
-            ],
-            orderId: orderId,
-            posSide: posSide,
-            state: state,
-            price: orderPrice,
-            lineColor: orderLineColor,
-            startTime: startTime
-        });
-    }
-
-    // Создаем линию для стоп-лосса (красная пунктирная)
-    if (stopLossPrice != null && startTime != null && endTime != null) {
-        stopLossLines.push({
-            id: `sl_${orderId}`,
-            data: [
-                [startTime, stopLossPrice],
-                [endTime, stopLossPrice]
-            ],
-            orderId: orderId,
-            posSide: posSide,
-            state: state,
-            price: stopLossPrice
-        });
-    }
-}
 
 
 // ===== Positions - подготовка линий =====
@@ -431,44 +333,6 @@ return {
             }
         },
 
-        // --- Зона сопротивления (short level ↔ stop loss) ---
-        {
-            name: 'Short Band',
-            type: 'line',
-            data: [],
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            silent: false,
-            z: 2,
-            markArea: {
-                silent: true,
-                itemStyle: {
-                    color: 'rgba(255, 77, 77, 0.18)',
-                    borderWidth: 0
-                },
-                data: shortBandSegments
-            }
-        },
-
-        // --- Зона поддержки (long level ↔ stop loss) ---
-        {
-            name: 'Long Band',
-            type: 'line',
-            data: [],
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            silent: false,
-            z: 2,
-            markArea: {
-                silent: true,
-                itemStyle: {
-                    color: 'rgba(76, 175, 80, 0.18)',
-                    borderWidth: 0
-                },
-                data: longBandSegments
-            }
-        },
-
 
         // --- Double MA value 1m on 1h ---
         {
@@ -565,57 +429,6 @@ return {
             z: 10
         },
 
-        // --- Pending Orders (пунктирные линии, цвет зависит от pos_side) ---
-        ...orderLines.map(order => ({
-            name: `Order ${order.orderId}`,
-            type: 'line',
-            data: order.data,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            lineStyle: {
-                color: order.lineColor,
-                width: 1,
-                type: 'dashed',
-                opacity: 1
-            },
-            z: 5,
-            tooltip: {
-                formatter: () => {
-                    return `<b>Pending Order</b><br/>
-                            ID: ${order.orderId}<br/>
-                            Pos Side: ${order.posSide}<br/>
-                            State: ${order.state}<br/>
-                            Price: ${Number(order.price).toFixed(4)}`;
-                }
-            }
-        })),
-
-        // --- Stop Loss (красные пунктирные линии) ---
-        ...stopLossLines.map(sl => ({
-            name: `Stop Loss ${sl.orderId}`,
-            type: 'line',
-            data: sl.data,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            lineStyle: {
-                color: '#FF1A1A',
-                width: 1,
-                type: 'dashed',
-                opacity: 1
-            },
-            z: 5,
-            tooltip: {
-                formatter: () => {
-                    return `<b>Stop Loss</b><br/>
-                            Order ID: ${sl.orderId}<br/>
-                            Pos Side: ${sl.posSide}<br/>
-                            State: ${sl.state}<br/>
-                            Price: ${Number(sl.price).toFixed(4)}`;
-                }
-            }
-        })),
 
         // --- Positions (сплошные линии, цвет зависит от pos_side) ---
         ...positionLines.map(pos => ({
@@ -721,13 +534,9 @@ return {
                 p.seriesName === 'Trade Event SHORT'
             );
 
-            // Pending Orders на данном таймстемпе
-            const orderPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Order '));
-            const stopLossPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Stop Loss '));
 
             // Positions на данном таймстемпе
             const positionPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Position ') && !p.seriesName.startsWith('Position SL '));
-            const positionSlPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Position SL '));
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -805,35 +614,6 @@ return {
                 }
             }
 
-            // Pending Orders
-            if (orderPoints.length > 0) {
-                // Группируем стоп-лоссы по orderId (из stopLossLines)
-                const slByOrderId = {};
-                stopLossLines.forEach(s => { slByOrderId[s.orderId] = s.price; });
-
-                // Собираем все мета-данные ордеров, попавших в тултип (без дублей по orderId)
-                const seenOrderIds = new Set();
-                const visibleOrders = [];
-                orderPoints.forEach(p => {
-                    const meta = orderLines.find(o => `Order ${o.orderId}` === p.seriesName);
-                    if (!meta || seenOrderIds.has(meta.orderId)) return;
-                    seenOrderIds.add(meta.orderId);
-                    visibleOrders.push(meta);
-                });
-
-                // Показываем только самый новый ордер (с максимальным startTime)
-                if (visibleOrders.length > 0) {
-                    const newest = visibleOrders.reduce((a, b) => (b.startTime > a.startTime ? b : a));
-                    const sideColor = newest.posSide === 'long' ? '#00FF66' : newest.posSide === 'short' ? '#FF4D4D' : '#FFD700';
-                    lines.push('');
-                    lines.push(`<b style="color: ${sideColor};">📋 Pending Order</b>`);
-                    lines.push(`ID: ${newest.orderId}`);
-                    lines.push(`Order Price: ${Number(newest.price).toFixed(4)}`);
-                    if (slByOrderId[newest.orderId] != null) {
-                        lines.push(`Stop Loss Price: ${Number(slByOrderId[newest.orderId]).toFixed(4)}`);
-                    }
-                }
-            }
 
             // Positions
             if (positionPoints.length > 0) {
