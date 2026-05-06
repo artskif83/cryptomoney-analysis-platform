@@ -31,12 +31,9 @@ const eventIsTest = col("is_test", 1);
 
 // ===== Positions (из третьего query) =====
 const posTimes = col("time", 2);
-const posEndTimes = col("end_time", 2);
-const posIds = col("pos_id", 2);
 const posPrices = col("position_price", 2);
-const posSlPrices = col("stop_loss_price", 2);
+const posNotionalUsd = col("notional_usd", 2);
 const posPosSides = col("pos_side", 2);
-const posStates = col("state", 2);
 
 if (!times.length) return {};
 
@@ -113,51 +110,31 @@ for (let i = 0; i < eventTimes.length; i++) {
 
 // ===== Positions - подготовка линий =====
 const positionLines = [];
-const positionSlLines = [];
 
 for (let i = 0; i < posTimes.length; i++) {
     const startTime = snapToCandle(posTimes[i]);
-    const endTime = snapToCandle(posEndTimes[i]);
+    const endTime = startTime + 60000; // одна свеча = 1 минута
     const posPrice = posPrices[i];
-    const posSlPrice = posSlPrices[i];
-    const posId = posIds[i];
     const posSide = posPosSides[i];
-    const posState = posStates[i];
+    const notionalUsd = posNotionalUsd[i];
 
-    // Цвет линии позиции: long → зелёный, short → красный, net → жёлтый
+    // Цвет линии позиции: long → зелёный, short → красный
     const posLineColor = posSide === 'long' ? '#00FF66'
         : posSide === 'short' ? '#FF1A1A'
             : '#FFD700'; // net
 
     // Сплошная линия для позиции
-    if (posPrice != null && startTime != null && endTime != null) {
+    if (posPrice != null && startTime != null) {
         positionLines.push({
-            id: `pos_${posId}`,
             data: [
                 [startTime, posPrice],
                 [endTime, posPrice]
             ],
-            posId: posId,
             posSide: posSide,
-            state: posState,
             price: posPrice,
+            notionalUsd: notionalUsd,
             lineColor: posLineColor,
             startTime: startTime
-        });
-    }
-
-    // Пунктирная линия для стоп-лосса позиции
-    if (posSlPrice != null && startTime != null && endTime != null) {
-        positionSlLines.push({
-            id: `pos_sl_${posId}`,
-            data: [
-                [startTime, posSlPrice],
-                [endTime, posSlPrice]
-            ],
-            posId: posId,
-            posSide: posSide,
-            state: posState,
-            price: posSlPrice
         });
     }
 }
@@ -431,8 +408,8 @@ return {
 
 
         // --- Positions (сплошные линии, цвет зависит от pos_side) ---
-        ...positionLines.map(pos => ({
-            name: `Position ${pos.posId}`,
+        ...positionLines.map((pos, idx) => ({
+            name: `Position_${idx}`,
             type: 'line',
             data: pos.data,
             xAxisIndex: 0,
@@ -447,37 +424,11 @@ return {
             z: 6,
             tooltip: {
                 formatter: () => {
-                    return `<b>Position</b><br/>
-                            ID: ${pos.posId}<br/>
-                            Pos Side: ${pos.posSide}<br/>
-                            State: ${pos.state}<br/>
-                            Price: ${Number(pos.price).toFixed(4)}`;
-                }
-            }
-        })),
-
-        // --- Position Stop Loss (красные пунктирные линии) ---
-        ...positionSlLines.map(sl => ({
-            name: `Position SL ${sl.posId}`,
-            type: 'line',
-            data: sl.data,
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            symbol: 'none',
-            lineStyle: {
-                color: '#FF1A1A',
-                width: 1,
-                type: 'dashed',
-                opacity: 1
-            },
-            z: 6,
-            tooltip: {
-                formatter: () => {
-                    return `<b>Position Stop Loss</b><br/>
-                            Pos ID: ${sl.posId}<br/>
-                            Pos Side: ${sl.posSide}<br/>
-                            State: ${sl.state}<br/>
-                            Price: ${Number(sl.price).toFixed(4)}`;
+                    const sideColor = pos.posSide === 'long' ? '#00FF66' : pos.posSide === 'short' ? '#FF4D4D' : '#FFD700';
+                    return `<b style="color:${sideColor};">📌 Position</b><br/>
+                            Side: ${pos.posSide}<br/>
+                            Price: ${Number(pos.price).toFixed(4)}<br/>
+                            Size: $${pos.notionalUsd != null ? Number(pos.notionalUsd).toFixed(2) : 'N/A'}`;
                 }
             }
         }))
@@ -536,7 +487,7 @@ return {
 
 
             // Positions на данном таймстемпе
-            const positionPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Position ') && !p.seriesName.startsWith('Position SL '));
+            const positionPoints = list.filter(p => p.seriesName && p.seriesName.startsWith('Position_'));
 
             // Расчет теней и изменений
             let upperShadowPct = null;
@@ -617,31 +568,18 @@ return {
 
             // Positions
             if (positionPoints.length > 0) {
-                const posSlByPosId = {};
-                positionSlLines.forEach(s => { posSlByPosId[s.posId] = s.price; });
-
-                // Собираем все мета-данные позиций (без дублей по posId)
-                const seenPosIds = new Set();
-                const visiblePositions = [];
+                // Собираем мета-данные позиций по индексу серии
                 positionPoints.forEach(p => {
-                    const meta = positionLines.find(pos => `Position ${pos.posId}` === p.seriesName);
-                    if (!meta || seenPosIds.has(meta.posId)) return;
-                    seenPosIds.add(meta.posId);
-                    visiblePositions.push(meta);
-                });
-
-                // Показываем только самую новую позицию (с максимальным startTime)
-                if (visiblePositions.length > 0) {
-                    const newest = visiblePositions.reduce((a, b) => (b.startTime > a.startTime ? b : a));
-                    const sideColor = newest.posSide === 'long' ? '#00FF66' : newest.posSide === 'short' ? '#FF4D4D' : '#FFD700';
+                    const idx = parseInt(p.seriesName.replace('Position_', ''), 10);
+                    const meta = positionLines[idx];
+                    if (!meta) return;
+                    const sideColor = meta.posSide === 'long' ? '#00FF66' : meta.posSide === 'short' ? '#FF4D4D' : '#FFD700';
                     lines.push('');
                     lines.push(`<b style="color: ${sideColor};">📌 Position</b>`);
-                    lines.push(`ID: ${newest.posId}`);
-                    lines.push(`Position Price: ${Number(newest.price).toFixed(4)}`);
-                    if (posSlByPosId[newest.posId] != null) {
-                        lines.push(`Stop Loss Price: ${Number(posSlByPosId[newest.posId]).toFixed(4)}`);
-                    }
-                }
+                    lines.push(`Side: ${meta.posSide}`);
+                    lines.push(`Price: ${Number(meta.price).toFixed(4)}`);
+                    lines.push(`Size: $${meta.notionalUsd != null ? Number(meta.notionalUsd).toFixed(2) : 'N/A'}`);
+                });
             }
 
             return lines.join('<br/>');
