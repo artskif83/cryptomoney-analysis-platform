@@ -109,32 +109,69 @@ for (let i = 0; i < eventTimes.length; i++) {
 
 
 // ===== Positions - подготовка линий =====
+// Группируем последовательные записи позиций в непрерывные сегменты.
+// Новый сегмент начинается при разрыве > 60 секунд ИЛИ смене pos_side.
 const positionLines = [];
 
-for (let i = 0; i < posTimes.length; i++) {
-    const startTime = snapToCandle(posTimes[i]);
-    const endTime = startTime + 60000; // одна свеча = 1 минута
-    const posPrice = posPrices[i];
-    const posSide = posPosSides[i];
-    const notionalUsd = posNotionalUsd[i];
+if (posTimes.length > 0) {
+    let segData = [];
+    let segSide = posPosSides[0];
+    let segNotional = posNotionalUsd[0];
+    let segPrice = posPrices[0];
 
-    // Цвет линии позиции: long → зелёный, short → красный
-    const posLineColor = posSide === 'long' ? '#00FF66'
-        : posSide === 'short' ? '#FF1A1A'
-            : '#FFD700'; // net
+    for (let i = 0; i < posTimes.length; i++) {
+        const ts = snapToCandle(posTimes[i]);
+        const price = posPrices[i];
+        const side = posPosSides[i];
+        const notional = posNotionalUsd[i];
 
-    // Сплошная линия для позиции
-    if (posPrice != null && startTime != null) {
+        if (price == null || ts == null) continue;
+
+        const prevTs = segData.length > 0 ? segData[segData.length - 1][0] : null;
+        const gap = prevTs != null ? (ts - prevTs) : 0;
+        const sideChanged = side !== segSide;
+
+        // Разрыв больше одной свечи (с запасом 1.5x) или смена стороны → закрываем сегмент
+        if (segData.length > 0 && (gap > 90000 || sideChanged)) {
+            // Продлеваем последнюю точку на одну свечу вперёд
+            const lastPt = segData[segData.length - 1];
+            segData.push([lastPt[0] + 60000, lastPt[1]]);
+
+            const lineColor = segSide === 'long' ? '#00FF66'
+                : segSide === 'short' ? '#FF1A1A'
+                    : '#FFD700';
+            positionLines.push({
+                data: [...segData],
+                posSide: segSide,
+                price: segPrice,
+                notionalUsd: segNotional,
+                lineColor: lineColor
+            });
+            segData = [];
+        }
+
+        if (segData.length === 0) {
+            segSide = side;
+            segNotional = notional;
+            segPrice = price;
+        }
+
+        segData.push([ts, price]);
+    }
+
+    // Закрываем последний сегмент
+    if (segData.length > 0) {
+        const lastPt = segData[segData.length - 1];
+        segData.push([lastPt[0] + 60000, lastPt[1]]);
+        const lineColor = segSide === 'long' ? '#00FF66'
+            : segSide === 'short' ? '#FF1A1A'
+                : '#FFD700';
         positionLines.push({
-            data: [
-                [startTime, posPrice],
-                [endTime, posPrice]
-            ],
-            posSide: posSide,
-            price: posPrice,
-            notionalUsd: notionalUsd,
-            lineColor: posLineColor,
-            startTime: startTime
+            data: [...segData],
+            posSide: segSide,
+            price: segPrice,
+            notionalUsd: segNotional,
+            lineColor: lineColor
         });
     }
 }
@@ -417,7 +454,7 @@ return {
             symbol: 'none',
             lineStyle: {
                 color: pos.lineColor,
-                width: 1,
+                width: 2,
                 type: 'solid',
                 opacity: 1
             },
