@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 /**
@@ -24,12 +25,12 @@ public class PendingOrderMapper {
      * @param data данные ордера из API OKX
      * @return сущность PendingOrder
      */
-    public PendingOrder mapToEntity(Map<String, Object> data) {
+    public PendingOrder mapToEntity(Map<String, Object> data, String tf) {
         try {
             PendingOrder order = new PendingOrder();
 
             // Обязательные поля
-            order.ordId = getStringValue(data, "ordId"); // Первичный ключ - обязательно
+            order.ordId = getStringValue(data, "algoId"); // Первичный ключ - обязательно
             order.clOrdId = getStringValue(data, "clOrdId"); // Опциональное поле
             order.instId = getStringValue(data, "instId");
             order.instType = getStringValue(data, "instType");
@@ -49,8 +50,11 @@ public class PendingOrderMapper {
             order.state = OrderState.fromString(getStringValue(data, "state"));
             order.ordType = getStringValue(data, "ordType");
 
-            // Обработка стоп-лосса из attachAlgoOrds
-            order.slTriggerPx = extractStopLossPrice(data);
+            order.slTriggerPx = getBigDecimalValue(data, "slTriggerPx");
+
+            // Таймфрейм и временная метка (округлённая до минуты — как у Position)
+            order.tf = tf;
+            order.ts = Instant.now().truncatedTo(ChronoUnit.MINUTES);
 
             // Время создания и обновления из API OKX (преобразуем из миллисекунд в Instant)
             order.cTime = getInstantFromMillis(data, "cTime");
@@ -128,42 +132,6 @@ public class PendingOrderMapper {
 
         log.warn("⚠️ Неожиданный тип данных для поля '{}': {}", key, value.getClass().getName());
         return null;
-    }
-
-    /**
-     * Извлекает цену срабатывания стоп-лосса из attachAlgoOrds
-     * Берем первую попавшуюся запись где заполнено значение slTriggerPx
-     *
-     * @param data данные ордера из API OKX
-     * @return цена триггера стоп-лосса или null если нет
-     */
-    private BigDecimal extractStopLossPrice(Map<String, Object> data) {
-        try {
-            Object attachAlgoOrdsObj = data.get("attachAlgoOrds");
-
-            if (attachAlgoOrdsObj == null) {
-                return null;
-            }
-
-            if (attachAlgoOrdsObj instanceof java.util.List) {
-                @SuppressWarnings("unchecked")
-                java.util.List<Map<String, Object>> attachAlgoOrds = (java.util.List<Map<String, Object>>) attachAlgoOrdsObj;
-
-                // Ищем первую запись с заполненным slTriggerPx
-                for (Map<String, Object> algoOrd : attachAlgoOrds) {
-                    BigDecimal slTriggerPx = getBigDecimalValue(algoOrd, "slTriggerPx");
-                    if (slTriggerPx != null) {
-                        log.debug("📍 Найден SL с ценой триггера: {}", slTriggerPx);
-                        return slTriggerPx;
-                    }
-                }
-            }
-
-            return null;
-        } catch (Exception e) {
-            log.warn("⚠️ Ошибка при извлечении SL из attachAlgoOrds: {}", e.getMessage());
-            return null;
-        }
     }
 
     /**

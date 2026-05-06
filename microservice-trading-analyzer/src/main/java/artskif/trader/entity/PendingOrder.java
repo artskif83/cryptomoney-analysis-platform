@@ -7,17 +7,25 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Сущность для хранения активных (ожидающих) ордеров из OKX
- * Соответствует данным из API OKX /api/v5/trade/orders-pending
+ * Сущность для хранения активных (ожидающих) ордеров из OKX.
+ * Каждая запись соответствует одной временной метке (ts, tf).
+ * ord_id может дублироваться в разные метки времени.
  */
 @Entity
 @Table(name = "pending_orders")
 public class PendingOrder extends PanacheEntityBase {
 
     /**
-     * ID ордера на бирже (ordId) - первичный ключ
+     * Суррогатный первичный ключ — генерируется БД.
      */
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    public Long id;
+
+    /**
+     * ID ордера на бирже (ordId) — не уникальный, может повторяться в разные метки времени
+     */
     @Column(name = "ord_id", nullable = false, length = 128)
     public String ordId;
 
@@ -42,7 +50,7 @@ public class PendingOrder extends PanacheEntityBase {
     /**
      * Цена ордера (лимитная цена)
      */
-    @Column(name = "px", nullable = false, precision = 18, scale = 8)
+    @Column(name = "px", precision = 18, scale = 8)
     public BigDecimal px;
 
     /**
@@ -103,6 +111,18 @@ public class PendingOrder extends PanacheEntityBase {
     public BigDecimal slTriggerPx;
 
     /**
+     * Таймфрейм свечи, к которой привязан ордер (например, "1m").
+     */
+    @Column(name = "tf", nullable = false, length = 10)
+    public String tf;
+
+    /**
+     * Временная метка, соответствующая свече (текущее время, округлённое до целой минуты вниз).
+     */
+    @Column(name = "ts", nullable = false)
+    public Instant ts;
+
+    /**
      * Время создания ордера из API OKX
      */
     @Column(name = "c_time")
@@ -128,6 +148,8 @@ public class PendingOrder extends PanacheEntityBase {
             String tdMode,
             BigDecimal lever,
             BigDecimal slTriggerPx,
+            String tf,
+            Instant ts,
             Instant cTime,
             Instant uTime
     ) {
@@ -141,6 +163,8 @@ public class PendingOrder extends PanacheEntityBase {
         this.tdMode = tdMode;
         this.lever = lever;
         this.slTriggerPx = slTriggerPx;
+        this.tf = tf;
+        this.ts = ts;
         this.cTime = cTime;
         this.uTime = uTime;
         this.state = OrderState.LIVE; // По умолчанию активный
@@ -159,7 +183,8 @@ public class PendingOrder extends PanacheEntityBase {
     @Override
     public String toString() {
         return "PendingOrder{" +
-                "ordId='" + ordId + '\'' +
+                "id=" + id +
+                ", ordId='" + ordId + '\'' +
                 ", clOrdId='" + clOrdId + '\'' +
                 ", instId='" + instId + '\'' +
                 ", instType='" + instType + '\'' +
@@ -171,6 +196,8 @@ public class PendingOrder extends PanacheEntityBase {
                 ", state='" + state + '\'' +
                 ", ordType='" + ordType + '\'' +
                 ", slTriggerPx=" + slTriggerPx +
+                ", tf='" + tf + '\'' +
+                ", ts=" + ts +
                 ", cTime=" + cTime +
                 ", uTime=" + uTime +
                 ", createdAt=" + createdAt +

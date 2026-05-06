@@ -1,6 +1,5 @@
 package artskif.trader.repository;
 
-import artskif.trader.entity.OrderState;
 import artskif.trader.entity.PendingOrder;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,10 +10,11 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Репозиторий для работы с активными (ожидающими) ордерами
+ * Репозиторий для работы с активными (ожидающими) ордерами.
+ * Уникальность записи определяется комбинацией (ts, tf) — один снимок на временную метку.
  */
 @ApplicationScoped
-public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrder, String> {
+public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrder, Long> {
 
     private static final Logger LOG = Logger.getLogger(PendingOrderRepository.class);
 
@@ -38,13 +38,19 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
     }
 
     /**
-     * Сохраняет или обновляет список ордеров
-     * Использует ordId как первичный ключ для проверки существования
-     *
-     * @param orders список ордеров
+     * Найти запись ордеров по уникальному ключу (ts, tf).
+     */
+    public PendingOrder findByTsAndTf(Instant ts, String tf) {
+        return find("ts = ?1 and tf = ?2", ts, tf).firstResult();
+    }
+
+    /**
+     * Сохранить/обновить снимок ожидающих ордеров по уникальному ключу (ts, tf).
+     * Если запись с такими ts и tf уже существует — обновляет все поля.
+     * Если нет — вставляет новую запись со статусом LIVE.
      */
     @Transactional
-    public void saveAll(List<PendingOrder> orders) {
+    public void saveAllByTsTf(List<PendingOrder> orders) {
         try {
             if (orders.isEmpty()) {
                 LOG.debug("Список ордеров пуст, нечего сохранять");
@@ -54,24 +60,22 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
             int updated = 0;
             int inserted = 0;
             for (PendingOrder order : orders) {
-                PendingOrder existing = findById(order.ordId);
+                PendingOrder existing = findByTsAndTf(order.ts, order.tf);
                 if (existing != null) {
-                    // Обновляем timestamp и сохраняем
-                    order.createdAt = existing.createdAt; // сохраняем оригинальное время создания
+                    order.id = existing.id;
+                    order.createdAt = existing.createdAt;
                     order.updatedAt = Instant.now();
-                    // Hibernate/Panache автоматически обновит все поля managed entity
                     getEntityManager().merge(order);
                     updated++;
                 } else {
-                    // Вставляем новый ордер
-                    // Временные метки
                     order.createdAt = Instant.now();
                     order.updatedAt = Instant.now();
                     persist(order);
                     inserted++;
                 }
             }
-            LOG.debugf("✅ Ордеров обновлено: %d, вставлено: %d", updated, inserted);
+
+            LOG.debugf("✅ Ордеры обработаны: обновлено=%d, вставлено=%d", updated, inserted);
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении списка ордеров");
             throw e;
@@ -79,74 +83,16 @@ public class PendingOrderRepository implements PanacheRepositoryBase<PendingOrde
     }
 
     /**
-     * Находит все активные ордера для указанного инструмента
-     *
-     * @param instId идентификатор инструмента
-     * @return список ордеров
+     * Находит все ордера для указанного инструмента
      */
     public List<PendingOrder> findByInstrument(String instId) {
         return list("instId", instId);
     }
 
     /**
-     * Находит все активные ордера указанного типа инструмента
-     *
-     * @param instType тип инструмента (например, SWAP)
-     * @return список ордеров
+     * Находит все ордера указанного типа инструмента
      */
     public List<PendingOrder> findByInstrumentType(String instType) {
         return list("instType", instType);
-    }
-
-    /**
-     * Находит ордер по ID ордера
-     *
-     * @param ordId ID ордера
-     * @return ордер или null
-     */
-    public PendingOrder findByOrdId(String ordId) {
-        return findById(ordId);
-    }
-
-    /**
-     * Помечает ордера как CLOSED, которых нет в списке (используется для синхронизации)
-     *
-     * @param ordIds список ID ордеров, которые должны остаться активными
-     * @return количество помеченных ордеров
-     */
-    @Transactional
-    public long markAsClosedNotIn(List<String> ordIds) {
-        if (ordIds.isEmpty()) {
-            // Если список пуст, помечаем все как закрытые
-            long updated = update("state = ?1 where state != ?2", OrderState.CLOSED, OrderState.CLOSED);
-            if (updated > 0) {
-                LOG.debugf("🔒 Существующих ордеров нет. Помечено ордеров в БД как CLOSED: %d", updated);
-            }
-            return updated;
-        }
-        long updated = update("state = ?1 where ordId not in ?2 and state != ?3",
-                OrderState.CLOSED, ordIds, OrderState.CLOSED);
-        if (updated > 0) {
-            LOG.debugf("🔒 В БД есть открытые ордера которых нет на бирже. Помечено ордеров как CLOSED: %d", updated);
-        }
-        return updated;
-    }
-
-    /**
-     * Получить все активные ордера (не закрытые)
-     *
-     * @return список активных ордеров
-     */
-    public List<PendingOrder> findAllActive() {
-        return list("state != ?1", OrderState.CLOSED);
-    }
-
-    /**
-     * Получить все закрытые ордера
-     *
-     * @return список закрытых ордеров
-     */
-    public List<PendingOrder> findAllClosed() {
-        return list("state", OrderState.CLOSED);
     }
 }

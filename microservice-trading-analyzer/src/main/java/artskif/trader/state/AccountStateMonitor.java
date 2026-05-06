@@ -95,14 +95,13 @@ public class AccountStateMonitor {
         log.debug("📊 Начинается сбор данных о состоянии аккаунта...");
 
         try {
-            // Получаем список всех активных ордеров (null означает все инструменты)
-            List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingOrders("BTC-USDT");
-            log.debug("📋 Количество активных ордеров: {}", pendingOrdersData.size());
+            // Получаем список всех активных алго-ордеров (null означает все инструменты)
+            List<Map<String, Object>> pendingOrdersData = tradingExecutorService.getPendingAlgoOrders("BTC-USDT", "conditional");
 
             // Преобразуем в Entity (исключаем TP/Limit ордера с isTpLimit=true)
             List<PendingOrder> pendingOrders = pendingOrdersData.stream()
                     .filter(order -> !"true".equalsIgnoreCase(String.valueOf(order.get("isTpLimit"))))
-                    .map(pendingOrderMapper::mapToEntity)
+                    .map(data -> pendingOrderMapper.mapToEntity(data, "1m"))
                     .collect(Collectors.toList());
 
             // Сохраняем ордера в БД
@@ -110,7 +109,6 @@ public class AccountStateMonitor {
 
             // Получаем список всех открытых позиций (null означает все инструменты)
             List<Map<String, Object>> positionsData = tradingExecutorService.getPositions("BTC-USDT");
-            log.debug("📈 Количество открытых позиций: {}", positionsData.size());
 
             // Преобразуем в Entity
             List<Position> positions = positionsData.stream()
@@ -145,23 +143,13 @@ public class AccountStateMonitor {
     }
 
     /**
-     * Сохраняет список активных ордеров в БД
-     * Помечает как CLOSED ордера, которых больше нет в списке (синхронизация с биржей)
+     * Сохраняет снимок активных ордеров в БД по уникальному ключу (ts, tf).
+     * Каждый вызов создаёт новую запись для текущей временной метки.
      */
     private void savePendingOrders(List<PendingOrder> orders) {
         try {
-            // Получаем список текущих ordId для синхронизации
-            List<String> currentOrdIds = orders.stream()
-                    .map(order -> order.ordId)
-                    .collect(Collectors.toList());
-
-            // Сохраняем или обновляем ордера
-            pendingOrderRepository.saveAll(orders);
+            pendingOrderRepository.saveAllByTsTf(orders);
             log.debug("✅ Обработано активных ордеров: {}", orders.size());
-
-
-            // Помечаем как CLOSED ордера, которых нет в текущем списке
-            pendingOrderRepository.markAsClosedNotIn(currentOrdIds);
 
         } catch (Exception e) {
             log.error("❌ Ошибка при сохранении ордеров в БД", e);

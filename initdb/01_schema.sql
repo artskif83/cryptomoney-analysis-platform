@@ -131,25 +131,33 @@ CREATE TABLE IF NOT EXISTS trade_events
 SELECT create_hypertable('trade_events', 'timestamp', if_not_exists => TRUE);
 
 -- 7) Таблица активных (ожидающих) ордеров
+-- Несколько ордеров могут существовать в один период времени (tf, ts не уникальны).
+-- ord_id может дублироваться в разные метки времени.
 CREATE TABLE IF NOT EXISTS pending_orders
 (
-    ord_id     varchar(128)   PRIMARY KEY,
-    cl_ord_id  varchar(128),
-    inst_id    varchar(50)    NOT NULL,
-    inst_type  varchar(20)    NOT NULL,
-    px         numeric(18, 8) NOT NULL,
-    sz         numeric(18, 8) NOT NULL,
-    pos_side   varchar(10)    NOT NULL CHECK (pos_side IN ('long', 'short', 'net')),
-    td_mode    varchar(20)    NOT NULL,
-    lever      numeric(5, 2),
-    state      varchar(20)    NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
-    ord_type   varchar(20),
+    id            bigserial      PRIMARY KEY,
+    ord_id        varchar(128)   NOT NULL,
+    cl_ord_id     varchar(128),
+    inst_id       varchar(50)    NOT NULL,
+    inst_type     varchar(20)    NOT NULL,
+    px            numeric(18, 8),
+    sz            numeric(18, 8) NOT NULL,
+    pos_side      varchar(10)    NOT NULL CHECK (pos_side IN ('long', 'short', 'net')),
+    td_mode       varchar(20)    NOT NULL,
+    lever         numeric(5, 2),
+    state         varchar(20)    NOT NULL DEFAULT 'LIVE' CHECK (state IN ('LIVE', 'PARTIALLY_FILLED', 'CLOSED')),
+    ord_type      varchar(20),
     sl_trigger_px numeric(18, 8),
-    c_time     timestamp,
-    u_time     timestamp,
-    created_at timestamp      NOT NULL DEFAULT NOW(),
-    updated_at timestamp      NOT NULL DEFAULT NOW()
+    tf            varchar(10)    NOT NULL,
+    ts            timestamp      NOT NULL,
+    c_time        timestamp,
+    u_time        timestamp,
+    created_at    timestamp      NOT NULL DEFAULT NOW(),
+    updated_at    timestamp      NOT NULL DEFAULT NOW()
 );
+
+-- Индекс для JOIN-ов со свечами по (ts, tf)
+CREATE INDEX IF NOT EXISTS pending_orders_ts_tf_idx ON pending_orders (tf, ts DESC);
 
 -- 8) Таблица открытых позиций
 -- Уникальность позиции определяется комбинацией (pos_id, c_time),
@@ -175,8 +183,7 @@ CREATE TABLE IF NOT EXISTS positions
     c_time        timestamp,
     u_time        timestamp,
     created_at    timestamp    NOT NULL DEFAULT NOW(),
-    updated_at    timestamp    NOT NULL DEFAULT NOW(),
-    CONSTRAINT positions_ts_tf_unique UNIQUE (ts, tf)
+    updated_at    timestamp    NOT NULL DEFAULT NOW()
 );
 
 -- Индекс для JOIN-ов со свечами по (ts, tf)
