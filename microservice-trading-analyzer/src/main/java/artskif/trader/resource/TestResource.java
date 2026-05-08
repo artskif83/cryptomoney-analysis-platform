@@ -153,9 +153,6 @@ public class TestResource {
      * @param type тип торгового события
      * @param direction направление (LONG/SHORT)
      * @param timeframe таймфрейм события
-     * @param stopLossPercentage процент стоп-лосса
-     * @param takeProfitPercentage процент тейк-профита
-     * @param eventPrice цена события
      * @return ответ с результатом симуляции
      */
     @POST
@@ -164,11 +161,8 @@ public class TestResource {
             @QueryParam("instrument") @DefaultValue("BTC-USDT") String instrument,
             @QueryParam("type") @DefaultValue("GOLDEN_FIELD") String type,
             @QueryParam("direction") @DefaultValue("LONG") String direction,
-            @QueryParam("timeframe") @DefaultValue("5m") String timeframe,
-            @QueryParam("tag") @DefaultValue("test-strategy") String tag,
-            @QueryParam("stopLossPercentage") @DefaultValue("2.0") BigDecimal stopLossPercentage,
-            @QueryParam("takeProfitPercentage") @DefaultValue("5.0") BigDecimal takeProfitPercentage,
-            @QueryParam("eventPrice") @DefaultValue("50000") BigDecimal eventPrice
+            @QueryParam("timeframe") @DefaultValue("1m") String timeframe,
+            @QueryParam("tag") @DefaultValue("test-strategy") String tag
     ) {
         try {
             // Парсинг параметров
@@ -182,10 +176,8 @@ public class TestResource {
             TradeEventData tradeEventData = new TradeEventData(
                     eventType,
                     eventDirection,
-                    stopLossPercentage,
-                    takeProfitPercentage,
                     candleTimeframe,
-                    eventPrice
+                    2
             );
 
             // Создание и публикация события
@@ -199,9 +191,6 @@ public class TestResource {
 
             tradeEventBus.publish(event);
 
-            Log.infof("📈 Событие TRADE симулировано: %s %s %s %s tag=%s SL=%s%% TP=%s%% price=%s timestamp=%s (TEST)",
-                    instrument, type, direction, timeframe, tag, stopLossPercentage, takeProfitPercentage, eventPrice, timestamp);
-
             return Response.ok()
                     .entity(Map.of(
                             "status", "success",
@@ -212,9 +201,6 @@ public class TestResource {
                                     "tradeEventType", type,
                                     "direction", direction,
                                     "timeframe", timeframe,
-                                    "stopLossPercentage", stopLossPercentage.toString(),
-                                    "takeProfitPercentage", takeProfitPercentage.toString(),
-                                    "eventPrice", eventPrice.toString(),
                                     "timestamp", timestamp.toString()
                             )
                     ))

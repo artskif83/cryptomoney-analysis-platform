@@ -1,11 +1,15 @@
 package artskif.trader.strategy.event;
 
 import artskif.trader.strategy.event.common.TradeEventData;
+import artskif.trader.strategy.indicators.base.MultiMAIndicator;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
+import artskif.trader.strategy.indicators.multi.MultiMAIndicatorM;
+import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
+import artskif.trader.strategy.indicators.util.IndicatorUtils;
 import jakarta.inject.Inject;
+import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.num.Num;
 
-import java.util.Optional;
 
 /**
  * Абстрактный базовый класс для процессоров торговых событий.
@@ -15,6 +19,38 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
 
     @Inject
     protected ClosePriceIndicatorM closePriceIndicatorM;
+
+    @Inject
+    protected RSIIndicatorM rsiIndicatorM;
+
+    @Inject
+    protected MultiMAIndicatorM multiMAIndicatorM;
+
+    /**
+     * Получить силу тренда для текущего бара.
+     * Возвращает 0 если один из индикаторов недоступен.
+     */
+    @Override
+    public Integer getTrendStrength(int index, boolean isLiveSeries) {
+        MultiMAIndicator multiMAIndicator = multiMAIndicatorM != null
+                ? multiMAIndicatorM.getIndicator(getHighTimeframe(), isLiveSeries)
+                : null;
+        RSIIndicator rsiIndicator = rsiIndicatorM != null
+                ? rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries)
+                : null;
+
+        if (multiMAIndicator == null || rsiIndicator == null) {
+            return 0;
+        }
+
+        int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(
+                rsiIndicator.getBarSeries().getBar(index),
+                multiMAIndicator.getBarSeries()
+        );
+
+        Num multiMAIndicatorValue = multiMAIndicator.getValue(higherTfIndex);
+        return multiMAIndicatorValue != null ? multiMAIndicatorValue.intValue() : 0;
+    }
 
     /**
      * Проверить, произошел ли торговый сигнал на данном баре
@@ -28,10 +64,8 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
         return new TradeEventData(
                 getTradeEventType(),
                 getTradeDirection(),
-                getStopLossPercentage().bigDecimalValue(),
-                getTakeProfitPercentage().bigDecimalValue(),
                 getTimeframe(),
-                getEntryPrice(index, true).bigDecimalValue()
+                getTrendStrength(index, true)
         );
     }
 }

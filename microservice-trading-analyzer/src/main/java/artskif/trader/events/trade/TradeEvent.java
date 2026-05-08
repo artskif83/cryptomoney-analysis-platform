@@ -18,10 +18,7 @@ public record TradeEvent(
                 ", instrument='" + instrument + '\'' +
                 ", tag='" + tag + '\'' +
                 ", direction=" + tradeEventData.direction() +
-                ", stopLossPercentage=" + tradeEventData.stopLossPercentage() +
-                ", takeProfitPercentage=" + tradeEventData.takeProfitPercentage() +
                 ", timeframe=" + tradeEventData.timeframe() +
-                ", eventPrice=" + tradeEventData.eventPrice() +
                 ", timestamp=" + timestamp +
                 ", isTest=" + isTest +
                 '}';

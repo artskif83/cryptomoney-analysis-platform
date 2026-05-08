@@ -40,55 +40,33 @@ public interface TradeEventProcessor {
 
 
     /**
-     * Проверить, удовлетворяет ли текущий бар условиям входа в сделку
-     *
-     * @param index         индекс бара для проверки
-     * @param tradingRecord
-     * @return true если условия входа выполнены, false иначе
-     */
-    boolean shouldLimitEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries);
-
-    /**
-     * Проверить, удовлетворяет ли текущий бар условиям выхода из сделки
-     *
-     * @param index         индекс бара для проверки
-     * @param tradingRecord
-     * @return true если условия выхода выполнены, false иначе
-     */
-    boolean shouldLimitExit(int index, TradingRecord tradingRecord, boolean isLiveSeries);
-
-    /**
-     * Получить цену входа для данного процессора событий
-     *
-     * @return правило входа
-     */
-    Num getEntryPrice(int index, boolean isLiveSeries);
-
-    /**
      * Получить направление сделки (лонг или шорт)
      * @return тип сделки
      */
     Direction getTradeDirection();
 
     /**
-     * Получить процент для установки стоп-лосса от цены входа
-     * @return процент для стоп-лосса
-     */
-    Num getStopLossPercentage();
-
-    /**
-     * Получить процент для установки тейк-профита от цены входа
-     * @return процент для тейк-профита
-     */
-    Num getTakeProfitPercentage();
-
-    /**
      * Получить таймфрейм модели
      */
     CandleTimeframe getTimeframe();
+
+
+    /**
+     * Получить высший таймфрейм модели
+     */
+    CandleTimeframe getHighTimeframe();
 
     /**
      * Получить старший таймфрейм модели (если используется мульти-таймфрейм анализ)
      */
     TradeEventType getTradeEventType();
+
+    /**
+     * Получить силу тренда для текущего бара
+     *
+     * @param index         индекс бара для проверки
+     * @param isLiveSeries  флаг, указывающий, является ли серия живой (для получения данных в реальном времени)
+     * @return сила тренда в виде целого числа
+     */
+    Integer getTrendStrength(int index, boolean isLiveSeries);
 }

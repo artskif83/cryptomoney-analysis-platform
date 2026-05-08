@@ -252,11 +252,11 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Обработка торговых событий (если процессор настроен)
         TradeEventData eventData = null;
 
-        if (shortTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+        if (shortTradeEventProcessor.shouldMarketEnter(endIndex, null, true)) {
             eventData = shortTradeEventProcessor.getLifeTradeEventData(endIndex);
         }
 
-        if (longTradeEventProcessor.shouldLimitEnter(endIndex, null, true)) {
+        if (longTradeEventProcessor.shouldMarketEnter(endIndex, null, true)) {
             eventData = longTradeEventProcessor.getLifeTradeEventData(endIndex);
         }
 
@@ -437,12 +437,12 @@ public abstract class AbstractStrategy implements CandleEventListener {
         // Обновление дополнительных колонок
         if (position.isOpened()) {
             Num netPrice = position.getEntry().getNetPrice();
-            Num stopLoss = netPrice.multipliedBy(ONE.plus(shortTradeEventProcessor.getStopLossPercentage().dividedBy(HUNDRED)));
-            Num takeProfit = netPrice.multipliedBy(ONE.minus(shortTradeEventProcessor.getTakeProfitPercentage().dividedBy(HUNDRED)));
+//            Num stopLoss = netPrice.multipliedBy(ONE.plus(shortTradeEventProcessor.getStopLossPercentage().dividedBy(HUNDRED)));
+//            Num takeProfit = netPrice.multipliedBy(ONE.minus(shortTradeEventProcessor.getTakeProfitPercentage().dividedBy(HUNDRED)));
 
             additionalColumns.put(PositionColumn.PositionColumnType.POSITION_PRICE_1M, netPrice);
-            additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
-            additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_1M, takeProfit);
+//            additionalColumns.put(PositionColumn.PositionColumnType.STOPLOSS_1M, stopLoss);
+//            additionalColumns.put(PositionColumn.PositionColumnType.TAKEPROFIT_1M, takeProfit);
         }
         return additionalColumns;
     }

@@ -83,52 +83,15 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
 
-        boolean farEnough = false;
-        boolean canCreate = true;
-
         if (hasOppositePosition) {
-            log.debug("📊 Есть открытая {} позиция", oppositeLabel);
-            farEnough = positions.stream()
-                    .filter(p -> isShort ? "long".equalsIgnoreCase(p.posSide) : "short".equalsIgnoreCase(p.posSide))
-                    .filter(p -> p.state == artskif.trader.entity.OrderState.LIVE)
-                    .filter(p -> p.px != null)
-                    .anyMatch(p -> {
-                        BigDecimal distancePercent = event.tradeEventData().eventPrice()
-                                .subtract(p.px)
-                                .abs()
-                                .divide(p.px, new MathContext(10, RoundingMode.HALF_UP))
-                                .multiply(BigDecimal.valueOf(100));
-                        boolean ok = distancePercent.compareTo(
-                                BigDecimal.valueOf(brokerConfig.getMinPositionDistancePercent())) >= 0;
-                        log.debug("📏 Расстояние от eventPrice={} до px позиции={}: {}% (минимум {}%) — {}",
-                                event.tradeEventData().eventPrice(), p.px, distancePercent,
-                                brokerConfig.getMinPositionDistancePercent(), ok ? "✅ достаточно" : "❌ слишком близко");
-                        return ok;
-                    });
-
-            if (farEnough) {
-                tradingExecutorService.closeAllPositions(event.instrument());
-            } else {
-                log.warn("⚠️ Закрытие {} позиции пропущено: eventPrice слишком близко к цене открытия (менее {}%)",
-                        oppositeLabel, brokerConfig.getOrderCancelDistancePercent());
-
-            }
+            log.debug("📊 Есть открытая {} противоположная позиция", oppositeLabel);
         }
 
         // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового
         if (hasAnyOrder) {
-            log.debug("🔄 Есть ордера — отменяем все для переоткрытия с новой ценой");
-            try {
-                tradingExecutorService.cancelOrders(null,null);
-                log.debug("🗑️ Ордера отмены");
-            } catch (Exception e) {
-                log.error("❌ Ошибка при отмене ордера: {}", e.getMessage());
-                canCreate = false;
-            }
+            log.debug("🔄 Есть противоположные ордера ордера — отменяем все для переоткрытия с новой ценой");
         }
 
-        if ((!hasAnyPosition || (hasOppositePosition && farEnough) && canCreate)) {
-            log.debug("📊 Нет открытых позиций или есть давняя противоположная позиция, открываем новый ордер {}", dirLabel);
 
 
 
@@ -153,41 +116,39 @@ public class TradeEventManager extends AbstractTradeEventManager {
 //                }
 //            }
 
-            FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
-                    event.instrument().replace("-SWAP", ""),
-                    event.tradeEventData().eventPrice(),
-                    calculatePositionSize(event.tradeEventData().stopLossPercentage()),
-                    event.tradeEventData().stopLossPercentage(),
-                    event.tradeEventData().takeProfitPercentage()
-            );
-            if (isShort) {
-                tradingExecutorService.placeFuturesLimitShort(request);
-            } else {
-                tradingExecutorService.placeFuturesLimitLong(request);
-            }
+//            FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
+//                    event.instrument().replace("-SWAP", ""),
+//                    event.tradeEventData().eventPrice(),
+//                    calculatePositionSize(event.tradeEventData().stopLossPercentage()),
+//                    event.tradeEventData().stopLossPercentage(),
+//                    event.tradeEventData().takeProfitPercentage()
+//            );
+//            if (isShort) {
+//                tradingExecutorService.placeFuturesLimitShort(request);
+//            } else {
+//                tradingExecutorService.placeFuturesLimitLong(request);
+//            }
+//
+//            // Сохраняем событие в БД только после успешного размещения ордера
+//            try {
+//                TradeEventEntity entity = new TradeEventEntity(
+//                        event.tradeEventData().type(),
+//                        event.tradeEventData().direction(),
+//                        event.instrument(),
+//                        event.tradeEventData().eventPrice(),
+//                        event.tradeEventData().stopLossPercentage(),
+//                        event.tradeEventData().takeProfitPercentage(),
+//                        event.tradeEventData().timeframe(),
+//                        event.tag(),
+//                        event.timestamp(),
+//                        event.isTest()
+//                );
+//                tradeEventRepository.save(entity);
+//                log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
+//            } catch (Exception e) {
+//                log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
+//            }
 
-            // Сохраняем событие в БД только после успешного размещения ордера
-            try {
-                TradeEventEntity entity = new TradeEventEntity(
-                        event.tradeEventData().type(),
-                        event.tradeEventData().direction(),
-                        event.instrument(),
-                        event.tradeEventData().eventPrice(),
-                        event.tradeEventData().stopLossPercentage(),
-                        event.tradeEventData().takeProfitPercentage(),
-                        event.tradeEventData().timeframe(),
-                        event.tag(),
-                        event.timestamp(),
-                        event.isTest()
-                );
-                tradeEventRepository.save(entity);
-                log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
-            } catch (Exception e) {
-                log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
-            }
-        } else {
-            log.debug("📊 Уже есть открытая позиция в том же направлении, не открываем новую {}", dirLabel);
-        }
     }
 
     /**
