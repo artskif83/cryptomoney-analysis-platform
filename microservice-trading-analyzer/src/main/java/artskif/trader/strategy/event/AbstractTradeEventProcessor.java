@@ -18,9 +18,6 @@ import org.ta4j.core.num.Num;
 public abstract class AbstractTradeEventProcessor implements TradeEventProcessor {
 
     @Inject
-    protected ClosePriceIndicatorM closePriceIndicatorM;
-
-    @Inject
     protected RSIIndicatorM rsiIndicatorM;
 
     @Inject
