@@ -1,0 +1,109 @@
+###
+GET http://localhost:8082/api/trading/positions?
+    instId=BTC-USDT
+
+###
+GET http://localhost:8082/api/trading/positions/history?
+    instId=BTC-USDT&
+    before=1740960000000
+
+### Создание шорт лимитного ордера
+POST http://localhost:8082/api/trading/futures/limit/short
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "limitPrice": 73840,
+  "positionSizeUsdt": 30,
+  "stopLossPercent": 1,
+  "takeProfitPercent": 3
+}
+
+<> 2026-03-18T144830.200.json
+<> 2026-03-18T142205.200.json
+<> 2026-03-18T141239.200.json
+<> 2026-03-18T140359.200.json
+
+### Создание лонг лимитного ордера
+POST http://localhost:8082/api/trading/futures/limit/long
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "limitPrice": 66540,
+  "positionSizeUsdt": 40,
+  "stopLossPercent": 0.3,
+  "takeProfitPercent": 3
+}
+
+### Создание лонг следующего ордера
+POST http://localhost:8082/api/trading/futures/chase/long
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "positionSizeUsdt": 20,
+  "stopLossPercent": 0.6,
+  "reduceOnly": false
+}
+
+<> 2026-05-06T151508.200.json
+<> 2026-05-04T153725.200.json
+<> 2026-05-04T142832.200.json
+<> 2026-04-30T172400.200.json
+<> 2026-04-29T171846.200.json
+
+### Создание шорт следующего ордера
+POST http://localhost:8082/api/trading/futures/chase/short
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "positionSizeUsdt": 50,
+  "stopLossPercent": 0.6,
+  "reduceOnly": false
+}
+
+<> 2026-05-04T154206.200.json
+<> 2026-05-04T142918.200.json
+<> 2026-04-29T171825.200.json
+<> 2026-04-29T171755.200.json
+
+### Закрыть все позиции по инструменту
+POST http://localhost:8082/api/trading/positions/close?
+    instId=BTC-USDT
+
+### Получить текущую позицию
+GET http://localhost:8082/api/trading/positions?
+    instId=BTC-USDT
+
+###
+#DELETE http://localhost:8080/api/test/orders/cancel?
+#    ordId={{$random.alphanumeric(8)}}&
+#    clOrdId={{$random.alphanumeric(8)}}
+
+### Отменить ордера или ордер
+DELETE http://localhost:8082/api/trading/orders/cancel
+
+### Получить список активных лимитных ордеров
+GET http://localhost:8082/api/trading/orders/pending?
+    instId=BTC-USDT
+
+### Получить список активных алго ордеров
+GET http://localhost:8082/api/trading/orders/algo/pending?
+    instId=BTC-USDT&ordType=conditional
+
+### Получить баланс по USDT
+GET http://localhost:8082/api/trading/balance/usdt
+
+<> 2026-04-30T181043.200.json
+
+### Получить баланс по USDT
+GET http://localhost:8082/api/trading/balance/total-equity
+
+<> 2026-04-30T181330.200.json
+<> 2026-04-30T181148.404.json
+<> 2026-04-30T181106.404.json
+
+
+

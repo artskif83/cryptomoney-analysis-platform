@@ -1,0 +1,59 @@
+###
+GET http://redpanda-prod:8082/api/trading/positions?
+    instId=BTC-USDT
+
+###
+GET http://redpanda-prod:8082/api/trading/positions/history?
+    instId=BTC-USDT&
+    before=1740960000000
+
+### Создание шорт лимитного ордера
+POST http://redpanda-prod:8082/api/trading/futures/limit/short
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "limitPrice": 73840,
+  "positionSizeUsdt": 30,
+  "stopLossPercent": 1,
+  "takeProfitPercent": 3
+}
+
+<> 2026-03-18T144830.200.json
+<> 2026-03-18T142205.200.json
+<> 2026-03-18T141239.200.json
+<> 2026-03-18T140359.200.json
+
+### Создание лонг лимитного ордера
+POST http://redpanda-prod:8082/api/trading/futures/limit/long
+Content-Type: application/json
+
+{
+  "instrument": "BTC-USDT",
+  "limitPrice": 66540,
+  "positionSizeUsdt": 40,
+  "stopLossPercent": 0.3,
+  "takeProfitPercent": 3
+}
+
+### Закрыть все позиции по инструменту
+POST http://redpanda-prod:8082/api/trading/positions/close?
+    instId=BTC-USDT
+
+### Получить текущую позицию
+GET http://redpanda-prod:8082/api/trading/positions?
+    instId=BTC-USDT
+
+###
+#DELETE http://localhost:8080/api/test/orders/cancel?
+#    ordId={{$random.alphanumeric(8)}}&
+#    clOrdId={{$random.alphanumeric(8)}}
+
+### Отменить ордера или ордер
+DELETE http://redpanda-prod:8082/api/trading/orders/cancel
+
+### Получить список активных ордеров
+GET http://redpanda-prod:8082/api/trading/orders/pending?
+    instId=BTC-USDT
+
+
