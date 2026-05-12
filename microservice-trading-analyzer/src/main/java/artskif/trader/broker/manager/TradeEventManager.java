@@ -50,9 +50,11 @@ public class TradeEventManager extends AbstractTradeEventManager {
                              TradingExecutorService tradingExecutorService,
                              TradeEventRepository tradeEventRepository,
                              BrokerConfig brokerConfig,
-                             AccountStateMonitor accountStateMonitor) {
+                             AccountStateMonitor accountStateMonitor,
+                             OrderCreationParamsRepository orderCreationParamsRepository) {
         super(tradeEventBus, tradingExecutorService, tradeEventRepository, brokerConfig);
         this.accountStateMonitor = accountStateMonitor;
+        this.orderCreationParamsRepository = orderCreationParamsRepository;
     }
 
     @Override
@@ -102,14 +104,14 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         // Закрываем стоп-лосс ордера, которые относятся к несуществующим / противоположным позициям
         if (pendingOrders != null && !pendingOrders.isEmpty()) {
-            boolean hasLong  = hasLongPosition(positions);
-            boolean hasShort = hasShortPosition(positions);
+            boolean isLongPosition  = hasLongPosition(positions);
+            boolean isShortPosition = hasShortPosition(positions);
 
             for (PendingOrder order : pendingOrders) {
                 boolean isLongOrder  = "long".equalsIgnoreCase(order.posSide);
                 boolean isShortOrder = "short".equalsIgnoreCase(order.posSide);
 
-                boolean shouldCancel = (isLongOrder && !hasLong) || (isShortOrder && !hasShort);
+                boolean shouldCancel = (isLongOrder && isLongPosition) || (isShortOrder && isShortPosition);
 
                 if (shouldCancel) {
                     try {
@@ -129,12 +131,9 @@ public class TradeEventManager extends AbstractTradeEventManager {
                 isShort ? orderCreationParams.shortDepositRiskPercent : orderCreationParams.longDepositRiskPercent,
                 closeOpposite ? currentPositionSize : BigDecimal.ZERO);
 
-        if (closeOpposite) {
-            log.debug("📊 Обнаружена противоположная {} позиция размером {}. Будет закрыта при открытии новой позиции", oppositeLabel, currentPositionSize);
-        }
-
         // Проверяем минимальный интервал между открытием ордеров
-        if (lastOrderTime != null && orderCreationParams.waitMinutes != null && orderCreationParams.waitMinutes > 0) {
+        if (lastOrderTime != null && orderCreationParams.waitMinutes != null && orderCreationParams.waitMinutes > 0
+                && !event.isTest()) {
             long minutesSinceLast = Duration.between(lastOrderTime, Instant.now()).toMinutes();
             if (minutesSinceLast < orderCreationParams.waitMinutes) {
                 log.warn("⏳ С момента последнего ордера прошло {} мин., минимальный интервал {} мин. Новый ордер не открывается.",
@@ -183,6 +182,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             log.warn("⚠️ Ордер не был успешно размещён, событие не сохранено в БД. orderExecutionResult={}", orderExecutionResult);
         }
     }
+
 
 
 

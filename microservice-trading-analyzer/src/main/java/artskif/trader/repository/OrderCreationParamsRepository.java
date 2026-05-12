@@ -60,6 +60,7 @@ public class OrderCreationParamsRepository implements PanacheRepositoryBase<Orde
      * @param trendStrength значение силы тренда
      * @return найденный объект параметров или null
      */
+    @Transactional
     public OrderCreationParams findByTrendStrength(int trendStrength) {
         return find("trendStrength", trendStrength).firstResult();
     }

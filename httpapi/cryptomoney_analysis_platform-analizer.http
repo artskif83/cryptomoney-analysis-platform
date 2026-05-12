@@ -1,15 +1,21 @@
 
-### Проверка события трейда
+### Проверка события трейда лонг
+POST http://localhost:8080/api/test/trade-event?
+    instrument=BTC-USDT&
+    type=GOLDEN_FIELD&
+    direction=LONG&
+    timeframe=CANDLE_1M&
+    tag=test-strategy&
+    trendStrength=3
+
+### Проверка события трейда шорт
 POST http://localhost:8080/api/test/trade-event?
     instrument=BTC-USDT&
     type=GOLDEN_FIELD&
     direction=SHORT&
     timeframe=CANDLE_1M&
     tag=test-strategy&
-    stopLossPercentage=0.3&
-    takeProfitPercentage=5&
-    eventPrice=67100
-
+    trendStrength=3
 
 ###
 DELETE http://localhost:8080/api/test/orders/cancel?

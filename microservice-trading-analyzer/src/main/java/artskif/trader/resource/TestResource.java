@@ -153,6 +153,7 @@ public class TestResource {
      * @param type тип торгового события
      * @param direction направление (LONG/SHORT)
      * @param timeframe таймфрейм события
+     * @param trendStrength сила тренда (целое число, например 1–5)
      * @return ответ с результатом симуляции
      */
     @POST
@@ -162,7 +163,8 @@ public class TestResource {
             @QueryParam("type") @DefaultValue("GOLDEN_FIELD") String type,
             @QueryParam("direction") @DefaultValue("LONG") String direction,
             @QueryParam("timeframe") @DefaultValue("1m") String timeframe,
-            @QueryParam("tag") @DefaultValue("test-strategy") String tag
+            @QueryParam("tag") @DefaultValue("test-strategy") String tag,
+            @QueryParam("trendStrength") @DefaultValue("2") Integer trendStrength
     ) {
         try {
             // Парсинг параметров
@@ -177,7 +179,7 @@ public class TestResource {
                     eventType,
                     eventDirection,
                     candleTimeframe,
-                    2
+                    trendStrength
             );
 
             // Создание и публикация события
