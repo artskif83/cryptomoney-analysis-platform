@@ -26,9 +26,9 @@ public class OrderCreationParamsRepository implements PanacheRepositoryBase<Orde
     public OrderCreationParams save(OrderCreationParams params) {
         try {
             persist(params);
-            LOG.debugf("✅ OrderCreationParams сохранены: id=%s, trendStrength=%s, longDepositRisk=%s, shortDepositRisk=%s, closeOpposite=%s",
+            LOG.debugf("✅ OrderCreationParams сохранены: id=%s, trendStrength=%s, longDepositRisk=%s, shortDepositRisk=%s, closeOppositeLong=%s, closeOppositeShort=%s",
                     params.id, params.trendStrength, params.longDepositRiskPercent,
-                    params.shortDepositRiskPercent, params.closeOpposite);
+                    params.shortDepositRiskPercent, params.closeOppositeLong, params.closeOppositeShort);
             return params;
         } catch (Exception e) {
             LOG.errorf(e, "❌ Ошибка при сохранении OrderCreationParams: %s", params);
@@ -52,6 +52,16 @@ public class OrderCreationParamsRepository implements PanacheRepositoryBase<Orde
      */
     public OrderCreationParams findLatest() {
         return find("ORDER BY createdAt DESC").firstResult();
+    }
+
+    /**
+     * Возвращает параметры создания ордера по значению trendStrength.
+     *
+     * @param trendStrength значение силы тренда
+     * @return найденный объект параметров или null
+     */
+    public OrderCreationParams findByTrendStrength(int trendStrength) {
+        return find("trendStrength", trendStrength).firstResult();
     }
 }
 

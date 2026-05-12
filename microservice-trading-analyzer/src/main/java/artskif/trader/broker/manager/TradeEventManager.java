@@ -1,7 +1,11 @@
 package artskif.trader.broker.manager;
 
+import artskif.trader.api.dto.FuturesChaseOrderRequest;
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
+import artskif.trader.api.dto.OrderExecutionResult;
 import artskif.trader.broker.AbstractTradeEventManager;
+import artskif.trader.entity.OrderCreationParams;
+import artskif.trader.repository.OrderCreationParamsRepository;
 import artskif.trader.state.AccountStateMonitor;
 import artskif.trader.broker.BrokerConfig;
 import artskif.trader.broker.client.TradingExecutorService;
@@ -36,6 +40,10 @@ public class TradeEventManager extends AbstractTradeEventManager {
     private static final Logger log = LoggerFactory.getLogger(TradeEventManager.class);
 
     protected AccountStateMonitor accountStateMonitor;
+    protected OrderCreationParamsRepository orderCreationParamsRepository;
+
+    /** Время последнего успешно размещённого ордера. */
+    private volatile Instant lastOrderTime = null;
 
     @Inject
     public TradeEventManager(TradeEventBus tradeEventBus,
@@ -70,6 +78,14 @@ public class TradeEventManager extends AbstractTradeEventManager {
             return;
         }
 
+        Integer trendStrength = event.tradeEventData().trendStrength();
+        OrderCreationParams orderCreationParams = orderCreationParamsRepository.findByTrendStrength(trendStrength);
+
+        if (orderCreationParams == null) {
+            log.warn("⚠️ Параметры создания ордера не найдены для силы тренда: {}", trendStrength);
+            return;
+        }
+
         boolean isShort = event.tradeEventData().direction() == Direction.SHORT;
         String dirLabel = isShort ? "ШОРТ" : "ЛОНГ";
         String oppositeLabel = isShort ? "ЛОНГ" : "ШОРТ";
@@ -82,106 +98,101 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
         boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
+        boolean closeOpposite = isShort ? hasOppositePosition && orderCreationParams.closeOppositeLong : hasOppositePosition && orderCreationParams.closeOppositeShort;
 
-        if (hasOppositePosition) {
-            log.debug("📊 Есть открытая {} противоположная позиция", oppositeLabel);
+        // TODO: Закрывать ордера которые уже не нужны при текущей позиции
+
+        BigDecimal currentPositionSize = positions.isEmpty() ? BigDecimal.ZERO : positions.getFirst().notionalUsd;
+
+        BigDecimal calculatedPositionSize = calculatePositionSize(accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt(),
+                isShort ? orderCreationParams.shortDepositRiskPercent : orderCreationParams.longDepositRiskPercent,
+                closeOpposite ? currentPositionSize : BigDecimal.ZERO);
+
+        if (closeOpposite) {
+            log.debug("📊 Обнаружена противоположная {} позиция размером {}. Будет закрыта при открытии новой позиции", oppositeLabel, currentPositionSize);
         }
 
-        // Если нет ни одной открытой позиции, но есть любые ордера — отменяем все перед открытием нового
-        if (hasAnyOrder) {
-            log.debug("🔄 Есть противоположные ордера ордера — отменяем все для переоткрытия с новой ценой");
+        // Проверяем минимальный интервал между открытием ордеров
+        if (lastOrderTime != null && orderCreationParams.waitMinutes != null && orderCreationParams.waitMinutes > 0) {
+            long minutesSinceLast = Duration.between(lastOrderTime, Instant.now()).toMinutes();
+            if (minutesSinceLast < orderCreationParams.waitMinutes) {
+                log.warn("⏳ С момента последнего ордера прошло {} мин., минимальный интервал {} мин. Новый ордер не открывается.",
+                        minutesSinceLast, orderCreationParams.waitMinutes);
+                return;
+            }
         }
 
+        FuturesChaseOrderRequest chaseRequest = new FuturesChaseOrderRequest(
+                event.instrument().replace("-SWAP", ""),
+                calculatedPositionSize,
+                orderCreationParams.stopLossDeviationPercent,
+                isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose
+        );
 
+        OrderExecutionResult orderExecutionResult;
 
+        if (isShort) {
+            orderExecutionResult = tradingExecutorService.placeFuturesChaseShort(chaseRequest);
+        } else {
+            orderExecutionResult = tradingExecutorService.placeFuturesChaseLong(chaseRequest);
+        }
 
-
-
-            // Проверяем минимальный интервал между ордерами
-            // TODO: Сделать минимальный интервал между открытием ордеров
-//            if (snapshot.getPositionsHistory() != null && !snapshot.getPositionsHistory().isEmpty()) {
-//                Optional<Instant> lastPositionTime = snapshot.getPositionsHistory().stream()
-//                        .map(p -> p.cTime)
-//                        .filter(Objects::nonNull)
-//                        .max(Instant::compareTo);
-//
-//                if (lastPositionTime.isPresent()) {
-//                    long minutesSinceLast = Duration.between(lastPositionTime.get(), Instant.now()).toMinutes();
-//                    int minMinutes = brokerConfig.getMinutesBetweenPositions();
-//                    if (minutesSinceLast < minMinutes) {
-//                        log.warn("⏳ С момента последней позиции прошло {} мин., минимум {} мин. Новая позиция не открывается.",
-//                                minutesSinceLast, minMinutes);
-//                        return;
-//                    }
-//                }
-//            }
-
-//            FuturesLimitOrderRequest request = new FuturesLimitOrderRequest(
-//                    event.instrument().replace("-SWAP", ""),
-//                    event.tradeEventData().eventPrice(),
-//                    calculatePositionSize(event.tradeEventData().stopLossPercentage()),
-//                    event.tradeEventData().stopLossPercentage(),
-//                    event.tradeEventData().takeProfitPercentage()
-//            );
-//            if (isShort) {
-//                tradingExecutorService.placeFuturesLimitShort(request);
-//            } else {
-//                tradingExecutorService.placeFuturesLimitLong(request);
-//            }
-//
-//            // Сохраняем событие в БД только после успешного размещения ордера
-//            try {
-//                TradeEventEntity entity = new TradeEventEntity(
-//                        event.tradeEventData().type(),
-//                        event.tradeEventData().direction(),
-//                        event.instrument(),
-//                        event.tradeEventData().eventPrice(),
-//                        event.tradeEventData().stopLossPercentage(),
-//                        event.tradeEventData().takeProfitPercentage(),
-//                        event.tradeEventData().timeframe(),
-//                        event.tag(),
-//                        event.timestamp(),
-//                        event.isTest()
-//                );
-//                tradeEventRepository.save(entity);
-//                log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
-//            } catch (Exception e) {
-//                log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
-//            }
-
+        // Сохраняем событие в БД только после успешного размещения ордера
+        if (orderExecutionResult != null && orderExecutionResult.exchangeOrderId() != null && !orderExecutionResult.exchangeOrderId().isBlank()) {
+            try {
+                TradeEventEntity entity = new TradeEventEntity(
+                        event.tradeEventData().type(),
+                        event.tradeEventData().direction(),
+                        event.instrument(),
+                        orderExecutionResult.avgPrice(),
+                        null,
+                        null,
+                        event.tradeEventData().timeframe(),
+                        event.tag(),
+                        event.timestamp(),
+                        event.isTest()
+                );
+                tradeEventRepository.save(entity);
+                lastOrderTime = Instant.now();
+                log.debug("💾 TradeEvent успешно сохранен в БД с UUID: {}", entity.uuid);
+            } catch (Exception e) {
+                log.error("❌ Ошибка при сохранении TradeEvent в БД", e);
+            }
+        } else {
+            log.warn("⚠️ Ордер не был успешно размещён, событие не сохранено в БД. orderExecutionResult={}", orderExecutionResult);
+        }
     }
 
+
+
     /**
-     * Рассчитывает размер позиции на основе текущего депозита, процента риска и процента стоп-лосса.
-     * <p>
-     * Формула:
-     * <pre>
-     *   riskPerTrade  = deposit * depositRiskPercent / 100
-     *   positionSize  = riskPerTrade / stopLossPercentage
-     * </pre>
+     * Рассчитывает размер открываемой позиции.
      *
-     * @param stopLossPercentage процент стоп-лосса (например, 2.0 для 2%)
-     * @return рассчитанный размер позиции
+     * @param totalEquity         общий размер депозита в USDT
+     * @param riskPercent         процент от депозита, выделяемый на открытие позиции
+     * @param currentPositionSize размер текущей позиции, которую необходимо закрыть (0 если нет)
+     * @return итоговый размер позиции = (депозит * riskPercent / 100) + currentPositionSize
      */
-    protected BigDecimal calculatePositionSize(BigDecimal stopLossPercentage) {
-        BigDecimal deposit = tradingExecutorService.getUsdtBalance();
-        BigDecimal stopLossFraction = stopLossPercentage.divide(
-                BigDecimal.valueOf(100),
-                new MathContext(10, RoundingMode.HALF_UP)
-        );
-        BigDecimal riskPerTrade = deposit.multiply(
-                BigDecimal.valueOf(brokerConfig.getDepositRiskPercent()).divide(
-                        BigDecimal.valueOf(100),
-                        new MathContext(10, RoundingMode.HALF_UP)
-                )
-        );
-        BigDecimal positionSize = riskPerTrade.divide(
-                stopLossFraction,
-                new MathContext(10, RoundingMode.HALF_UP)
-        );
-        log.info("💰 Расчёт размера позиции: депозит={}, риск={}%, риск на сделку={}, стоп-лосс={}%, размер позиции={}",
-                deposit, brokerConfig.getDepositRiskPercent(), riskPerTrade, stopLossPercentage, positionSize);
-        return positionSize;
+    protected BigDecimal calculatePositionSize(BigDecimal totalEquity,
+                                               BigDecimal riskPercent,
+                                               BigDecimal currentPositionSize) {
+        if (totalEquity == null || riskPercent == null) {
+            log.warn("⚠️ calculatePositionSize: totalEquity или riskPercent равны null");
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal riskAmount = totalEquity
+                .multiply(riskPercent)
+                .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal existing = currentPositionSize != null ? currentPositionSize : BigDecimal.ZERO;
+        BigDecimal result = riskAmount.add(existing).setScale(2, RoundingMode.HALF_UP);
+
+        log.debug("💰 calculatePositionSize: totalEquity={}, riskPercent={}, currentPositionSize={} → result={}",
+                totalEquity, riskPercent, existing, result);
+
+        return result;
     }
 
     /**

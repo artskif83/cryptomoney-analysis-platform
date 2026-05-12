@@ -72,10 +72,16 @@ public class OrderCreationParams extends PanacheEntityBase {
 
 
     /**
-     * Если true — закрывать противоположную позицию, если она существует.
+     * Если true — закрывать противоположную LONG позицию при открытии SHORT.
      */
-    @Column(name = "close_opposite", nullable = false)
-    public boolean closeOpposite;
+    @Column(name = "close_opposite_long", nullable = false)
+    public boolean closeOppositeLong;
+
+    /**
+     * Если true — закрывать противоположную SHORT позицию при открытии LONG.
+     */
+    @Column(name = "close_opposite_short", nullable = false)
+    public boolean closeOppositeShort;
 
     /**
      * Время создания записи.
@@ -101,7 +107,8 @@ public class OrderCreationParams extends PanacheEntityBase {
                                BigDecimal stopLossDeviationPercent,
                                Integer waitMinutes,
                                BigDecimal maxPositionSizePercent,
-                               boolean closeOpposite) {
+                               boolean closeOppositeLong,
+                               boolean closeOppositeShort) {
         this.trendStrength = trendStrength;
         this.longDepositRiskPercent = longDepositRiskPercent;
         this.longOnlyClose = longOnlyClose;
@@ -110,7 +117,8 @@ public class OrderCreationParams extends PanacheEntityBase {
         this.stopLossDeviationPercent = stopLossDeviationPercent;
         this.waitMinutes = waitMinutes;
         this.maxPositionSizePercent = maxPositionSizePercent;
-        this.closeOpposite = closeOpposite;
+        this.closeOppositeLong = closeOppositeLong;
+        this.closeOppositeShort = closeOppositeShort;
     }
 }
 

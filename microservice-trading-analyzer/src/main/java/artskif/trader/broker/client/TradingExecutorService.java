@@ -1,5 +1,6 @@
 package artskif.trader.broker.client;
 
+import artskif.trader.api.dto.FuturesChaseOrderRequest;
 import artskif.trader.api.dto.FuturesLimitOrderRequest;
 import artskif.trader.api.dto.MarketOrderRequest;
 import artskif.trader.api.dto.OrderExecutionResult;
@@ -99,6 +100,27 @@ public class TradingExecutorService {
     }
 
     /**
+     * Получить полный баланс счёта в USDT с учётом всех открытых позиций (unrealized PnL)
+     * @return суммарный эквивалент счёта в USDT
+     * @throws TradingExecutionException если произошла ошибка при получении данных
+     */
+    public BigDecimal getTotalEquityInUsdt() {
+        log.debug("🔄 Запрос суммарного equity счёта в USDT");
+
+        TradingResponse<BigDecimal> response = executorClient.getTotalEquityInUsdt();
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при получении equity: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        BigDecimal equity = response.result();
+        log.debug("✅ Total equity USDT: {}", equity);
+
+        return equity;
+    }
+
+    /**
      * Получить текущую цену инструмента
      * @param instrument инструмент в формате BASE-QUOTE (например, BTC-USDT)
      * @return текущая цена
@@ -163,6 +185,56 @@ public class TradingExecutorService {
 
         OrderExecutionResult result = response.result();
         log.info("✅ Шорт-ордер размещен: orderId={}, avgPrice={}, executedQty={}",
+                result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
+
+        return result;
+    }
+
+    /**
+     * Разместить Chase-лонг ордер на фьючерсном рынке.
+     * Chase-ордер открывает лонг позицию, conditional SL закрывает её при достижении порогового уровня.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера
+     * @throws TradingExecutionException если произошла ошибка при размещении ордера
+     */
+    public OrderExecutionResult placeFuturesChaseLong(FuturesChaseOrderRequest request) {
+        log.debug("🔄 Размещение Chase-лонг ордера: {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent(), request.isReduceOnly());
+
+        TradingResponse<OrderExecutionResult> response = executorClient.placeFuturesChaseLong(request);
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при размещении Chase-лонг ордера: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        OrderExecutionResult result = response.result();
+        log.info("✅ Chase-лонг ордер размещен: orderId={}, avgPrice={}, executedQty={}",
+                result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
+
+        return result;
+    }
+
+    /**
+     * Разместить Chase-шорт ордер на фьючерсном рынке.
+     * Chase-ордер открывает шорт позицию, conditional SL закрывает её при достижении порогового уровня.
+     * @param request запрос с параметрами Chase-ордера
+     * @return результат размещения ордера
+     * @throws TradingExecutionException если произошла ошибка при размещении ордера
+     */
+    public OrderExecutionResult placeFuturesChaseShort(FuturesChaseOrderRequest request) {
+        log.debug("🔄 Размещение Chase-шорт ордера: {}, размер: {} USDT, SL: {}%, reduceOnly: {}",
+                request.instrument(), request.positionSizeUsdt(), request.stopLossPercent(), request.isReduceOnly());
+
+        TradingResponse<OrderExecutionResult> response = executorClient.placeFuturesChaseShort(request);
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при размещении Chase-шорт ордера: {} - {}", response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        OrderExecutionResult result = response.result();
+        log.info("✅ Chase-шорт ордер размещен: orderId={}, avgPrice={}, executedQty={}",
                 result.exchangeOrderId(), result.avgPrice(), result.executedBaseQty());
 
         return result;

@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -118,11 +119,15 @@ public class AccountStateMonitor {
             // Сохраняем позиции в БД
             saveLivePositions(positions);
 
+            // Получаем суммарный equity аккаунта (баланс + unrealized PnL по открытым позициям)
+            BigDecimal totalEquityInUsdt = tradingExecutorService.getTotalEquityInUsdt();
+
             // Создаем снимок состояния
             AccountStateSnapshot snapshot = new AccountStateSnapshot(
                     Instant.now(),
                     pendingOrders,
-                    positions
+                    positions,
+                    totalEquityInUsdt
             );
 
             // Сохраняем снимок и поднимаем флаг актуальности

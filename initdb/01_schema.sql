@@ -201,7 +201,8 @@ CREATE TABLE IF NOT EXISTS order_creation_params
     stop_loss_deviation_percent   numeric(10, 4) NOT NULL,
     wait_minutes                  integer        NOT NULL,
     max_position_size_percent     numeric(10, 4) NOT NULL,
-    close_opposite                boolean        NOT NULL DEFAULT false,
+    close_opposite_long                boolean        NOT NULL DEFAULT false,
+    close_opposite_short               boolean        NOT NULL DEFAULT false,
     created_at                    timestamp      NOT NULL DEFAULT NOW()
 );
 
@@ -209,11 +210,12 @@ CREATE TABLE IF NOT EXISTS order_creation_params
 -- long/short_deposit_risk_percent: чем ближе trend_strength к 0, тем выше риск (±1→10, ±3→6, ±5→2)
 INSERT INTO order_creation_params (trend_strength, long_deposit_risk_percent, long_only_close,
                                    short_deposit_risk_percent, short_only_close,
-                                   stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite)
-VALUES ( 5, 5,  false, 2,  true, 3, 30, 100, true),
-       ( 3, 10,  false, 5,  true, 3, 30, 100, true),
-       ( 1, 20, false, 10, true, 3, 30, 100, true),
-       (-1, 10, true, 20, false, 3, 30, 100, true),
-       (-3, 5,  true, 10,  false, 3, 30, 100, true),
-       (-5, 2,  true, 5,  false, 3, 30, 100, true);
+                                   stop_loss_deviation_percent, wait_minutes, max_position_size_percent,
+                                   close_opposite_long, close_opposite_short)
+VALUES ( 5, 5,  false, 2,  true, 3, 30, 100, false, true),
+       ( 3, 10,  false, 5,  true, 3, 30, 100, false, true),
+       ( 1, 20, false, 10, true, 3, 30, 100, false, true),
+       (-1, 10, true, 20, false, 3, 30, 100, true, false),
+       (-3, 5,  true, 10,  false, 3, 30, 100, true, false),
+       (-5, 2,  true, 5,  false, 3, 30, 100, true, false);
 
