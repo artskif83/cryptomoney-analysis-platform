@@ -100,7 +100,28 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
         boolean closeOpposite = isShort ? hasOppositePosition && orderCreationParams.closeOppositeLong : hasOppositePosition && orderCreationParams.closeOppositeShort;
 
-        // TODO: Закрывать ордера которые уже не нужны при текущей позиции
+        // Закрываем стоп-лосс ордера, которые относятся к несуществующим / противоположным позициям
+        if (pendingOrders != null && !pendingOrders.isEmpty()) {
+            boolean hasLong  = hasLongPosition(positions);
+            boolean hasShort = hasShortPosition(positions);
+
+            for (PendingOrder order : pendingOrders) {
+                boolean isLongOrder  = "long".equalsIgnoreCase(order.posSide);
+                boolean isShortOrder = "short".equalsIgnoreCase(order.posSide);
+
+                boolean shouldCancel = (isLongOrder && !hasLong) || (isShortOrder && !hasShort);
+
+                if (shouldCancel) {
+                    try {
+                        log.info("🗑️ Отмена устаревшего стоп-лосс ордера ordId={} posSide={}: позиции {} не существует",
+                                order.ordId, order.posSide, order.posSide);
+                        tradingExecutorService.cancelOrders(order.ordId, order.clOrdId);
+                    } catch (Exception e) {
+                        log.error("❌ Ошибка при отмене ордера ordId={}: {}", order.ordId, e.getMessage(), e);
+                    }
+                }
+            }
+        }
 
         BigDecimal currentPositionSize = positions.isEmpty() ? BigDecimal.ZERO : positions.getFirst().notionalUsd;
 
