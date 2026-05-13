@@ -272,6 +272,21 @@ if (ordTimes.length > 0) {
 }
 
 
+// ===== Диапазон yAxis по свечам (чтобы ордера не сжимали график) =====
+let candleMin = Infinity;
+let candleMax = -Infinity;
+for (let i = 0; i < lows.length; i++) {
+    if (lows[i] != null && lows[i] < candleMin) candleMin = lows[i];
+    if (highs[i] != null && highs[i] > candleMax) candleMax = highs[i];
+}
+
+// Зажимаем Y-значения ордеров в диапазон свечей, чтобы ось не уезжала,
+// при этом clip: true на серии обрежет визуально то, что вышло за пределы.
+function clampToCandles(data) {
+    if (!isFinite(candleMin) || !isFinite(candleMax)) return data;
+    return data.map(pt => [pt[0], Math.min(candleMax, Math.max(candleMin, pt[1]))]);
+}
+
 // ===== Цвета =====
 const upColor = '#4CAF50';
 const upBorderColor = '#4CAF50';
@@ -569,10 +584,11 @@ return {
         ...orderLines.map((ord, idx) => ({
             name: `Order_${idx}`,
             type: 'line',
-            data: ord.data,
+            data: clampToCandles(ord.data),
             xAxisIndex: 0,
             yAxisIndex: 0,
             symbol: 'none',
+            clip: true,
             lineStyle: {
                 color: ord.lineColor,
                 width: 1.5,
