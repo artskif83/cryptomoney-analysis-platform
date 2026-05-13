@@ -38,11 +38,8 @@ const posPosSides = col("pos_side", 2);
 // ===== Pending Orders (из четвёртого query) =====
 const ordTimes = col("time", 3);
 const ordPrices = col("order_price", 3);
-const ordSlPrices = col("stop_loss_price", 3);
 const ordPosSides = col("pos_side", 3);
-const ordStates = col("state", 3);
 const ordSizes = col("size", 3);
-const ordLevers = col("lever", 3);
 const ordIds = col("ord_id", 3);
 const ordTypes = col("ord_type", 3);
 
@@ -200,35 +197,27 @@ if (ordTimes.length > 0) {
         const id = ordIds[i] || `__noId_${i}`;
         if (!ordGroups[id]) {
             ordGroups[id] = {
-                times: [], prices: [], slPrices: [], sides: [], states: [], sizes: [], levers: [], types: []
+                times: [], prices: [], sides: [], sizes: [], types: []
             };
         }
         const g = ordGroups[id];
         g.times.push(ordTimes[i]);
         g.prices.push(ordPrices[i]);
-        g.slPrices.push(ordSlPrices[i]);
         g.sides.push(ordPosSides[i]);
-        g.states.push(ordStates[i]);
         g.sizes.push(ordSizes[i]);
-        g.levers.push(ordLevers[i]);
         g.types.push(ordTypes[i]);
     }
 
     for (const [ordId, g] of Object.entries(ordGroups)) {
         let segData = [];
-        let segSlData = [];
         let segSide = g.sides[0];
-        let segState = g.states[0];
         let segSize = g.sizes[0];
-        let segLever = g.levers[0];
         let segType = g.types[0];
         let segPrice = g.prices[0];
-        let segSlPrice = g.slPrices[0];
 
         for (let i = 0; i < g.times.length; i++) {
             const ts = snapToCandle(g.times[i]);
             const price = g.prices[i];
-            const slPrice = g.slPrices[i];
             if (price == null || ts == null) continue;
 
             const prevTs = segData.length > 0 ? segData[segData.length - 1][0] : null;
@@ -237,64 +226,43 @@ if (ordTimes.length > 0) {
             if (segData.length > 0 && gap > 90000) {
                 const lastPt = segData[segData.length - 1];
                 segData.push([lastPt[0] + 60000, lastPt[1]]);
-                if (segSlData.length > 0) {
-                    const lastSlPt = segSlData[segSlData.length - 1];
-                    segSlData.push([lastSlPt[0] + 60000, lastSlPt[1]]);
-                }
 
                 const lineColor = segSide === 'long' ? '#00BFFF'
                     : segSide === 'short' ? '#FF8C00'
                     : '#FFFF00';
                 orderLines.push({
                     data: [...segData],
-                    slData: segSlData.length > 1 ? [...segSlData] : null,
                     posSide: segSide,
-                    state: segState,
                     price: segPrice,
-                    slPrice: segSlPrice,
                     size: segSize,
-                    lever: segLever,
                     ordType: segType,
                     ordId: ordId,
                     lineColor
                 });
                 segData = [];
-                segSlData = [];
             }
 
             if (segData.length === 0) {
                 segSide = g.sides[i];
-                segState = g.states[i];
                 segSize = g.sizes[i];
-                segLever = g.levers[i];
                 segType = g.types[i];
                 segPrice = g.prices[i];
-                segSlPrice = g.slPrices[i];
             }
 
             segData.push([ts, price]);
-            if (slPrice != null) segSlData.push([ts, slPrice]);
         }
 
         if (segData.length > 0) {
             const lastPt = segData[segData.length - 1];
             segData.push([lastPt[0] + 60000, lastPt[1]]);
-            if (segSlData.length > 0) {
-                const lastSlPt = segSlData[segSlData.length - 1];
-                segSlData.push([lastSlPt[0] + 60000, lastSlPt[1]]);
-            }
             const lineColor = segSide === 'long' ? '#00BFFF'
                 : segSide === 'short' ? '#FF8C00'
                 : '#FFFF00';
             orderLines.push({
                 data: [...segData],
-                slData: segSlData.length > 1 ? [...segSlData] : null,
                 posSide: segSide,
-                state: segState,
                 price: segPrice,
-                slPrice: segSlPrice,
                 size: segSize,
-                lever: segLever,
                 ordType: segType,
                 ordId: ordId,
                 lineColor
@@ -612,26 +580,7 @@ return {
                 opacity: 0.9
             },
             z: 5
-        })),
-
-        // --- Pending Orders Stop-Loss линии ---
-        ...orderLines
-            .filter(ord => ord.slData)
-            .map((ord, idx) => ({
-                name: `OrderSL_${idx}`,
-                type: 'line',
-                data: ord.slData,
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                symbol: 'none',
-                lineStyle: {
-                    color: '#FF4444',
-                    width: 1,
-                    type: 'dotted',
-                    opacity: 0.7
-                },
-                z: 5
-            }))
+        }))
     ],
 
     tooltip: {
@@ -794,11 +743,9 @@ return {
                     const sideColor = meta.posSide === 'long' ? '#00BFFF' : meta.posSide === 'short' ? '#FF8C00' : '#FFFF00';
                     lines.push('');
                     lines.push(`<b style="color: ${sideColor};">📋 Order [${meta.ordType || ''}]</b>`);
-                    lines.push(`Side: ${meta.posSide} | State: ${meta.state}`);
+                    lines.push(`Side: ${meta.posSide}`);
                     lines.push(`Price: ${Number(meta.price).toFixed(4)}`);
-                    if (meta.slPrice != null) lines.push(`SL: ${Number(meta.slPrice).toFixed(4)}`);
                     if (meta.size != null) lines.push(`Size: ${meta.size}`);
-                    if (meta.lever != null) lines.push(`Lever: ${meta.lever}x`);
                 });
             }
 
