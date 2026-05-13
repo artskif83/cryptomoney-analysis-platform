@@ -1,24 +1,22 @@
 -- Pending Orders for GoldenField1M strategy
--- This query fetches pending orders to display them on the chart
--- Orders are displayed as dashed lines from c_time to updated_at
+-- Matches per candle by tf (timeframe) and ts (timestamp), same approach as positions.
+-- Multiple orders can exist for the same candle timestamp.
 -- Line color depends on pos_side: long → green, short → red, net → yellow
--- Red dashed lines represent stop-loss price
+-- sl_trigger_px is the stop-loss price for the order.
 
 SELECT
-    c_time AS time,
-    updated_at AS end_time,
-    ord_id,
-    cl_ord_id,
-    inst_id,
-    px AS order_price,
-    sl_trigger_px AS stop_loss_price,
+    ts              AS time,
+    sl_trigger_px              AS order_price,
+    sl_trigger_px   AS stop_loss_price,
     pos_side,
     state,
-    sz AS size,
-    lever
+    sz              AS size,
+    lever,
+    ord_id,
+    ord_type
 FROM pending_orders
 WHERE
-    inst_id LIKE '%BTC%' AND  -- adjust based on your instrument filter
-    c_time BETWEEN $__timeFrom() AND $__timeTo()
-ORDER BY c_time;
+    tf = '1m' AND
+    ts BETWEEN $__timeFrom() AND $__timeTo()
+ORDER BY ts;
 
