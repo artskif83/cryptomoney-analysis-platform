@@ -135,7 +135,7 @@ if (posTimes.length > 0) {
 
         if (price == null || ts == null) continue;
 
-        const prevTs = segData.length > 0 ? segData[segData.length - 1][0] : null;
+        const prevTs = segData.length > 0 ? segData[segData.length - 1].value[0] : null;
         const gap = prevTs != null ? (ts - prevTs) : 0;
         const sideChanged = side !== segSide;
 
@@ -143,7 +143,7 @@ if (posTimes.length > 0) {
         if (segData.length > 0 && (gap > 90000 || sideChanged)) {
             // Продлеваем последнюю точку на одну свечу вперёд
             const lastPt = segData[segData.length - 1];
-            segData.push([lastPt[0] + 60000, lastPt[1]]);
+            segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional });
 
             const lineColor = segSide === 'long' ? '#00FF66'
                 : segSide === 'short' ? '#FF1A1A'
@@ -151,8 +151,6 @@ if (posTimes.length > 0) {
             positionLines.push({
                 data: [...segData],
                 posSide: segSide,
-                price: segPrice,
-                notionalUsd: segNotional,
                 lineColor: lineColor
             });
             segData = [];
@@ -164,21 +162,19 @@ if (posTimes.length > 0) {
             segPrice = price;
         }
 
-        segData.push([ts, price]);
+        segData.push({ value: [ts, price], notional: notional });
     }
 
     // Закрываем последний сегмент
     if (segData.length > 0) {
         const lastPt = segData[segData.length - 1];
-        segData.push([lastPt[0] + 60000, lastPt[1]]);
+        segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional });
         const lineColor = segSide === 'long' ? '#00FF66'
             : segSide === 'short' ? '#FF1A1A'
                 : '#FFD700';
         positionLines.push({
             data: [...segData],
             posSide: segSide,
-            price: segPrice,
-            notionalUsd: segNotional,
             lineColor: lineColor
         });
     }
@@ -742,11 +738,15 @@ return {
                     const meta = positionLines[idx];
                     if (!meta) return;
                     const sideColor = meta.posSide === 'long' ? '#00FF66' : meta.posSide === 'short' ? '#FF4D4D' : '#FFD700';
+                    // Берём актуальные значения из точки данных, на которую наведён курсор
+                    const ptData = p.data;
+                    const currentPrice = ptData && ptData.value ? ptData.value[1] : (Array.isArray(ptData) ? ptData[1] : null);
+                    const currentNotional = ptData && ptData.notional != null ? ptData.notional : null;
                     lines.push('');
                     lines.push(`<b style="color: ${sideColor};">📌 Position</b>`);
                     lines.push(`Side: ${meta.posSide}`);
-                    lines.push(`Price: ${Number(meta.price).toFixed(4)}`);
-                    lines.push(`Size: $${meta.notionalUsd != null ? Number(meta.notionalUsd).toFixed(2) : 'N/A'}`);
+                    lines.push(`Price: ${currentPrice != null ? Number(currentPrice).toFixed(4) : 'N/A'}`);
+                    lines.push(`Size: $${currentNotional != null ? Number(currentNotional).toFixed(2) : 'N/A'}`);
                 });
             }
 
