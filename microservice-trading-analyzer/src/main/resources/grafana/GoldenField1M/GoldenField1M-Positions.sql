@@ -7,6 +7,7 @@ SELECT
     ts             AS time,
     px             AS position_price,
     notional_usd,
+    realized_pnl,
     pos_side
 FROM positions
 WHERE

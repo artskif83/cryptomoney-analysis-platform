@@ -33,6 +33,7 @@ const eventIsTest = col("is_test", 1);
 const posTimes = col("time", 2);
 const posPrices = col("position_price", 2);
 const posNotionalUsd = col("notional_usd", 2);
+const posRealizedPnl = col("realized_pnl", 2);
 const posPosSides = col("pos_side", 2);
 
 // ===== Pending Orders (из четвёртого query) =====
@@ -132,6 +133,7 @@ if (posTimes.length > 0) {
         const price = posPrices[i];
         const side = posPosSides[i];
         const notional = posNotionalUsd[i];
+        const realizedPnl = posRealizedPnl[i];
 
         if (price == null || ts == null) continue;
 
@@ -143,7 +145,7 @@ if (posTimes.length > 0) {
         if (segData.length > 0 && (gap > 90000 || sideChanged)) {
             // Продлеваем последнюю точку на одну свечу вперёд
             const lastPt = segData[segData.length - 1];
-            segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional });
+            segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional, realizedPnl: lastPt.realizedPnl });
 
             const lineColor = segSide === 'long' ? '#00FF66'
                 : segSide === 'short' ? '#FF1A1A'
@@ -162,13 +164,13 @@ if (posTimes.length > 0) {
             segPrice = price;
         }
 
-        segData.push({ value: [ts, price], notional: notional });
+        segData.push({ value: [ts, price], notional: notional, realizedPnl: realizedPnl });
     }
 
     // Закрываем последний сегмент
     if (segData.length > 0) {
         const lastPt = segData[segData.length - 1];
-        segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional });
+        segData.push({ value: [lastPt.value[0] + 60000, lastPt.value[1]], notional: lastPt.notional, realizedPnl: lastPt.realizedPnl });
         const lineColor = segSide === 'long' ? '#00FF66'
             : segSide === 'short' ? '#FF1A1A'
                 : '#FFD700';
@@ -742,11 +744,17 @@ return {
                     const ptData = p.data;
                     const currentPrice = ptData && ptData.value ? ptData.value[1] : (Array.isArray(ptData) ? ptData[1] : null);
                     const currentNotional = ptData && ptData.notional != null ? ptData.notional : null;
+                    const currentRealizedPnl = ptData && ptData.realizedPnl != null ? ptData.realizedPnl : null;
                     lines.push('');
                     lines.push(`<b style="color: ${sideColor};">📌 Position</b>`);
                     lines.push(`Side: ${meta.posSide}`);
                     lines.push(`Price: ${currentPrice != null ? Number(currentPrice).toFixed(4) : 'N/A'}`);
                     lines.push(`Size: $${currentNotional != null ? Number(currentNotional).toFixed(2) : 'N/A'}`);
+                    if (currentRealizedPnl != null) {
+                        const pnlColor = currentRealizedPnl >= 0 ? '#00FF66' : '#FF4D4D';
+                        const pnlSign = currentRealizedPnl >= 0 ? '+' : '';
+                        lines.push(`Realized PnL: <span style="color:${pnlColor};">${pnlSign}${Number(currentRealizedPnl).toFixed(4)}</span>`);
+                    }
                 });
             }
 
