@@ -42,7 +42,9 @@ public class TradeEventManager extends AbstractTradeEventManager {
     protected AccountStateMonitor accountStateMonitor;
     protected OrderCreationParamsRepository orderCreationParamsRepository;
 
-    /** Время последнего успешно размещённого ордера. */
+    /**
+     * Время последнего успешно размещённого ордера.
+     */
     private volatile Instant lastOrderTime = null;
 
     @Inject
@@ -104,11 +106,11 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         // Закрываем стоп-лосс ордера, которые относятся к несуществующим / противоположным позициям
         if (pendingOrders != null && !pendingOrders.isEmpty()) {
-            boolean isLongPosition  = hasLongPosition(positions);
+            boolean isLongPosition = hasLongPosition(positions);
             boolean isShortPosition = hasShortPosition(positions);
 
             for (PendingOrder order : pendingOrders) {
-                boolean isLongOrder  = "long".equalsIgnoreCase(order.posSide);
+                boolean isLongOrder = "long".equalsIgnoreCase(order.posSide);
                 boolean isShortOrder = "short".equalsIgnoreCase(order.posSide);
 
                 boolean shouldCancel = (isLongOrder && isLongPosition) || (isShortOrder && isShortPosition);
@@ -123,6 +125,13 @@ public class TradeEventManager extends AbstractTradeEventManager {
                     }
                 }
             }
+        }
+
+        // Проверяем есть ли противоположная позиция что бы закрывать ее
+        if (!hasOppositePosition && (isShort && orderCreationParams.shortOnlyClose || !isShort && orderCreationParams.longOnlyClose)) {
+            log.warn("⚠️ Получен сигнал на открытие {} позиции, но противоположная позиция {} отсутствует. Параметры стратегии требуют закрывать только противоположные позиции, новый ордер не будет открыт.",
+                    dirLabel, oppositeLabel);
+            return;
         }
 
         BigDecimal currentPositionSize = positions.isEmpty() ? BigDecimal.ZERO : positions.getFirst().notionalUsd;
@@ -182,8 +191,6 @@ public class TradeEventManager extends AbstractTradeEventManager {
             log.warn("⚠️ Ордер не был успешно размещён, событие не сохранено в БД. orderExecutionResult={}", orderExecutionResult);
         }
     }
-
-
 
 
     /**
