@@ -26,6 +26,15 @@ public class ADXAngleColumn extends AbstractColumn<ADXAngleIndicatorM> {
                 CandleTimeframe.CANDLE_1M,
                 CandleTimeframe.CANDLE_1H,
                 MetadataType.METRIC
+        ),
+
+        ADX_ANGLE_VALUE_1M_ON_4H(
+                "metric_adx_angle_1m_on_4h",
+                "Угол наклона ADX (период 14) на таймфрейме 4h для индекса 1m",
+                "numeric(8, 4)",
+                CandleTimeframe.CANDLE_1M,
+                CandleTimeframe.CANDLE_4H,
+                MetadataType.METRIC
         );
 
         private final ColumnMetadata metadata;

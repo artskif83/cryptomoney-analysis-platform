@@ -8,5 +8,6 @@ public record TradeEventData(
         TradeEventType type,
         Direction direction,
         CandleTimeframe timeframe,
-        Integer trendStrength
+        Integer trendStrength,
+        Integer trendStability
 ) {}

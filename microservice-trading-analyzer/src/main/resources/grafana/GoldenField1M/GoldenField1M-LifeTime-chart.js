@@ -19,6 +19,7 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
 const rsi14Raw = col("metric_rsi_14_1m", 0);
+const adxAngle4hRaw = col("metric_adx_angle_1m_on_4h", 0);
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
@@ -80,6 +81,11 @@ const doubleMaValue1h = times.map((t, i) => [
 const rsi14 = times.map((t, i) => [
     t,
     rsi14Raw[i] == null ? null : rsi14Raw[i]
+]);
+
+const adxAngle4h = times.map((t, i) => [
+    t,
+    adxAngle4hRaw[i] == null ? null : adxAngle4hRaw[i]
 ]);
 
 
@@ -297,9 +303,10 @@ return {
     animation: false,
 
     grid: [
-        { left: '5%', right: '5%', top: 10, height: '55%' },      // свечи (grid 0)
-        { left: '5%', right: '5%', top: '68%', height: '12%' },   // Double MA value 1m on 1h (grid 1)
-        { left: '5%', right: '5%', top: '83%', height: '12%' }    // RSI 14 (grid 2)
+        { left: '5%', right: '5%', top: 10, height: '48%' },      // свечи (grid 0)
+        { left: '5%', right: '5%', top: '61%', height: '10%' },   // Double MA value 1m on 1h (grid 1)
+        { left: '5%', right: '5%', top: '74%', height: '10%' },   // RSI 14 (grid 2)
+        { left: '5%', right: '5%', top: '87%', height: '10%' }    // ADX Angle 1m on 4h (grid 3)
     ],
 
     xAxis: [
@@ -345,6 +352,26 @@ return {
         {
             type: 'time',
             gridIndex: 2,
+            boundaryGap: false,
+            axisLabel: {
+                formatter: {
+                    year: '{yyyy}',
+                    month: '{dd}.{MM}',
+                    day: '{dd}.{MM}',
+                    hour: '{dd}.{MM} {HH}:{mm}',
+                    minute: '{dd}.{MM} {HH}:{mm}',
+                    second: '{HH}:{mm}:{ss}',
+                    millisecond: '{HH}:{mm}:{ss}'
+                }
+            },
+            axisPointer: {
+                show: true,
+                label: { show: false }
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 3,
             boundaryGap: false,
             axisLabel: {
                 formatter: {
@@ -411,11 +438,26 @@ return {
                     }
                 }
             }
+        },
+        {
+            scale: true,
+            gridIndex: 3,
+            axisLabel: {
+                formatter: (v) => v.toFixed(1)
+            },
+            axisPointer: {
+                label: {
+                    formatter: (params) => {
+                        const v = params.value;
+                        return v == null ? '' : `${v.toFixed(2)}`;
+                    }
+                }
+            }
         }
     ],
 
     axisPointer: {
-        link: [{ xAxisIndex: [0, 1, 2] }]
+        link: [{ xAxisIndex: [0, 1, 2, 3] }]
     },
 
     toolbox: {
@@ -430,7 +472,7 @@ return {
     dataZoom: [
         {
             type: 'inside',
-            xAxisIndex: [0, 1, 2],
+            xAxisIndex: [0, 1, 2, 3],
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             moveOnMouseWheel: false,
@@ -511,6 +553,35 @@ return {
                         { yAxis: 0, itemStyle: { color: 'rgba(105, 240, 174, 0.12)' } },
                         { yAxis: 30 }
                     ]
+                ]
+            }
+        },
+
+        // --- ADX Angle 1m on 4h ---
+        {
+            name: 'ADX Angle (1m on 4h)',
+            type: 'line',
+            data: adxAngle4h.map(p => {
+                const v = p[1];
+                let color = '#FFD54F';
+                if (v != null && v > 0) color = '#69F0AE';
+                if (v != null && v < 0) color = '#FF5252';
+                return { value: p, itemStyle: { color } };
+            }),
+            xAxisIndex: 3,
+            yAxisIndex: 3,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 1.5, color: '#FFD54F' },
+            markLine: {
+                silent: true,
+                symbol: 'none',
+                data: [
+                    {
+                        yAxis: 0,
+                        lineStyle: { type: 'dashed', color: '#888', width: 1 },
+                        label: { formatter: '0', position: 'end', color: '#888' }
+                    }
                 ]
             }
         },
@@ -642,6 +713,9 @@ return {
             const rsi14Point = list.find(p => p.seriesName === 'RSI 14');
             const rsi14Val = rsi14Point && rsi14Point.data && rsi14Point.data.value ? rsi14Point.data.value[1] : null;
 
+            const adxAngle4hPoint = list.find(p => p.seriesName === 'ADX Angle (1m on 4h)');
+            const adxAngle4hVal = adxAngle4hPoint && adxAngle4hPoint.data && adxAngle4hPoint.data.value ? adxAngle4hPoint.data.value[1] : null;
+
             // Торговые события
             const tradeEventPoint = list.find(p =>
                 p.seriesName === 'Trade Event LONG' ||
@@ -708,6 +782,7 @@ return {
             if (lowerShadowPct != null) lines.push(`Lower shadow: ${lowerShadowPct.toFixed(2)}%`);
             if (doubleMa1hOn1hVal != null) lines.push(`Double MA value (1m on 1h): ${doubleMa1hOn1hVal.toFixed(2)}`);
             if (rsi14Val != null) lines.push(`RSI 14 (1m on 5m): ${rsi14Val.toFixed(2)}`);
+            if (adxAngle4hVal != null) lines.push(`ADX Angle (1m on 4h): ${adxAngle4hVal.toFixed(2)}`);
 
             // Информация о торговых событиях
             if (tradeEventPoint) {

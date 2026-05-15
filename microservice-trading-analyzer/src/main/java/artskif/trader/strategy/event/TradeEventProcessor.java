@@ -69,4 +69,13 @@ public interface TradeEventProcessor {
      * @return сила тренда в виде целого числа
      */
     Integer getTrendStrength(int index, boolean isLiveSeries);
+
+    /**
+     * Получить направление тренда для текущего бара
+     *
+     * @param index         индекс бара для проверки
+     * @param isLiveSeries  флаг, указывающий, является ли серия живой (для получения данных в реальном времени)
+     * @return направление тренда в виде целого числа (например, -1 для нисходящего, 0 для бокового, 1 для восходящего)
+     */
+    Integer getTrendStability(int index, boolean isLiveSeries);
 }

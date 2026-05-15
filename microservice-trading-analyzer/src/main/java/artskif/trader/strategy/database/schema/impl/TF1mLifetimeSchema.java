@@ -42,6 +42,7 @@ public class TF1mLifetimeSchema extends AbstractSchema {
         return new ArrayList<>(AbstractColumn.getColumnMetadata(
                 List.of(MultiMAIndicatorColumn.MultiMAColumnType.MULTI_MA_VALUE_1M_ON_1H,
                         RSIColumn.RSIColumnType.RSI_1M,
+                        ADXAngleColumn.ADXAngleColumnType.ADX_ANGLE_VALUE_1M_ON_4H,
                         CandleResistanceStrengthColumn.CandleResistanceStrengthColumnType.INDEX_1M),
                 contract
         ));

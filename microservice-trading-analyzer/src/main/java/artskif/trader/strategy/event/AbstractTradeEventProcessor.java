@@ -1,7 +1,11 @@
 package artskif.trader.strategy.event;
 
+import artskif.trader.candle.CandleTimeframe;
+import artskif.trader.strategy.event.common.Direction;
 import artskif.trader.strategy.event.common.TradeEventData;
+import artskif.trader.strategy.indicators.base.ADXAngleIndicator;
 import artskif.trader.strategy.indicators.base.MultiMAIndicator;
+import artskif.trader.strategy.indicators.multi.ADXAngleIndicatorM;
 import artskif.trader.strategy.indicators.multi.ClosePriceIndicatorM;
 import artskif.trader.strategy.indicators.multi.MultiMAIndicatorM;
 import artskif.trader.strategy.indicators.multi.RSIIndicatorM;
@@ -23,6 +27,8 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
     @Inject
     protected MultiMAIndicatorM multiMAIndicatorM;
 
+    @Inject
+    protected ADXAngleIndicatorM adxAngleIndicatorM;
     /**
      * Получить силу тренда для текущего бара.
      * Возвращает 0 если один из индикаторов недоступен.
@@ -49,6 +55,25 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
         return multiMAIndicatorValue != null ? multiMAIndicatorValue.intValue() : 0;
     }
 
+
+    @Override
+    public Integer getTrendStability(int index, boolean isLiveSeries) {
+        ADXAngleIndicator adxAngleIndicator  = adxAngleIndicatorM != null
+                ? adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_4H, isLiveSeries)
+                : null;
+
+        RSIIndicator rsiIndicator = rsiIndicatorM != null
+                ? rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries)
+                : null;
+
+        int higherTfIndex = IndicatorUtils.mapToHigherTfIndex(
+                rsiIndicator.getBarSeries().getBar(index),
+                adxAngleIndicator.getBarSeries()
+        );
+        Num value = adxAngleIndicator.getValue(higherTfIndex);
+        return value != null ? value.intValue() : 0;
+    }
+
     /**
      * Проверить, произошел ли торговый сигнал на данном баре
      *
@@ -62,7 +87,8 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
                 getTradeEventType(),
                 getTradeDirection(),
                 getTimeframe(),
-                getTrendStrength(index, true)
+                getTrendStrength(index, true),
+                getTrendStability(index, true)
         );
     }
 }
