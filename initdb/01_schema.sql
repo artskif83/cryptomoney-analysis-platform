@@ -215,17 +215,17 @@ INSERT INTO order_creation_params (trend_strength, trend_stability_from, trend_s
                                    short_deposit_risk_percent, short_only_close,
                                    stop_loss_deviation_percent, wait_minutes, max_position_size_percent,
                                    close_opposite_long, close_opposite_short)
-VALUES ( 5, 0, 100, 0,  false, 0,  true, 3, 30, 100, true, false),
+VALUES ( 5, 0, 100, 0,  false, 0,  true, 3, 30, 100, true, true),
        ( 3, 0, 100, 10,  false, 5,  true, 3, 30, 100, false, false),
        ( 1, 0, 100, 20, false, 0, true, 3, 30, 100, false, false),
        (-1, 0, 100, 0, true, 20, false, 3, 30, 100, false, false),
        (-3, 0, 100, 5,  true, 10,  false, 3, 30, 100, false, false),
-       (-5, 0, 100, 0,  true, 0,  false, 3, 30, 100, false, true),
+       (-5, 0, 100, 0,  true, 0,  false, 3, 30, 100, true, true),
        -- trend_stability диапазон от -100 до 0
-       ( 5, -100, 0, 0,  true, 0,  false, 3, 30, 100, true, false),
+       ( 5, -100, 0, 0,  true, 0,  false, 3, 30, 100, true, true),
        ( 3, -100, 0, 0,  true, 20,  false, 3, 30, 100, false, false),
        ( 1, -100, 0, 0, true, 10, false, 3, 30, 100, false, false),
        (-1, -100, 0, 10, false, 0, true, 3, 30, 100, false, false),
        (-3, -100, 0, 20,  false, 0,  true, 3, 30, 100, false, false),
-       (-5, -100, 0, 0,  false, 0,  true, 3, 30, 100, false, true);
+       (-5, -100, 0, 0,  false, 0,  true, 3, 30, 100, true, true);
 

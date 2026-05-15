@@ -21,6 +21,7 @@ public record TradeEvent(
                 ", timeframe=" + tradeEventData.timeframe() +
                 ", timestamp=" + timestamp +
                 ", isTest=" + isTest +
+                ", tradeEventData=" + tradeEventData +
                 '}';
     }
 }

@@ -86,6 +86,8 @@ public class TradeEventManager extends AbstractTradeEventManager {
         Integer trendStability = event.tradeEventData().trendStability();
         OrderCreationParams orderCreationParams = orderCreationParamsRepository.findByTrendStrengthAndStability(trendStrength, trendStability);
 
+        log.debug("📋 Параметры создания ордера: {}", orderCreationParams);
+
         if (orderCreationParams == null) {
             log.warn("⚠️ Параметры создания ордера не найдены для силы тренда: {}", trendStrength);
             return;

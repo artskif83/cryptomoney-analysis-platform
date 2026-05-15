@@ -136,5 +136,24 @@ public class OrderCreationParams extends PanacheEntityBase {
         this.closeOppositeLong = closeOppositeLong;
         this.closeOppositeShort = closeOppositeShort;
     }
-}
 
+    @Override
+    public String toString() {
+        return "OrderCreationParams{" +
+                "id=" + id +
+                ", trendStrength=" + trendStrength +
+                ", trendStabilityFrom=" + trendStabilityFrom +
+                ", trendStabilityTo=" + trendStabilityTo +
+                ", longDepositRiskPercent=" + longDepositRiskPercent +
+                ", longOnlyClose=" + longOnlyClose +
+                ", shortDepositRiskPercent=" + shortDepositRiskPercent +
+                ", shortOnlyClose=" + shortOnlyClose +
+                ", stopLossDeviationPercent=" + stopLossDeviationPercent +
+                ", waitMinutes=" + waitMinutes +
+                ", maxPositionSizePercent=" + maxPositionSizePercent +
+                ", closeOppositeLong=" + closeOppositeLong +
+                ", closeOppositeShort=" + closeOppositeShort +
+                ", createdAt=" + createdAt +
+                '}';
+    }
+}
