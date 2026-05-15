@@ -29,6 +29,18 @@ public class OrderCreationParams extends PanacheEntityBase {
     public Integer trendStrength;
 
     /**
+     * Начало диапазона стабильности тренда (включительно).
+     */
+    @Column(name = "trend_stability_from", nullable = false)
+    public Integer trendStabilityFrom;
+
+    /**
+     * Конец диапазона стабильности тренда (включительно).
+     */
+    @Column(name = "trend_stability_to", nullable = false)
+    public Integer trendStabilityTo;
+
+    /**
      * Процент депозита, которым рискуем при достижении стоплоса для LONG позиции.
      */
     @Column(name = "long_deposit_risk_percent", nullable = false, precision = 10, scale = 4)
@@ -100,6 +112,8 @@ public class OrderCreationParams extends PanacheEntityBase {
     }
 
     public OrderCreationParams(Integer trendStrength,
+                               Integer trendStabilityFrom,
+                               Integer trendStabilityTo,
                                BigDecimal longDepositRiskPercent,
                                boolean longOnlyClose,
                                BigDecimal shortDepositRiskPercent,
@@ -110,6 +124,8 @@ public class OrderCreationParams extends PanacheEntityBase {
                                boolean closeOppositeLong,
                                boolean closeOppositeShort) {
         this.trendStrength = trendStrength;
+        this.trendStabilityFrom = trendStabilityFrom;
+        this.trendStabilityTo = trendStabilityTo;
         this.longDepositRiskPercent = longDepositRiskPercent;
         this.longOnlyClose = longOnlyClose;
         this.shortDepositRiskPercent = shortDepositRiskPercent;

@@ -55,14 +55,18 @@ public class OrderCreationParamsRepository implements PanacheRepositoryBase<Orde
     }
 
     /**
-     * Возвращает параметры создания ордера по значению trendStrength.
+     * Возвращает параметры создания ордера по значению trendStrength и trendStability.
+     * Запись считается подходящей, если trendStability входит в диапазон
+     * [trendStabilityFrom, trendStabilityTo] включительно.
      *
-     * @param trendStrength значение силы тренда
+     * @param trendStrength   значение силы тренда
+     * @param trendStability  значение стабильности тренда
      * @return найденный объект параметров или null
      */
     @Transactional
-    public OrderCreationParams findByTrendStrength(int trendStrength) {
-        return find("trendStrength", trendStrength).firstResult();
+    public OrderCreationParams findByTrendStrengthAndStability(int trendStrength, int trendStability) {
+        return find("trendStrength = ?1 AND trendStabilityFrom <= ?2 AND trendStabilityTo >= ?2",
+                trendStrength, trendStability).firstResult();
     }
 }
 

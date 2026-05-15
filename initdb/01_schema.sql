@@ -194,6 +194,8 @@ CREATE TABLE IF NOT EXISTS order_creation_params
 (
     id                            bigserial      PRIMARY KEY,
     trend_strength                integer        NOT NULL CHECK (trend_strength BETWEEN -100 AND 100),
+    trend_stability_from          integer        NOT NULL,
+    trend_stability_to            integer        NOT NULL,
     long_deposit_risk_percent     numeric(10, 4) NOT NULL,
     long_only_close               boolean        NOT NULL DEFAULT false,
     short_deposit_risk_percent    numeric(10, 4) NOT NULL,
@@ -208,14 +210,22 @@ CREATE TABLE IF NOT EXISTS order_creation_params
 
 -- Дефолтные значения для order_creation_params
 -- long/short_deposit_risk_percent: чем ближе trend_strength к 0, тем выше риск (±1→10, ±3→6, ±5→2)
-INSERT INTO order_creation_params (trend_strength, long_deposit_risk_percent, long_only_close,
+INSERT INTO order_creation_params (trend_strength, trend_stability_from, trend_stability_to,
+                                   long_deposit_risk_percent, long_only_close,
                                    short_deposit_risk_percent, short_only_close,
                                    stop_loss_deviation_percent, wait_minutes, max_position_size_percent,
                                    close_opposite_long, close_opposite_short)
-VALUES ( 5, 5,  false, 2,  true, 3, 30, 100, false, true),
-       ( 3, 10,  false, 5,  true, 3, 30, 100, false, true),
-       ( 1, 20, false, 10, true, 3, 30, 100, false, true),
-       (-1, 10, true, 20, false, 3, 30, 100, true, false),
-       (-3, 5,  true, 10,  false, 3, 30, 100, true, false),
-       (-5, 2,  true, 5,  false, 3, 30, 100, true, false);
+VALUES ( 5, 0, 100, 5,  false, 2,  true, 3, 30, 100, false, true),
+       ( 3, 0, 100, 10,  false, 5,  true, 3, 30, 100, false, true),
+       ( 1, 0, 100, 20, false, 10, true, 3, 30, 100, false, true),
+       (-1, 0, 100, 10, true, 20, false, 3, 30, 100, true, false),
+       (-3, 0, 100, 5,  true, 10,  false, 3, 30, 100, true, false),
+       (-5, 0, 100, 2,  true, 5,  false, 3, 30, 100, true, false),
+       -- trend_stability диапазон от -100 до 0
+       ( 5, -100, 0, 5,  false, 2,  true, 3, 30, 100, false, true),
+       ( 3, -100, 0, 10,  false, 5,  true, 3, 30, 100, false, true),
+       ( 1, -100, 0, 20, false, 10, true, 3, 30, 100, false, true),
+       (-1, -100, 0, 10, true, 20, false, 3, 30, 100, true, false),
+       (-3, -100, 0, 5,  true, 10,  false, 3, 30, 100, true, false),
+       (-5, -100, 0, 2,  true, 5,  false, 3, 30, 100, true, false);
 
