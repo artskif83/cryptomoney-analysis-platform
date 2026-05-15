@@ -105,6 +105,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
         boolean hasAnyOrder = pendingOrders != null && !pendingOrders.isEmpty();
         boolean closeOpposite = isShort ? hasOppositePosition && orderCreationParams.closeOppositeLong : hasOppositePosition && orderCreationParams.closeOppositeShort;
 
+
         // Закрываем стоп-лосс ордера, которые относятся к несуществующим / противоположным позициям
         if (pendingOrders != null && !pendingOrders.isEmpty()) {
             boolean isLongPosition = hasLongPosition(positions);
@@ -137,9 +138,16 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         BigDecimal currentPositionSize = positions.isEmpty() ? BigDecimal.ZERO : positions.getFirst().notionalUsd;
 
+
         BigDecimal calculatedPositionSize = calculatePositionSize(accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt(),
                 isShort ? orderCreationParams.shortDepositRiskPercent : orderCreationParams.longDepositRiskPercent,
                 closeOpposite ? currentPositionSize : BigDecimal.ZERO);
+
+        if (calculatedPositionSize.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("⚠️ Рассчитанный размер позиции для {} равен нулю или отрицательный ({}), новый ордер не будет открыт.",
+                    dirLabel, calculatedPositionSize);
+            return;
+        }
 
         // Проверяем минимальный интервал между открытием ордеров
         if (lastOrderTime != null && orderCreationParams.waitMinutes != null && orderCreationParams.waitMinutes > 0
@@ -148,6 +156,22 @@ public class TradeEventManager extends AbstractTradeEventManager {
             if (minutesSinceLast < orderCreationParams.waitMinutes) {
                 log.warn("⏳ С момента последнего ордера прошло {} мин., минимальный интервал {} мин. Новый ордер не открывается.",
                         minutesSinceLast, orderCreationParams.waitMinutes);
+                return;
+            }
+        }
+
+        if (orderCreationParams.maxPositionSizePercent != null && orderCreationParams.maxPositionSizePercent.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal maxAllowedSize = accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt()
+                    .multiply(orderCreationParams.maxPositionSizePercent)
+                    .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            BigDecimal totalPositionSize = calculatedPositionSize.add(currentPositionSize);
+            boolean closeOnly = isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose;
+
+            if (!closeOpposite && !closeOnly && totalPositionSize.compareTo(maxAllowedSize) > 0) {
+                log.warn("⚠️ Рассчитанный размер позиции ({}) превышает максимальный допустимый размер ({}), установленный параметрами стратегии. Новый ордер не будет открыт.",
+                        calculatedPositionSize, maxAllowedSize);
                 return;
             }
         }
