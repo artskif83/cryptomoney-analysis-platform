@@ -83,6 +83,32 @@ const rsi14 = times.map((t, i) => [
     rsi14Raw[i] == null ? null : rsi14Raw[i]
 ]);
 
+// Серии для раскраски линии RSI по зонам
+const rsi14Normal = times.map((t, i) => {
+    const v = rsi14Raw[i];
+    return [t, (v != null && v >= 31 && v <= 69) ? v : null];
+});
+const rsi14Overbought = times.map((t, i) => {
+    const v = rsi14Raw[i];
+    // Включаем точку ниже 69 как "мост" для стыковки с нормальной линией
+    if (v == null) return [t, null];
+    if (v > 69) return [t, v];
+    // Одна мостовая точка: предыдущая точка была > 69, текущая <= 69
+    const prev = rsi14Raw[i - 1];
+    if (prev != null && prev > 69 && v <= 69) return [t, v];
+    return [t, null];
+});
+const rsi14Oversold = times.map((t, i) => {
+    const v = rsi14Raw[i];
+    // Включаем точку выше 31 как "мост" для стыковки с нормальной линией
+    if (v == null) return [t, null];
+    if (v < 31) return [t, v];
+    // Одна мостовая точка: предыдущая точка была < 31, текущая >= 31
+    const prev = rsi14Raw[i - 1];
+    if (prev != null && prev < 31 && v >= 31) return [t, v];
+    return [t, null];
+});
+
 const adxAngle4h = times.map((t, i) => [
     t,
     adxAngle4hRaw[i] == null ? null : adxAngle4hRaw[i]
@@ -456,6 +482,7 @@ return {
         }
     ],
 
+
     axisPointer: {
         link: [{ xAxisIndex: [0, 1, 2, 3] }]
     },
@@ -514,13 +541,7 @@ return {
         {
             name: 'RSI 14',
             type: 'line',
-            data: rsi14.map(p => {
-                const v = p[1];
-                let color = '#90CAF9';
-                if (v != null && v >= 70) color = '#FF5252';
-                if (v != null && v <= 30) color = '#69F0AE';
-                return { value: p, itemStyle: { color } };
-            }),
+            data: rsi14Normal,
             xAxisIndex: 2,
             yAxisIndex: 2,
             symbol: 'none',
@@ -546,15 +567,41 @@ return {
                 silent: true,
                 data: [
                     [
-                        { yAxis: 70, itemStyle: { color: 'rgba(255, 82, 82, 0.12)' } },
+                        { yAxis: 69, itemStyle: { color: 'rgba(180, 30, 30, 0.55)' } },
                         { yAxis: 100 }
                     ],
                     [
-                        { yAxis: 0, itemStyle: { color: 'rgba(105, 240, 174, 0.12)' } },
-                        { yAxis: 30 }
+                        { yAxis: 31, itemStyle: { color: 'rgba(200, 230, 200, 0.08)' } },
+                        { yAxis: 69 }
+                    ],
+                    [
+                        { yAxis: 0, itemStyle: { color: 'rgba(20, 120, 60, 0.55)' } },
+                        { yAxis: 31 }
                     ]
                 ]
             }
+        },
+        {
+            name: 'RSI 14 Overbought',
+            type: 'line',
+            data: rsi14Overbought,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 2.5, color: '#FF1744' },
+            showInLegend: false
+        },
+        {
+            name: 'RSI 14 Oversold',
+            type: 'line',
+            data: rsi14Oversold,
+            xAxisIndex: 2,
+            yAxisIndex: 2,
+            symbol: 'none',
+            connectNulls: false,
+            lineStyle: { width: 2.5, color: '#00E676' },
+            showInLegend: false
         },
 
         // --- ADX Angle 1m on 4h ---
@@ -710,8 +757,10 @@ return {
             const doubleMa1hOn1hPoint = list.find(p => p.seriesName === 'Double MA value (1m on 1h)');
             const doubleMa1hOn1hVal = doubleMa1hOn1hPoint && Array.isArray(doubleMa1hOn1hPoint.data) ? doubleMa1hOn1hPoint.data[1] : null;
 
-            const rsi14Point = list.find(p => p.seriesName === 'RSI 14');
-            const rsi14Val = rsi14Point && rsi14Point.data && rsi14Point.data.value ? rsi14Point.data.value[1] : null;
+            const rsi14Point = list
+                .filter(p => p.seriesName === 'RSI 14' || p.seriesName === 'RSI 14 Overbought' || p.seriesName === 'RSI 14 Oversold')
+                .find(p => Array.isArray(p.data) && p.data[1] != null);
+            const rsi14Val = rsi14Point ? rsi14Point.data[1] : null;
 
             const adxAngle4hPoint = list.find(p => p.seriesName === 'ADX Angle (1m on 4h)');
             const adxAngle4hVal = adxAngle4hPoint && adxAngle4hPoint.data && adxAngle4hPoint.data.value ? adxAngle4hPoint.data.value[1] : null;
