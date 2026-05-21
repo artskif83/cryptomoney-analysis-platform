@@ -59,7 +59,7 @@ public abstract class AbstractTradeEventProcessor implements TradeEventProcessor
     @Override
     public Integer getTrendStability(int index, boolean isLiveSeries) {
         ADXAngleIndicator adxAngleIndicator  = adxAngleIndicatorM != null
-                ? adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_4H, isLiveSeries)
+                ? adxAngleIndicatorM.getIndicator(CandleTimeframe.CANDLE_1H, isLiveSeries)
                 : null;
 
         RSIIndicator rsiIndicator = rsiIndicatorM != null

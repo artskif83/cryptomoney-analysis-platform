@@ -19,7 +19,7 @@ let basePrice = closes[closes.length - 1]; // например, последни
 
 const doubleMaValue1hRaw = col("metric_double_ma_value_1m_on_1h", 0);
 const rsi14Raw = col("metric_rsi_14_1m", 0);
-const adxAngle4hRaw = col("metric_adx_angle_1m_on_4h", 0);
+const adxAngle4hRaw = col("metric_adx_angle_1m_on_1h", 0);
 
 // ===== Торговые события (из второго query) =====
 const eventTimes = col("time", 1);
