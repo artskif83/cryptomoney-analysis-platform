@@ -26,7 +26,7 @@ public class GoldenFieldShortEventProcessor extends AbstractTradeEventProcessor 
     @Override
     public boolean shouldMarketEnter(int index, TradingRecord tradingRecord, boolean isLiveSeries) {
         RSIIndicator indicator = rsiIndicatorM.getIndicator(getTimeframe(), isLiveSeries);
-        return indicator.getValue(index) != null && indicator.getValue(index).isGreaterThan(DecimalNum.valueOf(70));
+        return indicator.getValue(index) != null && indicator.getValue(index).isGreaterThan(DecimalNum.valueOf(69));
     }
 
     @Override
