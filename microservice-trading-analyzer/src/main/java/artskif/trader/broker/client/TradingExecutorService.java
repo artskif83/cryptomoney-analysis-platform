@@ -314,6 +314,29 @@ public class TradingExecutorService {
     }
 
     /**
+     * Отменить алго-ордер по его идентификатору.
+     * @param algoId  идентификатор алго-ордера (обязательный)
+     * @param instId  идентификатор инструмента (обязательный, например, "BTC-USDT-SWAP")
+     * @return результат операции отмены
+     * @throws TradingExecutionException если произошла ошибка при отмене алго-ордера
+     */
+    public String cancelAlgoOrder(String algoId, String instId) {
+        log.debug("🔄 Отмена алго-ордера: algoId={}, instId={}", algoId, instId);
+
+        TradingResponse<String> response = executorClient.cancelAlgoOrder(algoId, instId);
+
+        if (!response.success()) {
+            log.error("❌ Ошибка при отмене алго-ордера algoId={}: {} - {}", algoId, response.errorCode(), response.errorMessage());
+            throw new TradingExecutionException(response.errorCode(), response.errorMessage());
+        }
+
+        String result = response.result();
+        log.debug("✅ Алго-ордер algoId={} отменён: {}", algoId, result);
+
+        return result;
+    }
+
+    /**
      * Получить список открытых позиций
      * @param instId опциональный идентификатор инструмента (например, "BTC-USDT-SWAP")
      * @return список открытых позиций

@@ -134,6 +134,16 @@ public interface TradingExecutorApi {
     TradingResponse<String> cancelOrders(@QueryParam("ordId") String ordId, @QueryParam("clOrdId") String clOrdId);
 
     /**
+     * Отменяет алго-ордер по его идентификатору.
+     * @param algoId  Идентификатор алго-ордера (обязательный)
+     * @param instId  Идентификатор инструмента (обязательный, например, "BTC-USDT-SWAP")
+     * @return Результат операции отмены
+     */
+    @DELETE
+    @Path("/orders/algo/cancel")
+    TradingResponse<String> cancelAlgoOrder(@QueryParam("algoId") String algoId, @QueryParam("instId") String instId);
+
+    /**
      * Получает список всех открытых позиций
      * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
      * @return Список открытых позиций

@@ -121,9 +121,9 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
                 if (shouldCancel) {
                     try {
-                        log.info("🗑️ Отмена устаревшего стоп-лосс ордера ordId={} posSide={}: позиции {} не существует",
-                                order.ordId, order.posSide, order.posSide);
-                        tradingExecutorService.cancelOrders(order.ordId, order.clOrdId);
+                        log.info("🗑️ Отмена устаревшего стоп-лосс ордера ordId={} orderSide={}: позиции {} не существует",
+                                order.ordId, order.posSide, isShortPosition ? "ШОРТ" : "ЛОНГ");
+                        tradingExecutorService.cancelAlgoOrder(order.ordId, order.instId);
                     } catch (Exception e) {
                         log.error("❌ Ошибка при отмене ордера ordId={}: {}", order.ordId, e.getMessage(), e);
                     }

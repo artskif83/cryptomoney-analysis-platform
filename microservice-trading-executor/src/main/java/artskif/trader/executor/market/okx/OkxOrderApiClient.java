@@ -805,6 +805,10 @@ public class OkxOrderApiClient extends OkxApiClient implements OrdersClient {
             throw new IllegalArgumentException("instId не может быть пустым");
         }
 
+        if (!instId.endsWith("-SWAP")) {
+            instId = instId + "-SWAP";
+        }
+
         log.debug("🔍 Отмена algo-ордера: algoId={}, instId={}", algoId, instId);
 
         // Формируем тело запроса — массив с одним объектом

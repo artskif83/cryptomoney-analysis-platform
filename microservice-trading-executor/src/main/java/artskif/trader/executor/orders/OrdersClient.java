@@ -112,6 +112,14 @@ public interface OrdersClient {
     boolean cancelOrders(String ordId, String clOrdId) throws Exception;
 
     /**
+     * Отменяет алго-ордер по его идентификатору.
+     * @param algoId  Идентификатор алго-ордера (algoId)
+     * @param instId  Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @return true если отмена прошла успешно
+     */
+    boolean cancelAlgoOrder(String algoId, String instId) throws Exception;
+
+    /**
      * Получает список всех открытых позиций
      * @param instId Опциональный идентификатор инструмента (например, "BTC-USDT-SWAP") для фильтрации позиций
      * @return Список открытых позиций

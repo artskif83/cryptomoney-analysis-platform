@@ -192,6 +192,17 @@ public final class OrderManagerService {
     }
 
     /**
+     * Отменяет алго-ордер по его идентификатору.
+     * @param algoId  Идентификатор алго-ордера
+     * @param instId  Идентификатор инструмента (например, "BTC-USDT-SWAP")
+     * @return true если отмена прошла успешно
+     */
+    public boolean cancelAlgoOrder(String algoId, String instId) throws Exception {
+        log.debug("🔄 Отмена алго-ордера: algoId={}, instId={}", algoId, instId);
+        return exchange.cancelAlgoOrder(algoId, instId);
+    }
+
+    /**
      * Получает список всех открытых позиций
      * @param instId Идентификатор инструмента (например, "BTC-USDT-SWAP") или null для всех позиций
      * @return Список открытых позиций

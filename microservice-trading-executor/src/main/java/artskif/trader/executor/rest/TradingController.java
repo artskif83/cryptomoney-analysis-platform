@@ -357,6 +357,37 @@ public class TradingController implements TradingExecutorApi {
     }
 
     /**
+     * Отменяет алго-ордер по его идентификатору.
+     * @param algoId  Идентификатор алго-ордера (обязательный)
+     * @param instId  Идентификатор инструмента (обязательный, например, "BTC-USDT-SWAP")
+     * @return Результат операции отмены
+     */
+    @Override
+    @DeleteMapping("/orders/algo/cancel")
+    public TradingResponse<String> cancelAlgoOrder(
+            @RequestParam("algoId") String algoId,
+            @RequestParam("instId") String instId) {
+        log.info("📥 Получен запрос на отмену алго-ордера: algoId={}, instId={}", algoId, instId);
+
+        try {
+            boolean success = orderManagerService.cancelAlgoOrder(algoId, instId);
+
+            if (success) {
+                String message = "Алго-ордер (algoId=" + algoId + ") успешно отменён";
+                log.info("✅ {}", message);
+                return TradingResponse.success(message);
+            } else {
+                String message = "Не удалось отменить алго-ордер (algoId=" + algoId + ")";
+                log.error("❌ {}", message);
+                return TradingResponse.error("ALGO_ORDER_CANCELLATION_FAILED", message);
+            }
+        } catch (Exception e) {
+            log.error("❌ Непредвиденная ошибка при отмене алго-ордера: {}", e.getMessage(), e);
+            return TradingResponse.error("INTERNAL_ERROR", "Внутренняя ошибка сервера: " + e.getMessage());
+        }
+    }
+
+    /**
      * Получает список всех открытых позиций
      * @param instId Опциональный параметр идентификатора инструмента (например, "BTC-USDT-SWAP")
      * @return Список открытых позиций
