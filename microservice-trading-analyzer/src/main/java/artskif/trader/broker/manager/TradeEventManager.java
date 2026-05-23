@@ -133,7 +133,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         // Проверяем есть ли противоположная позиция что бы закрывать ее
         if (!hasOppositePosition && (isShort && orderCreationParams.shortOnlyClose || !isShort && orderCreationParams.longOnlyClose)) {
-            log.warn("⚠️ Получен сигнал на открытие {} позиции, но противоположная позиция {} отсутствует. Параметры стратегии требуют закрывать только противоположные позиции, новый ордер не будет открыт.",
+            log.warn("⚠️ Получен сигнал на сокращение(уменьшение) {} позиции, но противоположная позиция {} отсутствует или позиции нет вообще.",
                     dirLabel, oppositeLabel);
             return;
         }
