@@ -208,24 +208,14 @@ CREATE TABLE IF NOT EXISTS order_creation_params
     created_at                    timestamp      NOT NULL DEFAULT NOW()
 );
 
--- Дефолтные значения для order_creation_params
--- long/short_deposit_risk_percent: чем ближе trend_strength к 0, тем выше риск (±1→10, ±3→6, ±5→2)
-INSERT INTO order_creation_params (trend_strength, trend_stability_from, trend_stability_to,
-                                   long_deposit_risk_percent, long_only_close,
-                                   short_deposit_risk_percent, short_only_close,
-                                   stop_loss_deviation_percent, wait_minutes, max_position_size_percent,
-                                   close_opposite_long, close_opposite_short)
-VALUES ( 5, 0, 100, 0,  false, 0,  true, 3, 30, 100, true, true),
-       ( 3, 0, 100, 10,  false, 5,  true, 3, 30, 100, false, false),
-       ( 1, 0, 100, 20, false, 0, true, 3, 30, 100, false, false),
-       (-1, 0, 100, 0, true, 20, false, 3, 30, 100, false, false),
-       (-3, 0, 100, 5,  true, 10,  false, 3, 30, 100, false, false),
-       (-5, 0, 100, 0,  true, 0,  false, 3, 30, 100, true, true),
-       -- trend_stability диапазон от -100 до 0
-       ( 5, -100, 0, 0,  true, 0,  false, 3, 30, 100, true, true),
-       ( 3, -100, 0, 0,  true, 20,  false, 3, 30, 100, false, false),
-       ( 1, -100, 0, 0, true, 10, false, 3, 30, 100, false, false),
-       (-1, -100, 0, 10, false, 0, true, 3, 30, 100, false, false),
-       (-3, -100, 0, 20,  false, 0,  true, 3, 30, 100, false, false),
-       (-5, -100, 0, 0,  false, 0,  true, 3, 30, 100, true, true);
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (1, 5, 1, 100, 10.0000, false, 0.0000, true, 3.0000, 30, 200.0000, false, true, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (3, 1, 1, 100, 20.0000, false, 0.0000, true, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (6, -5, 1, 100, 0.0000, true, 10.0000, false, 3.0000, 30, 200.0000, true, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (4, -1, 1, 100, 0.0000, true, 20.0000, false, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (5, -3, 1, 100, 10.0000, true, 30.0000, false, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (2, 3, 1, 100, 30.0000, false, 10.0000, true, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (12, -5, -100, 0, 30.0000, true, 0.0000, true, 3.0000, 30, 200.0000, true, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (7, 5, -100, 0, 0.0000, true, 30.0000, true, 3.0000, 30, 200.0000, false, true, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (11, -3, -100, 0, 5.0000, false, 0.0000, true, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
+INSERT INTO public.order_creation_params (id, trend_strength, trend_stability_from, trend_stability_to, long_deposit_risk_percent, long_only_close, short_deposit_risk_percent, short_only_close, stop_loss_deviation_percent, wait_minutes, max_position_size_percent, close_opposite_long, close_opposite_short, created_at) VALUES (8, 3, -100, 0, 0.0000, true, 5.0000, false, 3.0000, 30, 200.0000, false, false, '2026-05-15 13:00:04.997987');
 
