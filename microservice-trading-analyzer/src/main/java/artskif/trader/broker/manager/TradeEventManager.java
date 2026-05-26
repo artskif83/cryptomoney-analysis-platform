@@ -171,7 +171,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
             BigDecimal totalPositionSize = calculatedPositionSize.add(currentPositionSize);
             boolean closeOnly = isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose;
 
-            if (!closeOpposite && !closeOnly && totalPositionSize.compareTo(maxAllowedSize) > 0) {
+            if (!closeOpposite && !hasOppositePosition && totalPositionSize.compareTo(maxAllowedSize) > 0) {
                 log.warn("⚠️ Рассчитанный размер позиции ({}) превышает максимальный допустимый размер ({}), установленный параметрами стратегии. Новый ордер не будет открыт.",
                         calculatedPositionSize, maxAllowedSize);
                 return;
