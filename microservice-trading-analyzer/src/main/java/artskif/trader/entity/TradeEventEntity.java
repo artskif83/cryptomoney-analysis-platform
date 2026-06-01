@@ -44,6 +44,24 @@ public class TradeEventEntity extends PanacheEntityBase {
     @Column(name = "take_profit_percentage", precision = 10, scale = 4)
     public BigDecimal takeProfitPercentage;
 
+    @Column(name = "trend_strength")
+    public Integer trendStrength;
+
+    @Column(name = "long_deposit_risk_percent", precision = 10, scale = 4)
+    public BigDecimal longDepositRiskPercent;
+
+    @Column(name = "long_only_close")
+    public Boolean longOnlyClose;
+
+    @Column(name = "short_deposit_risk_percent", precision = 10, scale = 4)
+    public BigDecimal shortDepositRiskPercent;
+
+    @Column(name = "short_only_close")
+    public Boolean shortOnlyClose;
+
+    @Column(name = "max_position_size_percent", precision = 10, scale = 4)
+    public BigDecimal maxPositionSizePercent;
+
     @Column(name = "is_test", nullable = false)
     public Boolean isTest;
 
@@ -60,7 +78,13 @@ public class TradeEventEntity extends PanacheEntityBase {
             CandleTimeframe timeframe,
             String tag,
             Instant timestamp,
-            Boolean isTest
+            Boolean isTest,
+            Integer trendStrength,
+            BigDecimal longDepositRiskPercent,
+            Boolean longOnlyClose,
+            BigDecimal shortDepositRiskPercent,
+            Boolean shortOnlyClose,
+            BigDecimal maxPositionSizePercent
     ) {
         this.id = new TradeEventId(timeframe, tag, timestamp);
         this.uuid = UUID.randomUUID();
@@ -71,6 +95,12 @@ public class TradeEventEntity extends PanacheEntityBase {
         this.stopLossPercentage = stopLossPercentage;
         this.takeProfitPercentage = takeProfitPercentage;
         this.isTest = isTest;
+        this.trendStrength = trendStrength;
+        this.longDepositRiskPercent = longDepositRiskPercent;
+        this.longOnlyClose = longOnlyClose;
+        this.shortDepositRiskPercent = shortDepositRiskPercent;
+        this.shortOnlyClose = shortOnlyClose;
+        this.maxPositionSizePercent = maxPositionSizePercent;
     }
 
     /**

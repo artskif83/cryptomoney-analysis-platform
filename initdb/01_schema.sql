@@ -122,10 +122,18 @@ CREATE TABLE IF NOT EXISTS trade_events
     event_price            numeric(18, 8) NOT NULL,
     stop_loss_percentage   numeric(10, 4),
     take_profit_percentage numeric(10, 4),
+    trend_strength                integer,
+    long_deposit_risk_percent     numeric(10, 4),
+    long_only_close               boolean,
+    short_deposit_risk_percent    numeric(10, 4),
+    short_only_close              boolean,
+    max_position_size_percent     numeric(10, 4),
     is_test                boolean        NOT NULL DEFAULT false,
     created_at             timestamp      NOT NULL DEFAULT NOW(),
     PRIMARY KEY (timeframe, tag, timestamp)
 );
+
+
 
 -- Создаем гипертаблицу для trade_events
 SELECT create_hypertable('trade_events', 'timestamp', if_not_exists => TRUE);

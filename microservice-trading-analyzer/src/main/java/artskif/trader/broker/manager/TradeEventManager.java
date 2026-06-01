@@ -65,7 +65,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
 
         // Выполняем торговые действия
-        if (!brokerConfig.isTradingEnabled()) {
+        if (!brokerConfig.isTradingEnabled() && !event.isTest()) {
             log.warn("🚫 Торговля отключена (broker.trading-enabled=false). Открытие позиции пропущено для события: {}", event);
             return;
         }
@@ -77,7 +77,7 @@ public class TradeEventManager extends AbstractTradeEventManager {
      */
     private void openPosition(TradeEvent event) {
         var snapshot = accountStateMonitor.getCurrentSnapshot();
-        if (snapshot == null || !accountStateMonitor.isSnapshotHealthy()) {
+        if ((snapshot == null || !accountStateMonitor.isSnapshotHealthy()) && !event.isTest()) {
             log.warn("⚠️ Снимок состояния аккаунта недоступен или неактуален, пропускаем торговое действие");
             return;
         }
@@ -99,8 +99,8 @@ public class TradeEventManager extends AbstractTradeEventManager {
 
         log.debug("📈 Получен сигнал на открытие {} позиции", dirLabel);
 
-        List<PendingOrder> pendingOrders = snapshot.getPendingOrders();
-        List<Position> positions = snapshot.getPositions();
+        List<PendingOrder> pendingOrders = event.isTest() ? List.of() : snapshot.getPendingOrders();
+        List<Position> positions = event.isTest() ? List.of() : snapshot.getPositions();
 
         boolean hasOppositePosition = isShort ? hasLongPosition(positions) : hasShortPosition(positions);
         boolean hasAnyPosition = hasLongPosition(positions) || hasShortPosition(positions);
@@ -139,9 +139,9 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         BigDecimal currentPositionSize = positions.isEmpty() ? BigDecimal.ZERO : positions.getFirst().notionalUsd;
+        BigDecimal totalEquityInUsdt = event.isTest() ? BigDecimal.valueOf(1000) : accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt();
 
-
-        BigDecimal calculatedPositionSize = calculatePositionSize(accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt(),
+        BigDecimal calculatedPositionSize = calculatePositionSize(totalEquityInUsdt,
                 isShort ? orderCreationParams.shortDepositRiskPercent : orderCreationParams.longDepositRiskPercent,
                 closeOpposite ? currentPositionSize : BigDecimal.ZERO);
 
@@ -163,13 +163,12 @@ public class TradeEventManager extends AbstractTradeEventManager {
         }
 
         if (orderCreationParams.maxPositionSizePercent != null && orderCreationParams.maxPositionSizePercent.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal maxAllowedSize = accountStateMonitor.getCurrentSnapshot().getTotalEquityInUsdt()
+            BigDecimal maxAllowedSize = totalEquityInUsdt
                     .multiply(orderCreationParams.maxPositionSizePercent)
                     .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
                     .setScale(2, RoundingMode.HALF_UP);
 
             BigDecimal totalPositionSize = calculatedPositionSize.add(currentPositionSize);
-            boolean closeOnly = isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose;
 
             if (!closeOpposite && !hasOppositePosition && totalPositionSize.compareTo(maxAllowedSize) > 0) {
                 log.warn("⚠️ Рассчитанный размер позиции ({}) превышает максимальный допустимый размер ({}), установленный параметрами стратегии. Новый ордер не будет открыт.",
@@ -178,19 +177,26 @@ public class TradeEventManager extends AbstractTradeEventManager {
             }
         }
 
-        FuturesChaseOrderRequest chaseRequest = new FuturesChaseOrderRequest(
-                event.instrument().replace("-SWAP", ""),
-                calculatedPositionSize,
-                orderCreationParams.stopLossDeviationPercent,
-                isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose
-        );
-
         OrderExecutionResult orderExecutionResult;
 
-        if (isShort) {
-            orderExecutionResult = tradingExecutorService.placeFuturesChaseShort(chaseRequest);
+        if (!event.isTest()) {
+            FuturesChaseOrderRequest chaseRequest = new FuturesChaseOrderRequest(
+                    event.instrument().replace("-SWAP", ""),
+                    calculatedPositionSize,
+                    orderCreationParams.stopLossDeviationPercent,
+                    isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose
+            );
+
+            if (isShort) {
+                orderExecutionResult = tradingExecutorService.placeFuturesChaseShort(chaseRequest);
+            } else {
+                orderExecutionResult = tradingExecutorService.placeFuturesChaseLong(chaseRequest);
+            }
         } else {
-            orderExecutionResult = tradingExecutorService.placeFuturesChaseLong(chaseRequest);
+            log.info("🧪 Тестовый режим: ордер на открытие {} позиции не будет размещён. Параметры: instrument={}, positionSize={}, stopLossDeviationPercent={}, closeOnly={}",
+                    dirLabel, event.instrument(), calculatedPositionSize, orderCreationParams.stopLossDeviationPercent,
+                    isShort ? orderCreationParams.shortOnlyClose : orderCreationParams.longOnlyClose);
+            orderExecutionResult = new OrderExecutionResult("TEST-" + System.currentTimeMillis(), BigDecimal.ZERO, null);
         }
 
         // Сохраняем событие в БД только после успешного размещения ордера
@@ -206,7 +212,13 @@ public class TradeEventManager extends AbstractTradeEventManager {
                         event.tradeEventData().timeframe(),
                         event.tag(),
                         event.timestamp(),
-                        event.isTest()
+                        event.isTest(),
+                        orderCreationParams.trendStrength,
+                        orderCreationParams.longDepositRiskPercent,
+                        orderCreationParams.longOnlyClose,
+                        orderCreationParams.shortDepositRiskPercent,
+                        orderCreationParams.shortOnlyClose,
+                        orderCreationParams.maxPositionSizePercent
                 );
                 tradeEventRepository.save(entity);
                 lastOrderTime = Instant.now();
